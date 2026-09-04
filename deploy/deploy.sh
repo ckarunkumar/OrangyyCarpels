@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Orangyy Carpels — Raspberry Pi Production Deployment & Update Script
+# Orangyy Carpels — Production Deployment & Update Script
 # ==============================================================================
 
 set -e
@@ -43,4 +43,5 @@ if command -v nginx >/dev/null 2>&1; then
   sudo nginx -t && sudo systemctl reload nginx || true
 fi
 
-echo "✅ Orangyy Carpels deployed successfully on Raspberry Pi!"
+echo "✅ Orangyy Carpels deployed successfully!"
+
