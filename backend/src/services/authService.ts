@@ -2,8 +2,8 @@ import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
 
 export interface UserSession {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   employeeId: string;
   email: string;
   role: string;
@@ -16,7 +16,7 @@ export interface UserSession {
 }
 
 // In-memory session datastore
-const sessionStore: Record<string, { userId: number }> = {};
+const sessionStore: Record<string, { userId: string }> = {};
 
 export class AuthService {
   /**
@@ -33,11 +33,11 @@ export class AuthService {
     }
 
     const sessionId = crypto.randomBytes(16).toString('hex');
-    sessionStore[sessionId] = { userId: employee.id };
+    sessionStore[sessionId] = { userId: employee.employeeId };
 
     const session: UserSession = {
-      id: employee.id,
-      userId: employee.id,
+      id: employee.employeeId,
+      userId: employee.employeeId,
       employeeId: employee.employeeId,
       email: employee.email,
       role: employee.role || 'Employee',
@@ -60,13 +60,13 @@ export class AuthService {
     if (!record) return null;
 
     const employee = await prisma.employee.findUnique({
-      where: { id: record.userId },
+      where: { employeeId: record.userId },
     });
     if (!employee) return null;
 
     return {
-      id: employee.id,
-      userId: employee.id,
+      id: employee.employeeId,
+      userId: employee.employeeId,
       employeeId: employee.employeeId,
       email: employee.email,
       role: employee.role || 'Employee',
@@ -83,11 +83,11 @@ export class AuthService {
    * Updates user profile fields: phone, location, avatar.
    */
   static async updateProfile(
-    userId: number,
+    userId: string,
     data: { phone?: string; location?: string; avatar?: string | null }
   ): Promise<UserSession> {
     const employee = await prisma.employee.update({
-      where: { id: userId },
+      where: { employeeId: userId },
       data: {
         ...(data.phone !== undefined && { phone: data.phone }),
         ...(data.location !== undefined && { location: data.location }),
@@ -96,8 +96,8 @@ export class AuthService {
     });
 
     return {
-      id: employee.id,
-      userId: employee.id,
+      id: employee.employeeId,
+      userId: employee.employeeId,
       employeeId: employee.employeeId,
       email: employee.email,
       role: employee.role || 'Employee',
@@ -121,3 +121,4 @@ export class AuthService {
     return false;
   }
 }
+

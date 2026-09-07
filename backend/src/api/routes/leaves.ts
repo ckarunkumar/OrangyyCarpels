@@ -61,7 +61,7 @@ const leaveRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string };
     const { action } = request.body as { action: 'approve' | 'reject' };
     try {
-      const record = await CompOffService.approveOrRejectCompOff(request.user, Number(id), action);
+      const record = await CompOffService.approveOrRejectCompOff(request.user, id, action);
       return reply.send(record);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });

@@ -123,7 +123,7 @@ export default function ProjectFormView({ mode, project, clients, employees = []
             <div><label className={labelCls}>Project Name *</label><input ref={inputRef} type="text" placeholder="e.g. Design System V2" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
 
             {isSA ? (
-              <div><label className="flex items-center gap-1 text-[11px] font-bold text-studio-text mb-1"><UserCheck className="w-3.5 h-3.5 text-brand-orange" /> Assign PM</label><select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={inputCls}><option value="">-- Select PM --</option>{pmEmployees.map((emp) => (<option key={emp.id} value={emp.employeeId || String(emp.id)}>{emp.fullName}</option>))}</select></div>
+              <div><label className="flex items-center gap-1 text-[11px] font-bold text-studio-text mb-1"><UserCheck className="w-3.5 h-3.5 text-brand-orange" /> Assign PM</label><select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={inputCls}><option value="">-- Select PM --</option>{pmEmployees.map((emp) => (<option key={emp.employeeId} value={emp.employeeId}>{emp.fullName}</option>))}</select></div>
             ) : (
               <div><label className={labelCls}>Status</label><select value={status} onChange={(e) => setStatus(e.target.value as any)} className={inputCls}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
             )}

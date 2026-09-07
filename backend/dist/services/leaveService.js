@@ -4,31 +4,43 @@ exports.LeaveService = void 0;
 const prisma_1 = require("../lib/prisma");
 class LeaveService {
     static async getBalance(employeeId, year = 2026) {
-        let balance = await prisma_1.prisma.employeeLeaveBalance.findUnique({
-            where: { employeeId_year: { employeeId, year } },
+        const emp = await prisma_1.prisma.employee.findUnique({
+            where: { employeeId },
         });
-        if (!balance) {
-            balance = await prisma_1.prisma.employeeLeaveBalance.create({
-                data: {
-                    employeeId, year, casualQuota: 12, casualUsed: 0, sickQuota: 12,
-                    sickUsed: 0, earnedQuota: 15, earnedUsed: 0, compOffBalance: 0,
-                    optionalHolidaysQuota: 2, optionalHolidaysUsed: 0, wfhMonthlyLimit: 2, wfhUsedThisMonth: 0,
-                },
-            });
-        }
+        const casualQuota = emp?.casualQuota ?? 12;
+        const casualUsed = emp?.casualUsed ?? 0;
+        const sickQuota = emp?.sickQuota ?? 12;
+        const sickUsed = emp?.sickUsed ?? 0;
+        const earnedQuota = emp?.earnedQuota ?? 15;
+        const earnedUsed = emp?.earnedUsed ?? 0;
+        const compOffBalance = emp?.compOffBalance ?? 0;
+        const optionalHolidaysQuota = emp?.optionalHolidaysQuota ?? 2;
+        const optionalHolidaysUsed = emp?.optionalHolidaysUsed ?? 0;
+        const wfhMonthlyLimit = emp?.wfhMonthlyLimit ?? 2;
+        const wfhUsedThisMonth = emp?.wfhUsedThisMonth ?? 0;
         return {
-            employeeId: balance.employeeId, year: balance.year, casualQuota: balance.casualQuota,
-            casualUsed: balance.casualUsed, casualRemaining: Math.max(0, balance.casualQuota - balance.casualUsed),
-            sickQuota: balance.sickQuota, sickUsed: balance.sickUsed, sickRemaining: Math.max(0, balance.sickQuota - balance.sickUsed),
-            earnedQuota: balance.earnedQuota, earnedUsed: balance.earnedUsed, earnedRemaining: Math.max(0, balance.earnedQuota - balance.earnedUsed),
-            compOffBalance: balance.compOffBalance, optionalHolidaysQuota: balance.optionalHolidaysQuota,
-            optionalHolidaysUsed: balance.optionalHolidaysUsed, optionalHolidaysRemaining: Math.max(0, balance.optionalHolidaysQuota - balance.optionalHolidaysUsed),
-            wfhMonthlyLimit: balance.wfhMonthlyLimit, wfhUsedThisMonth: balance.wfhUsedThisMonth,
-            wfhRemainingThisMonth: Math.max(0, balance.wfhMonthlyLimit - balance.wfhUsedThisMonth),
+            employeeId: emp?.employeeId || employeeId,
+            year: emp?.leaveYear || year,
+            casualQuota,
+            casualUsed,
+            casualRemaining: Math.max(0, casualQuota - casualUsed),
+            sickQuota,
+            sickUsed,
+            sickRemaining: Math.max(0, sickQuota - sickUsed),
+            earnedQuota,
+            earnedUsed,
+            earnedRemaining: Math.max(0, earnedQuota - earnedUsed),
+            compOffBalance,
+            optionalHolidaysQuota,
+            optionalHolidaysUsed,
+            optionalHolidaysRemaining: Math.max(0, optionalHolidaysQuota - optionalHolidaysUsed),
+            wfhMonthlyLimit,
+            wfhUsedThisMonth,
+            wfhRemainingThisMonth: Math.max(0, wfhMonthlyLimit - wfhUsedThisMonth),
         };
     }
     static async applyLeave(user, data) {
-        const empId = user.employeeId || `AODE${String(user.id).padStart(4, '0')}`;
+        const empId = user.employeeId;
         const year = Number(data.startDate.slice(0, 4)) || 2026;
         const balance = await this.getBalance(empId, year);
         const isHalfDay = !!data.isHalfDay;
@@ -57,7 +69,7 @@ class LeaveService {
     static async getLeaveRequests(user) {
         const where = {};
         if (user.role === 'Employee') {
-            where.employeeId = user.employeeId || `AODE${String(user.id).padStart(4, '0')}`;
+            where.employeeId = user.employeeId;
         }
         return prisma_1.prisma.leaveRequest.findMany({ where, orderBy: { appliedAt: 'desc' } });
     }
@@ -78,24 +90,23 @@ class LeaveService {
             where: { id },
             data: { status: nextStatus, pmApproval: 'Approved', saApproval: user.role === 'Super Admin' ? 'Approved' : existing.saApproval, approverName: user.fullName },
         });
-        const year = Number(existing.startDate.slice(0, 4)) || 2026;
         if (existing.leaveType === 'Casual Leave') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { casualUsed: { increment: existing.daysCount } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { increment: existing.daysCount } } });
         }
         else if (existing.leaveType === 'Sick Leave') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { sickUsed: { increment: existing.daysCount } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { increment: existing.daysCount } } });
         }
         else if (existing.leaveType === 'Earned Leave') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { earnedUsed: { increment: existing.daysCount } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { increment: existing.daysCount } } });
         }
         else if (existing.leaveType === 'Comp-off') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { compOffBalance: { decrement: existing.daysCount } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { decrement: existing.daysCount } } });
         }
         else if (existing.leaveType === 'Optional Holiday') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { optionalHolidaysUsed: { increment: 1 } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { increment: 1 } } });
         }
         else if (existing.leaveType === 'Work From Home') {
-            await prisma_1.prisma.employeeLeaveBalance.update({ where: { employeeId_year: { employeeId: existing.employeeId, year } }, data: { wfhUsedThisMonth: { increment: 1 } } });
+            await prisma_1.prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { increment: 1 } } });
         }
         return updated;
     }

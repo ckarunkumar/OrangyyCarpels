@@ -65,7 +65,7 @@ const leaveRoutes = async (fastify) => {
         const { id } = request.params;
         const { action } = request.body;
         try {
-            const record = await compOffService_1.CompOffService.approveOrRejectCompOff(request.user, Number(id), action);
+            const record = await compOffService_1.CompOffService.approveOrRejectCompOff(request.user, id, action);
             return reply.send(record);
         }
         catch (err) {

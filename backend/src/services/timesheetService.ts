@@ -42,10 +42,10 @@ export class TimesheetService {
     const blNames = (project?.businessLine || '').split(',').map((s) => s.trim()).filter(Boolean);
     const resolvedServices = allBLs.filter((b) => blNames.includes(b.name)).flatMap((b) => b.services.map((s) => s.name));
     const empMap = new Map<string, string>();
-    const currentEmp = employeeId ? employees.find((e) => String(e.id) === employeeId || e.employeeId === employeeId) : null;
+    const currentEmp = employeeId ? employees.find((e) => e.employeeId === employeeId) : null;
     const currentEmpCode = currentEmp?.employeeId || employeeId || '';
     const currentEmpName = currentEmp?.fullName || '';
-    employees.forEach((e) => { empMap.set(String(e.id), e.fullName); empMap.set(e.employeeId, e.fullName); empMap.set(e.fullName, e.fullName); });
+    employees.forEach((e) => { empMap.set(e.employeeId, e.fullName); empMap.set(e.fullName, e.fullName); });
 
     const assignedNames = (project?.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
     const assignedList = assignedNames.length > 0 ? assignedNames : Array.from(new Set(existing.map((e) => empMap.get(e.employeeId || '') || e.employeeId).filter(Boolean))) as string[];
@@ -72,7 +72,7 @@ export class TimesheetService {
       const dayRecords = existing.filter((e) => e.date === date);
 
       if (currentEmpCode) {
-        const myRec = dayRecords.find((e) => e.employeeId === currentEmpCode || e.employeeId === String(currentEmp?.id));
+        const myRec = dayRecords.find((e) => e.employeeId === currentEmpCode);
         if (myRec) {
           entries.push({ id: myRec.id, sno: dayStr, date, dayLabel, description: myRec.description || '', task: myRec.task || '', hours: myRec.hours || 0, isBillable: myRec.isBillable !== false, isWeekend, resourceName: currentEmpName || empMap.get(myRec.employeeId || '') || '', employeeId: myRec.employeeId || currentEmpCode, isOwner: true, isReadOnly: false, status: myRec.status });
         } else {
@@ -93,7 +93,7 @@ export class TimesheetService {
 
   static async saveDailyEntries(projectId: string, month: string, employeeId: string | undefined, role: string, entries: DailyLogEntry[], targetStatus: string = 'Draft') {
     const employees = await prisma.employee.findMany();
-    const currentEmp = employeeId ? employees.find((e) => String(e.id) === employeeId || e.employeeId === employeeId) : null;
+    const currentEmp = employeeId ? employees.find((e) => e.employeeId === employeeId) : null;
     const currentEmpCode = currentEmp?.employeeId || employeeId;
     const whereClause: any = { projectId, date: { startsWith: month }, ...(currentEmpCode && { employeeId: currentEmpCode }) };
     const existing = await prisma.dailyTimesheetEntry.findMany({ where: whereClause });
@@ -105,7 +105,7 @@ export class TimesheetService {
     if (role === 'Project Manager' && (isPMApproved || isApproved) && targetStatus === 'Draft') throw new Error('PM cannot edit timesheet after PM approval or final lock.');
     if (role === 'Super Admin' && isApproved && targetStatus === 'Draft') throw new Error('Timesheet is locked. Please unlock/reopen to make edits.');
 
-    const userEntries = currentEmpCode ? entries.filter((e) => e.isOwner !== false && (!e.employeeId || e.employeeId === currentEmpCode || e.employeeId === String(currentEmp?.id))) : entries;
+    const userEntries = currentEmpCode ? entries.filter((e) => e.isOwner !== false && (!e.employeeId || e.employeeId === currentEmpCode)) : entries;
     for (const e of userEntries) {
       const rec = e.id ? existing.find((x) => x.id === e.id) : existing.find((x) => x.date === e.date);
       if (rec) {

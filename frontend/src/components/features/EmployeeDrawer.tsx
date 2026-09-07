@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Camera, Trash2 } from 'lucide-react';
 
 export interface Employee {
-  id: number; employeeId?: string; fullName: string; dob?: string; designation: string; department: string;
+  employeeId: string; id?: string; fullName: string; dob?: string; designation: string; department: string;
   email: string; personalEmail?: string; phone: string; secondaryPhone?: string; permanentAddress?: string;
   guardianName?: string; motherName?: string; bloodGroup?: string; linkedInUrl?: string; aadhaarNumber?: string;
   panNumber?: string; joiningDate?: string; relievingDate?: string; status: 'Active' | 'Inactive';
@@ -97,7 +97,7 @@ export default function EmployeeDrawer({ open, mode, employee, onClose, onSaved 
     if (!validate()) return;
     setSaving(true); setServerError(null);
     try {
-      const url = mode === 'edit' ? `/api/employees/${employee!.id}` : '/api/employees';
+      const url = mode === 'edit' ? `/api/employees/${employee!.employeeId}` : '/api/employees';
       const body = JSON.stringify({ ...form, employeeId: form.employeeId.trim().toUpperCase(), panNumber: form.panNumber.trim().toUpperCase() });
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body });
       const data = await res.json();

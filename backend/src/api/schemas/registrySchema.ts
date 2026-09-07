@@ -42,7 +42,7 @@ export const updateEmployeeSchema = {
     type: 'object',
     required: ['id'],
     properties: {
-      id: { type: 'integer' },
+      id: { type: 'string' },
     },
   },
   body: {

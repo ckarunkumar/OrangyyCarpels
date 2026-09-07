@@ -21,10 +21,10 @@ class AuthService {
             return { success: false, error: 'Unauthorized: No employee profile registered with this email.' };
         }
         const sessionId = crypto_1.default.randomBytes(16).toString('hex');
-        sessionStore[sessionId] = { userId: employee.id };
+        sessionStore[sessionId] = { userId: employee.employeeId };
         const session = {
-            id: employee.id,
-            userId: employee.id,
+            id: employee.employeeId,
+            userId: employee.employeeId,
             employeeId: employee.employeeId,
             email: employee.email,
             role: employee.role || 'Employee',
@@ -45,13 +45,13 @@ class AuthService {
         if (!record)
             return null;
         const employee = await prisma_1.prisma.employee.findUnique({
-            where: { id: record.userId },
+            where: { employeeId: record.userId },
         });
         if (!employee)
             return null;
         return {
-            id: employee.id,
-            userId: employee.id,
+            id: employee.employeeId,
+            userId: employee.employeeId,
             employeeId: employee.employeeId,
             email: employee.email,
             role: employee.role || 'Employee',
@@ -68,7 +68,7 @@ class AuthService {
      */
     static async updateProfile(userId, data) {
         const employee = await prisma_1.prisma.employee.update({
-            where: { id: userId },
+            where: { employeeId: userId },
             data: {
                 ...(data.phone !== undefined && { phone: data.phone }),
                 ...(data.location !== undefined && { location: data.location }),
@@ -76,8 +76,8 @@ class AuthService {
             },
         });
         return {
-            id: employee.id,
-            userId: employee.id,
+            id: employee.employeeId,
+            userId: employee.employeeId,
             employeeId: employee.employeeId,
             email: employee.email,
             role: employee.role || 'Employee',

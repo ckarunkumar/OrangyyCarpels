@@ -6,12 +6,14 @@ class EmployeeService {
     static async getEmployees(role) {
         if (role === 'Employee')
             throw new Error('Access Denied: Employees cannot view the full registry.');
-        const employees = await prisma_1.prisma.employee.findMany({ include: { education: true, experience: true } });
+        const employees = await prisma_1.prisma.employee.findMany();
         const todayStr = new Date().toISOString().slice(0, 10);
         return employees.map((emp) => {
             const isRelieved = Boolean(emp.relievingDate && emp.relievingDate <= todayStr);
+            const edu = Array.isArray(emp.education) ? emp.education : [];
+            const exp = Array.isArray(emp.experience) ? emp.experience : [];
             return {
-                id: emp.id, employeeId: emp.employeeId || `AODE${String(emp.id).padStart(4, '0')}`,
+                id: emp.employeeId, employeeId: emp.employeeId,
                 fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
                 department: emp.department, email: emp.email, personalEmail: emp.personalEmail || '',
                 phone: emp.phone, secondaryPhone: emp.secondaryPhone || '', permanentAddress: emp.permanentAddress || '',
@@ -21,8 +23,8 @@ class EmployeeService {
                 joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
                 status: isRelieved ? 'Inactive' : emp.status,
                 role: emp.role, location: emp.location, avatar: emp.avatar,
-                education: emp.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-                experience: emp.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+                education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+                experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
             };
         });
     }
@@ -61,33 +63,31 @@ class EmployeeService {
                 joiningDate: data.joiningDate?.trim() || '', relievingDate,
                 status: isRelieved ? 'Inactive' : (data.status || 'Active'), role: data.role || 'Employee',
                 location: data.location || 'Remote', avatar: data.avatar || null,
+                education: data.education || [],
+                experience: data.experience || [],
             },
-            include: { education: true, experience: true },
         });
+        const edu = Array.isArray(emp.education) ? emp.education : [];
+        const exp = Array.isArray(emp.experience) ? emp.experience : [];
         return {
-            ...emp, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
+            ...emp, id: emp.employeeId, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
             permanentAddress: emp.permanentAddress || '', guardianName: emp.guardianName || '', motherName: emp.motherName || '',
             bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '',
             panNumber: emp.panNumber || '', joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
             status: emp.status, role: emp.role,
-            education: emp.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-            experience: emp.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+            education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+            experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
         };
     }
-    static async updateEmployee(role, id, data) {
+    static async updateEmployee(role, employeeId, data) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can update employee profiles.');
-        const existing = await prisma_1.prisma.employee.findUnique({ where: { id } });
+        const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
         if (!existing)
-            throw new Error(`Employee with ID ${id} not found.`);
-        if (data.employeeId && data.employeeId.trim() !== existing.employeeId) {
-            const dup = await prisma_1.prisma.employee.findUnique({ where: { employeeId: data.employeeId.trim() } });
-            if (dup && dup.id !== id)
-                throw new Error(`Emp ID "${data.employeeId}" already exists.`);
-        }
+            throw new Error(`Employee with ID ${employeeId} not found.`);
         if (data.email && data.email.trim().toLowerCase() !== existing.email) {
             const dup = await prisma_1.prisma.employee.findUnique({ where: { email: data.email.trim().toLowerCase() } });
-            if (dup && dup.id !== id)
+            if (dup && dup.employeeId !== employeeId)
                 throw new Error(`Email "${data.email}" is already registered to another employee.`);
         }
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -97,9 +97,8 @@ class EmployeeService {
         if (isRelieved)
             targetStatus = 'Inactive';
         const updated = await prisma_1.prisma.employee.update({
-            where: { id },
+            where: { employeeId },
             data: {
-                ...(data.employeeId && { employeeId: data.employeeId.trim() }),
                 ...(data.fullName && { fullName: data.fullName.trim() }),
                 ...(data.dob !== undefined && { dob: data.dob.trim() }),
                 ...(data.designation && { designation: data.designation.trim() }),
@@ -123,17 +122,20 @@ class EmployeeService {
                 ...(data.role && { role: data.role }),
                 ...(data.location && { location: data.location }),
                 ...(data.avatar !== undefined && { avatar: data.avatar }),
+                ...(data.education !== undefined && { education: data.education }),
+                ...(data.experience !== undefined && { experience: data.experience }),
             },
-            include: { education: true, experience: true },
         });
+        const edu = Array.isArray(updated.education) ? updated.education : [];
+        const exp = Array.isArray(updated.experience) ? updated.experience : [];
         return {
-            ...updated, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
+            ...updated, id: updated.employeeId, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
             permanentAddress: updated.permanentAddress || '', guardianName: updated.guardianName || '', motherName: updated.motherName || '',
             bloodGroup: updated.bloodGroup || '', linkedInUrl: updated.linkedInUrl || '', aadhaarNumber: updated.aadhaarNumber || '',
             panNumber: updated.panNumber || '', joiningDate: updated.joiningDate || '', relievingDate: updated.relievingDate || '',
             status: updated.status, role: updated.role,
-            education: updated.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-            experience: updated.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+            education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+            experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
         };
     }
 }

@@ -1,5 +1,5 @@
 export interface EmployeeProfile {
-  id: number; employeeId: string; fullName: string; dob?: string; designation: string;
+  employeeId: string; id?: string; fullName: string; dob?: string; designation: string;
   department: string; email: string; personalEmail?: string; phone: string; secondaryPhone?: string;
   permanentAddress?: string; guardianName?: string; motherName?: string; bloodGroup?: string;
   linkedInUrl?: string; aadhaarNumber?: string; panNumber?: string; costRate: string; capacity: string;
@@ -8,6 +8,7 @@ export interface EmployeeProfile {
   education: Array<{ degree: string; school: string; year: string }>;
   experience: Array<{ company: string; role: string; period: string }>;
 }
+
 
 export interface ProjectDetail {
   id: string; name: string;

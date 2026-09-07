@@ -4,12 +4,14 @@ import { EmployeeProfile } from './registryTypes';
 export class EmployeeService {
   static async getEmployees(role: string): Promise<EmployeeProfile[]> {
     if (role === 'Employee') throw new Error('Access Denied: Employees cannot view the full registry.');
-    const employees = await prisma.employee.findMany({ include: { education: true, experience: true } });
+    const employees = await prisma.employee.findMany();
     const todayStr = new Date().toISOString().slice(0, 10);
     return employees.map((emp) => {
       const isRelieved = Boolean(emp.relievingDate && emp.relievingDate <= todayStr);
+      const edu = Array.isArray(emp.education) ? (emp.education as any[]) : [];
+      const exp = Array.isArray(emp.experience) ? (emp.experience as any[]) : [];
       return {
-        id: emp.id, employeeId: emp.employeeId || `AODE${String(emp.id).padStart(4, '0')}`,
+        id: emp.employeeId, employeeId: emp.employeeId,
         fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
         department: emp.department, email: emp.email, personalEmail: emp.personalEmail || '',
         phone: emp.phone, secondaryPhone: emp.secondaryPhone || '', permanentAddress: emp.permanentAddress || '',
@@ -19,13 +21,13 @@ export class EmployeeService {
         joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
         status: isRelieved ? 'Inactive' : (emp.status as 'Active' | 'Inactive'),
         role: emp.role as EmployeeProfile['role'], location: emp.location, avatar: emp.avatar,
-        education: emp.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-        experience: emp.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+        education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+        experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
       };
     });
   }
 
-  static async createEmployee(role: string, data: Omit<EmployeeProfile, 'id' | 'education' | 'experience'>): Promise<EmployeeProfile> {
+  static async createEmployee(role: string, data: Omit<EmployeeProfile, 'id'>): Promise<EmployeeProfile> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can create employee profiles.');
     let targetEmpId = data.employeeId?.trim();
     if (!targetEmpId) {
@@ -59,31 +61,30 @@ export class EmployeeService {
         joiningDate: data.joiningDate?.trim() || '', relievingDate,
         status: isRelieved ? 'Inactive' : (data.status || 'Active'), role: data.role || 'Employee',
         location: data.location || 'Remote', avatar: data.avatar || null,
+        education: (data.education as any) || [],
+        experience: (data.experience as any) || [],
       },
-      include: { education: true, experience: true },
     });
+    const edu = Array.isArray(emp.education) ? (emp.education as any[]) : [];
+    const exp = Array.isArray(emp.experience) ? (emp.experience as any[]) : [];
     return {
-      ...emp, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
+      ...emp, id: emp.employeeId, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
       permanentAddress: emp.permanentAddress || '', guardianName: emp.guardianName || '', motherName: emp.motherName || '',
       bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '',
       panNumber: emp.panNumber || '', joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
       status: emp.status as 'Active' | 'Inactive', role: emp.role as EmployeeProfile['role'],
-      education: emp.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-      experience: emp.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+      education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+      experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
     };
   }
 
-  static async updateEmployee(role: string, id: number, data: Partial<EmployeeProfile>): Promise<EmployeeProfile> {
+  static async updateEmployee(role: string, employeeId: string, data: Partial<EmployeeProfile>): Promise<EmployeeProfile> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can update employee profiles.');
-    const existing = await prisma.employee.findUnique({ where: { id } });
-    if (!existing) throw new Error(`Employee with ID ${id} not found.`);
-    if (data.employeeId && data.employeeId.trim() !== existing.employeeId) {
-      const dup = await prisma.employee.findUnique({ where: { employeeId: data.employeeId.trim() } });
-      if (dup && dup.id !== id) throw new Error(`Emp ID "${data.employeeId}" already exists.`);
-    }
+    const existing = await prisma.employee.findUnique({ where: { employeeId } });
+    if (!existing) throw new Error(`Employee with ID ${employeeId} not found.`);
     if (data.email && data.email.trim().toLowerCase() !== existing.email) {
       const dup = await prisma.employee.findUnique({ where: { email: data.email.trim().toLowerCase() } });
-      if (dup && dup.id !== id) throw new Error(`Email "${data.email}" is already registered to another employee.`);
+      if (dup && dup.employeeId !== employeeId) throw new Error(`Email "${data.email}" is already registered to another employee.`);
     }
     const todayStr = new Date().toISOString().slice(0, 10);
     const targetRelieving = data.relievingDate !== undefined ? data.relievingDate?.trim() || '' : (existing.relievingDate || '');
@@ -91,9 +92,8 @@ export class EmployeeService {
     let targetStatus = data.status !== undefined ? data.status : (existing.status as 'Active' | 'Inactive');
     if (isRelieved) targetStatus = 'Inactive';
     const updated = await prisma.employee.update({
-      where: { id },
+      where: { employeeId },
       data: {
-        ...(data.employeeId && { employeeId: data.employeeId.trim() }),
         ...(data.fullName && { fullName: data.fullName.trim() }),
         ...(data.dob !== undefined && { dob: data.dob.trim() }),
         ...(data.designation && { designation: data.designation.trim() }),
@@ -117,17 +117,22 @@ export class EmployeeService {
         ...(data.role && { role: data.role }),
         ...(data.location && { location: data.location }),
         ...(data.avatar !== undefined && { avatar: data.avatar }),
+        ...(data.education !== undefined && { education: data.education as any }),
+        ...(data.experience !== undefined && { experience: data.experience as any }),
       },
-      include: { education: true, experience: true },
     });
+    const edu = Array.isArray(updated.education) ? (updated.education as any[]) : [];
+    const exp = Array.isArray(updated.experience) ? (updated.experience as any[]) : [];
     return {
-      ...updated, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
+      ...updated, id: updated.employeeId, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
       permanentAddress: updated.permanentAddress || '', guardianName: updated.guardianName || '', motherName: updated.motherName || '',
       bloodGroup: updated.bloodGroup || '', linkedInUrl: updated.linkedInUrl || '', aadhaarNumber: updated.aadhaarNumber || '',
       panNumber: updated.panNumber || '', joiningDate: updated.joiningDate || '', relievingDate: updated.relievingDate || '',
       status: updated.status as 'Active' | 'Inactive', role: updated.role as EmployeeProfile['role'],
-      education: updated.education.map((e) => ({ degree: e.degree, school: e.school, year: e.year })),
-      experience: updated.experience.map((e) => ({ company: e.company, role: e.role, period: e.period })),
+      education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+      experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
     };
   }
 }
+
+

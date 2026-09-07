@@ -4,7 +4,7 @@ import { NotificationService } from '../../services/notificationService';
 const notificationRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   fastify.get('/notifications', async (request) => {
     const role = request.user?.role || 'Employee';
-    const userId = request.user?.userId ? Number(request.user.userId) : undefined;
+    const userId = request.user?.userId ? String(request.user.userId) : undefined;
     return NotificationService.getNotifications(role, userId);
   });
 
@@ -18,7 +18,7 @@ const notificationRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) 
 
   fastify.post('/notifications/read-all', async (request) => {
     const role = request.user?.role || 'Employee';
-    const userId = request.user?.userId ? Number(request.user.userId) : undefined;
+    const userId = request.user?.userId ? String(request.user.userId) : undefined;
     await NotificationService.markAllAsRead(role, userId);
     return { success: true };
   });

@@ -19,6 +19,27 @@ export interface BillingOverview {
   exchangeRates: ExchangeRateInfo[]; projects: ProjectBillingSummary[]; activeMonthYear: string;
 }
 
+export interface RateVersionItem {
+  id: number;
+  projectId: string;
+  billingType: string;
+  rateAmount: number;
+  currency: string;
+  effectiveStartDate: string;
+  effectiveEndDate?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MonthlyBudgetItem {
+  id?: number;
+  projectId: string;
+  monthYear: string;
+  budgetHours: number;
+  isLocked: boolean;
+  updatedAt: string;
+}
+
 const DEFAULT_RATES: Record<string, number> = {
   USD: 87.50, INR: 1.00, EUR: 94.20, GBP: 110.80, SGD: 65.40,
   AUD: 57.30, CAD: 63.80, AED: 23.82, JPY: 0.58, CHF: 98.40,
@@ -79,13 +100,14 @@ export class BillingService {
     const rateMap = new Map<string, number>(exchangeRates.map((r) => [r.currency, r.rateToINR]));
 
     const projects = await prisma.project.findMany({
-      include: { client: true, rateVersions: { orderBy: { id: 'desc' }, take: 1 } },
+      include: { client: true },
     });
 
     let totalRevenueINR = 0, tmRevenueINR = 0, monthlyFixedRevenueINR = 0, projectFixedRevenueINR = 0, totalHoursLogged = 0;
 
     const projectSummaries: ProjectBillingSummary[] = projects.map((p: any) => {
-      const activeVersion = p.rateVersions[0];
+      const rateVersions: RateVersionItem[] = Array.isArray(p.rateVersions) ? p.rateVersions : [];
+      const activeVersion = rateVersions.length > 0 ? rateVersions[0] : null;
       const currency = activeVersion?.currency || p.currency || p.client.billingCurrency;
       const rateToINR = rateMap.get(this.extractCurrencyCode(currency)) || DEFAULT_RATES[this.extractCurrencyCode(currency)] || 1.0;
       const rateAmount = activeVersion ? activeVersion.rateAmount : this.parseRateAmount(p.rate);
@@ -119,41 +141,104 @@ export class BillingService {
     };
   }
 
-  static async getProjectRateVersions(projectId: string) {
-    return prisma.projectRateVersion.findMany({ where: { projectId }, orderBy: { id: 'desc' } });
-  }
-
-  static async addProjectRateVersion(role: string, projectId: string, data: any) {
-    if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can update rate versions.');
-    await prisma.projectRateVersion.updateMany({ where: { projectId, effectiveEndDate: '' }, data: { effectiveEndDate: data.effectiveStartDate } });
-    return prisma.projectRateVersion.create({
-      data: {
-        projectId, billingType: data.billingType, rateAmount: Number(data.rateAmount),
-        currency: data.currency, effectiveStartDate: data.effectiveStartDate, effectiveEndDate: data.effectiveEndDate || '',
-        notes: data.notes || '',
-      },
+  static async getProjectRateVersions(projectId: string): Promise<RateVersionItem[]> {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { rateVersions: true },
     });
+    if (!project || !Array.isArray(project.rateVersions)) return [];
+    return (project.rateVersions as unknown as RateVersionItem[]).sort((a, b) => b.id - a.id);
   }
 
-  static async getProjectMonthlyBudgets(projectId: string) {
+  static async addProjectRateVersion(role: string, projectId: string, data: any): Promise<RateVersionItem> {
+    if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can update rate versions.');
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new Error(`Project ${projectId} not found.`);
+
+    const existingVersions: RateVersionItem[] = Array.isArray(project.rateVersions)
+      ? (project.rateVersions as unknown as RateVersionItem[])
+      : [];
+
+    const updatedOldVersions = existingVersions.map((v) =>
+      !v.effectiveEndDate ? { ...v, effectiveEndDate: data.effectiveStartDate } : v
+    );
+
+    const newVersion: RateVersionItem = {
+      id: Date.now(),
+      projectId,
+      billingType: data.billingType,
+      rateAmount: Number(data.rateAmount),
+      currency: data.currency,
+      effectiveStartDate: data.effectiveStartDate,
+      effectiveEndDate: data.effectiveEndDate || '',
+      notes: data.notes || '',
+      createdAt: new Date().toISOString(),
+    };
+
+    const finalVersions = [newVersion, ...updatedOldVersions];
+
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { rateVersions: finalVersions as any },
+    });
+
+    return newVersion;
+  }
+
+  static async getProjectMonthlyBudgets(projectId: string): Promise<MonthlyBudgetItem[]> {
     const currentMonth = this.getCurrentMonthYear();
-    const list = await prisma.projectMonthlyBudget.findMany({ where: { projectId }, orderBy: { monthYear: 'desc' } });
-    return list.map((b) => ({ ...b, isLocked: b.isLocked || b.monthYear < currentMonth }));
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { monthlyBudgets: true },
+    });
+    if (!project || !Array.isArray(project.monthlyBudgets)) return [];
+    const list = project.monthlyBudgets as unknown as MonthlyBudgetItem[];
+    return list
+      .map((b) => ({ ...b, isLocked: b.isLocked || b.monthYear < currentMonth }))
+      .sort((a, b) => b.monthYear.localeCompare(a.monthYear));
   }
 
-  static async setProjectMonthlyBudget(role: string, projectId: string, monthYear: string, budgetHours: number) {
+  static async setProjectMonthlyBudget(role: string, projectId: string, monthYear: string, budgetHours: number): Promise<MonthlyBudgetItem> {
     if (role === 'Employee') throw new Error('Access Denied: Employees cannot modify budget hours.');
     const currentMonth = this.getCurrentMonthYear();
     if (monthYear < currentMonth && role !== 'Super Admin') throw new Error('Month has closed. Budget hours are locked.');
 
-    const budget = await prisma.projectMonthlyBudget.upsert({
-      where: { projectId_monthYear: { projectId, monthYear } },
-      update: { budgetHours: Number(budgetHours), updatedAt: new Date() },
-      create: { projectId, monthYear, budgetHours: Number(budgetHours), isLocked: monthYear < currentMonth },
-    });
-    if (monthYear === currentMonth) {
-      await prisma.project.update({ where: { id: projectId }, data: { budgetHours: Math.round(Number(budgetHours)) } });
+    const project = await prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new Error(`Project ${projectId} not found.`);
+
+    const existingList: MonthlyBudgetItem[] = Array.isArray(project.monthlyBudgets)
+      ? (project.monthlyBudgets as unknown as MonthlyBudgetItem[])
+      : [];
+
+    const existingIndex = existingList.findIndex((b) => b.monthYear === monthYear);
+    const updatedEntry: MonthlyBudgetItem = {
+      id: existingIndex >= 0 ? existingList[existingIndex].id : Date.now(),
+      projectId,
+      monthYear,
+      budgetHours: Number(budgetHours),
+      isLocked: monthYear < currentMonth,
+      updatedAt: new Date().toISOString(),
+    };
+
+    let finalList: MonthlyBudgetItem[];
+    if (existingIndex >= 0) {
+      finalList = [...existingList];
+      finalList[existingIndex] = updatedEntry;
+    } else {
+      finalList = [updatedEntry, ...existingList];
     }
-    return budget;
+
+    const updateData: any = { monthlyBudgets: finalList as any };
+    if (monthYear === currentMonth) {
+      updateData.budgetHours = Math.round(Number(budgetHours));
+    }
+
+    await prisma.project.update({
+      where: { id: projectId },
+      data: updateData,
+    });
+
+    return updatedEntry;
   }
 }
+

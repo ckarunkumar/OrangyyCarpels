@@ -36,7 +36,7 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
   // PUT update employee
   fastify.put('/employees/:id', { schema: updateEmployeeSchema }, async (request, reply) => {
-    const { id } = request.params as { id: number };
+    const { id } = request.params as { id: string };
     const updateData = request.body as any;
     const role = request.user!.role;
     try {

@@ -105,8 +105,8 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
                 <div className="text-center py-8 text-[12px] text-studio-muted">No employees registered.</div>
               ) : (
                 employees.map((emp) => (
-                  <div key={emp.id} onClick={() => { setSelectedEmployee(emp); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
-                    <div className="col-span-2"><span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{emp.employeeId || `AODE${String(emp.id).padStart(4, '0')}`}</span></div>
+                  <div key={emp.employeeId} onClick={() => { setSelectedEmployee(emp); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
+                    <div className="col-span-2"><span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{emp.employeeId}</span></div>
                     <div className="col-span-3 min-w-0 pr-1 flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-studio-sidebar flex items-center justify-center text-[11px] font-bold text-studio-muted border border-studio-border shrink-0 overflow-hidden">
                         {emp.avatar ? <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" /> : <span>{emp.fullName[0]}</span>}

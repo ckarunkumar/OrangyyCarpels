@@ -65,16 +65,21 @@ class ProjectService {
         const existing = await prisma_1.prisma.project.findUnique({ where: { id }, include: { client: true } });
         if (!existing)
             throw new Error(`Project with ID ${id} not found.`);
+        let rateVersionsList = Array.isArray(existing.rateVersions) ? [...existing.rateVersions] : [];
         if (data.rate && data.rate !== existing.rate) {
             const amount = parseFloat(data.rate.replace(/[^0-9.]/g, '')) || 0;
-            await prisma_1.prisma.projectRateVersion.create({
-                data: {
-                    projectId: id, billingType: data.billingType || existing.billingType, rateAmount: amount,
-                    currency: existing.client.billingCurrency || 'USD ($)',
-                    effectiveStartDate: data.rateEffectiveDate || new Date().toISOString().slice(0, 10),
-                    notes: data.rateChangeReason || 'Rate update from project edit',
-                },
-            });
+            const newVersion = {
+                id: Date.now(),
+                projectId: id,
+                billingType: data.billingType || existing.billingType,
+                rateAmount: amount,
+                currency: existing.client.billingCurrency || 'USD ($)',
+                effectiveStartDate: data.rateEffectiveDate || new Date().toISOString().slice(0, 10),
+                effectiveEndDate: '',
+                notes: data.rateChangeReason || 'Rate update from project edit',
+                createdAt: new Date().toISOString(),
+            };
+            rateVersionsList = [newVersion, ...rateVersionsList];
         }
         const assignedStr = Array.isArray(data.assignedEmployees) ? data.assignedEmployees.join(', ') : data.assignedEmployees;
         const updated = await prisma_1.prisma.project.update({
@@ -93,6 +98,7 @@ class ProjectService {
                 ...(data.managerId !== undefined && { managerId: data.managerId }),
                 ...(data.managerName !== undefined && { managerName: data.managerName }),
                 ...(assignedStr !== undefined && { assignedEmployees: assignedStr }),
+                ...(rateVersionsList.length > 0 && { rateVersions: rateVersionsList }),
             },
             include: { client: true },
         });
@@ -110,16 +116,20 @@ class ProjectService {
     static async getRateHistory(role, projectId) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can view rate histories.');
-        const records = await prisma_1.prisma.projectRateVersion.findMany({
-            where: projectId ? { projectId } : undefined,
-            orderBy: { createdAt: 'desc' },
-        });
-        return records.map((r) => ({
-            id: r.id, projectId: r.projectId, billingType: r.billingType,
-            rateAmount: r.rateAmount, currency: r.currency,
-            effectiveStartDate: r.effectiveStartDate, effectiveEndDate: r.effectiveEndDate || '',
-            notes: r.notes || '', createdAt: r.createdAt.toISOString(),
-        }));
+        if (projectId) {
+            const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId }, select: { rateVersions: true, id: true } });
+            if (!proj || !Array.isArray(proj.rateVersions))
+                return [];
+            return proj.rateVersions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        }
+        const projects = await prisma_1.prisma.project.findMany({ select: { rateVersions: true, id: true } });
+        const allRecords = [];
+        for (const p of projects) {
+            if (Array.isArray(p.rateVersions)) {
+                allRecords.push(...p.rateVersions);
+            }
+        }
+        return allRecords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 }
 exports.ProjectService = ProjectService;

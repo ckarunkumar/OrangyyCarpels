@@ -4,7 +4,7 @@ const notificationService_1 = require("../../services/notificationService");
 const notificationRoutes = async (fastify) => {
     fastify.get('/notifications', async (request) => {
         const role = request.user?.role || 'Employee';
-        const userId = request.user?.userId ? Number(request.user.userId) : undefined;
+        const userId = request.user?.userId ? String(request.user.userId) : undefined;
         return notificationService_1.NotificationService.getNotifications(role, userId);
     });
     fastify.post('/notifications/:id/read', async (request, reply) => {
@@ -17,7 +17,7 @@ const notificationRoutes = async (fastify) => {
     });
     fastify.post('/notifications/read-all', async (request) => {
         const role = request.user?.role || 'Employee';
-        const userId = request.user?.userId ? Number(request.user.userId) : undefined;
+        const userId = request.user?.userId ? String(request.user.userId) : undefined;
         await notificationService_1.NotificationService.markAllAsRead(role, userId);
         return { success: true };
     });
