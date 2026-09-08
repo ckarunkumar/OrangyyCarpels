@@ -8,52 +8,54 @@ generator client {
 }
 
 model Employee {
-  id               Int          @id @default(autoincrement())
-  employeeId       String       @unique
-  fullName         String
-  dob              String?      @default("")
-  designation      String       @default("Team Member")
-  department       String       @default("General")
-  email            String       @unique // Office Email Address
-  personalEmail    String?      @default("")
-  phone            String       // Mobile Number
-  secondaryPhone   String?      @default("")
-  permanentAddress String?      @default("")
-  guardianName     String?      @default("") // Father's or Guardian name
-  motherName       String?      @default("") // Mother's name
-  bloodGroup       String?      @default("")
-  linkedInUrl      String?      @default("")
-  aadhaarNumber    String?      @default("")
-  panNumber        String?      @default("")
-  costRate         String       @default("₹0/hr")
-  capacity         String       @default("40 hrs/week")
-  joiningDate      String?      @default("")
-  relievingDate    String?      @default("")
-  status           String       @default("Active") // Active, Inactive
-  role             String       @default("Employee") // Super Admin, Project Manager, Employee
-  location         String       @default("Delhi, India")
-  avatar           String?
-  education        Education[]
-  experience       Experience[]
+  employeeId             String   @id
+  fullName               String
+  dob                    String?  @default("")
+  designation            String   @default("Team Member")
+  department             String   @default("General")
+  email                  String   @unique // Office Email Address
+  password               String?  @default("") // Salted scrypt password hash
+  personalEmail          String?  @default("")
+  phone                  String   // Mobile Number
+  secondaryPhone         String?  @default("")
+  permanentAddress       String?  @default("")
+  guardianName           String?  @default("") // Father's or Guardian name
+  motherName             String?  @default("") // Mother's name
+  bloodGroup             String?  @default("")
+  linkedInUrl            String?  @default("")
+  aadhaarNumber          String?  @default("")
+  panNumber              String?  @default("")
+  costRate               String   @default("₹0/hr")
+  capacity               String   @default("40 hrs/week")
+  joiningDate            String?  @default("")
+  relievingDate          String?  @default("")
+  status                 String   @default("Active") // Active, Inactive
+  role                   String   @default("Employee") // Super Admin, Project Manager, Employee
+  location               String   @default("Delhi, India")
+  avatar                 String?  @db.LongText
+
+  // Merged Education & Experience
+  education              Json?    // Array of { degree, school, year }
+  experience             Json?    // Array of { company, role, period }
+
+  // Merged Leave Balances & Quotas
+  leaveYear              Int      @default(2026)
+  casualQuota            Float    @default(12)
+  casualUsed             Float    @default(0)
+  sickQuota              Float    @default(12)
+  sickUsed               Float    @default(0)
+  earnedQuota            Float    @default(15)
+  earnedUsed             Float    @default(0)
+  compOffBalance         Float    @default(0)
+  compOffRequests        Json?    // Array of { id, workedDate, hoursWorked, daysCredit, reason, status, pmApproval, saApproval, createdAt }
+  optionalHolidaysQuota  Int      @default(2)
+  optionalHolidaysUsed   Int      @default(0)
+  wfhMonthlyLimit        Int      @default(2)
+  wfhUsedThisMonth       Int      @default(0)
+  lastAccruedMonth       String?  @default("")
 }
 
-model Education {
-  id         Int      @id @default(autoincrement())
-  degree     String
-  school     String
-  year       String
-  employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-}
 
-model Experience {
-  id         Int      @id @default(autoincrement())
-  company    String
-  role       String
-  period     String
-  employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-}
 
 model Client {
   id                 String    @id
@@ -97,8 +99,11 @@ model Project {
   assignedEmployees String?                @default("")
   clientId          String
   client            Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  rateVersions      ProjectRateVersion[]
-  monthlyBudgets    ProjectMonthlyBudget[]
+  
+  // Merged Monthly Budgets & Rate Versions
+  monthlyBudgets    Json?                  // Array of { monthYear: string, budgetHours: number, isLocked: boolean, updatedAt: string }
+  rateVersions      Json?                  // Array of { id: number, billingType: string, rateAmount: number, currency: string, effectiveStartDate: string, effectiveEndDate: string, notes: string, createdAt: string }
+
   dailyEntries      DailyTimesheetEntry[]
 }
 
@@ -116,31 +121,6 @@ model Service {
   businessLineId Int?
   businessLine   BusinessLine? @relation(fields: [businessLineId], references: [id], onDelete: Cascade)
   status         String        @default("Active")
-}
-
-model ProjectMonthlyBudget {
-  id          Int      @id @default(autoincrement())
-  projectId   String
-  monthYear   String   // e.g. 2026-08
-  budgetHours Float    @default(0)
-  isLocked    Boolean  @default(false)
-  updatedAt   DateTime @default(now())
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@unique([projectId, monthYear])
-}
-
-model ProjectRateVersion {
-  id                 Int      @id @default(autoincrement())
-  projectId          String
-  billingType        String
-  rateAmount         Float
-  currency           String   @default("USD ($)")
-  effectiveStartDate String
-  effectiveEndDate   String?  @default("")
-  notes              String?  @default("")
-  createdAt          DateTime @default(now())
-  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ExchangeRate {
@@ -200,7 +180,7 @@ model DailyTimesheetEntry {
 
 model Notification {
   id        Int       @id @default(autoincrement())
-  userId    Int?
+  userId    String?
   role      String?   // 'Employee', 'Project Manager', 'Super Admin', or 'All'
   title     String
   message   String
@@ -235,26 +215,6 @@ model Holiday {
   isPublished Boolean  @default(true)
 }
 
-model EmployeeLeaveBalance {
-  id                    Int      @id @default(autoincrement())
-  employeeId            String
-  year                  Int      @default(2026)
-  casualQuota           Float    @default(12)
-  casualUsed            Float    @default(0)
-  sickQuota             Float    @default(12)
-  sickUsed              Float    @default(0)
-  earnedQuota           Float    @default(15)
-  earnedUsed            Float    @default(0)
-  compOffBalance        Float    @default(0)
-  optionalHolidaysQuota Int      @default(2)
-  optionalHolidaysUsed  Int      @default(0)
-  wfhMonthlyLimit       Int      @default(2)
-  wfhUsedThisMonth      Int      @default(0)
-  lastAccruedMonth      String?
-
-  @@unique([employeeId, year])
-}
-
 model LeaveRequest {
   id              Int      @id @default(autoincrement())
   employeeId      String
@@ -274,19 +234,5 @@ model LeaveRequest {
   rejectionReason String?
   appliedAt       DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
-}
-
-model CompOffRequest {
-  id           Int      @id @default(autoincrement())
-  employeeId   String
-  employeeName String
-  workedDate   String
-  hoursWorked  Float
-  daysCredit   Float    @default(1.0) // 0.5 or 1.0
-  reason       String
-  status       String   @default("Pending_PM") // 'Pending_PM', 'Pending_SA', 'Approved', 'Rejected'
-  pmApproval   String?  @default("Pending")
-  saApproval   String?  @default("Pending")
-  createdAt    DateTime @default(now())
 }
 

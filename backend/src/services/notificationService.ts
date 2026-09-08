@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 
 export interface NotificationItem {
   id: number;
-  userId?: number | null;
+  userId?: string | null;
   role?: string | null;
   title: string;
   message: string;
@@ -28,7 +28,7 @@ export class NotificationService {
     }
   }
 
-  static async getNotifications(role: string, userId?: number): Promise<NotificationItem[]> {
+  static async getNotifications(role: string, userId?: string): Promise<NotificationItem[]> {
     await this.cleanupExpiredReadNotifications();
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
@@ -60,7 +60,7 @@ export class NotificationService {
     return list;
   }
 
-  static async seedInitialNotifications(role: string, userId?: number): Promise<NotificationItem[]> {
+  static async seedInitialNotifications(role: string, userId?: string): Promise<NotificationItem[]> {
     const activeProjects = await prisma.project.findMany({ where: { status: 'Active' }, take: 2 });
     const p1 = activeProjects[0] || { id: 'AODP0001', name: 'Website Redesign' };
     const p2 = activeProjects[1] || { id: 'AODP0002', name: 'CMS Integration' };
@@ -107,7 +107,7 @@ export class NotificationService {
   }
 
   static async createNotification(data: {
-    userId?: number;
+    userId?: string;
     role?: string;
     title: string;
     message: string;
@@ -135,7 +135,7 @@ export class NotificationService {
     return true;
   }
 
-  static async markAllAsRead(role: string, userId?: number): Promise<boolean> {
+  static async markAllAsRead(role: string, userId?: string): Promise<boolean> {
     await prisma.notification.updateMany({
       where: {
         OR: [
@@ -150,3 +150,4 @@ export class NotificationService {
     return true;
   }
 }
+

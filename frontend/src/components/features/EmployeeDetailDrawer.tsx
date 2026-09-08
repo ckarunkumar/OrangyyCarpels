@@ -45,7 +45,7 @@ export default function EmployeeDetailDrawer({ open, employee, isAdmin, onClose,
             <div className="text-center mt-3 pb-1">
               <h4 className="text-[15px] font-bold text-studio-text">{employee.fullName}</h4>
               <p className="text-[11px] text-studio-muted mt-0.5">{employee.designation} • {employee.department}</p>
-              <p className="text-[10px] font-mono text-studio-muted/80 mt-1">{employee.employeeId || `AODE${String(employee.id).padStart(4, '0')}`}</p>
+              <p className="text-[10px] font-mono text-studio-muted/80 mt-1">{employee.employeeId}</p>
             </div>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function EmployeeDetailDrawer({ open, employee, isAdmin, onClose,
         <div className="flex items-center justify-between px-6 py-4 border-b border-studio-border shrink-0">
           <div>
             <h3 className="text-[15px] font-bold text-studio-text">Employee Profile</h3>
-            <p className="text-[11px] text-studio-muted font-mono">{employee.employeeId || `AODE${String(employee.id).padStart(4, '0')}`}</p>
+            <p className="text-[11px] text-studio-muted font-mono">{employee.employeeId}</p>
           </div>
           <div className="flex items-center gap-1.5">
             {isAdmin && (
@@ -149,7 +149,7 @@ export default function EmployeeDetailDrawer({ open, employee, isAdmin, onClose,
             <div className="grid grid-cols-3 gap-2 bg-studio-sidebar/50 border border-studio-border rounded-lg p-3 text-[12px]">
               <div><span className="text-studio-muted text-[10px] uppercase font-bold block">System Role</span><span className="text-studio-text font-semibold">{employee.role}</span></div>
               <div><span className="text-studio-muted text-[10px] uppercase font-bold block">Active Status</span><span className="text-studio-text font-semibold">{employee.status}</span></div>
-              <div><span className="text-studio-muted text-[10px] uppercase font-bold block">Database ID</span><span className="text-studio-text font-mono flex items-center gap-0.5"><Hash className="w-3 h-3 text-studio-muted" />{employee.id}</span></div>
+              <div><span className="text-studio-muted text-[10px] uppercase font-bold block">Emp ID</span><span className="text-studio-text font-mono flex items-center gap-0.5"><Hash className="w-3 h-3 text-studio-muted" />{employee.employeeId}</span></div>
             </div>
           </div>
         </div>

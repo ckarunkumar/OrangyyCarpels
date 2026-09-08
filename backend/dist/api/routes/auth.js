@@ -4,9 +4,30 @@ const authService_1 = require("../../services/authService");
 const loginSchema = {
     body: {
         type: 'object',
-        required: ['email'],
+        required: ['email', 'password'],
         properties: {
             email: { type: 'string', format: 'email' },
+            password: { type: 'string', minLength: 1 },
+        },
+    },
+};
+const changePasswordSchema = {
+    body: {
+        type: 'object',
+        required: ['currentPassword', 'newPassword'],
+        properties: {
+            currentPassword: { type: 'string' },
+            newPassword: { type: 'string', minLength: 9 },
+        },
+    },
+};
+const resetPasswordSchema = {
+    body: {
+        type: 'object',
+        required: ['employeeId', 'newPassword'],
+        properties: {
+            employeeId: { type: 'string' },
+            newPassword: { type: 'string', minLength: 9 },
         },
     },
 };
@@ -23,8 +44,8 @@ const updateProfileSchema = {
 const authRoutes = async (fastify) => {
     // POST login user
     fastify.post('/auth/login', { schema: loginSchema }, async (request, reply) => {
-        const { email } = request.body;
-        const result = await authService_1.AuthService.login(email);
+        const { email, password } = request.body;
+        const result = await authService_1.AuthService.login(email, password);
         if (!result.success || !result.sessionId || !result.session) {
             return reply.status(401).send({ error: result.error || 'Authentication failed.' });
         }
@@ -37,6 +58,41 @@ const authRoutes = async (fastify) => {
             maxAge: 3600 * 24 * 7, // 7 days
         });
         return result.session;
+    });
+    // POST change user password
+    fastify.post('/auth/change-password', { schema: changePasswordSchema }, async (request, reply) => {
+        const sessionId = request.cookies.sessionId;
+        if (!sessionId) {
+            return reply.status(401).send({ error: 'Unauthorized: No active session.' });
+        }
+        const session = await authService_1.AuthService.getSession(sessionId);
+        if (!session) {
+            reply.clearCookie('sessionId', { path: '/' });
+            return reply.status(401).send({ error: 'Unauthorized: Session expired or invalid.' });
+        }
+        const { currentPassword, newPassword } = request.body;
+        const result = await authService_1.AuthService.changePassword(session.userId, currentPassword, newPassword);
+        if (!result.success) {
+            return reply.status(400).send({ error: result.error || 'Failed to change password.' });
+        }
+        return { success: true, message: 'Password updated successfully.' };
+    });
+    // POST reset employee password (Admin only)
+    fastify.post('/auth/reset-password', { schema: resetPasswordSchema }, async (request, reply) => {
+        const sessionId = request.cookies.sessionId;
+        if (!sessionId) {
+            return reply.status(401).send({ error: 'Unauthorized: No active session.' });
+        }
+        const session = await authService_1.AuthService.getSession(sessionId);
+        if (!session || session.role !== 'Super Admin') {
+            return reply.status(403).send({ error: 'Access Denied: Only Super Admins can reset passwords.' });
+        }
+        const { employeeId, newPassword } = request.body;
+        const result = await authService_1.AuthService.resetPassword(session.role, employeeId, newPassword);
+        if (!result.success) {
+            return reply.status(400).send({ error: result.error || 'Failed to reset password.' });
+        }
+        return { success: true, message: 'Employee password reset successfully.' };
     });
     // POST logout user
     fastify.post('/auth/logout', async (request, reply) => {

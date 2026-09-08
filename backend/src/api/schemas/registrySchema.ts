@@ -33,6 +33,7 @@ export const createEmployeeSchema = {
       status: { type: 'string', enum: ['Active', 'Inactive'] },
       role: { type: 'string', enum: ['Super Admin', 'Project Manager', 'Employee'] },
       avatar: { type: ['string', 'null'] },
+      password: { type: 'string' },
     },
   },
 };
@@ -42,7 +43,7 @@ export const updateEmployeeSchema = {
     type: 'object',
     required: ['id'],
     properties: {
-      id: { type: 'integer' },
+      id: { type: 'string' },
     },
   },
   body: {
@@ -54,6 +55,7 @@ export const updateEmployeeSchema = {
       designation: { type: 'string' },
       department: { type: 'string' },
       email: { type: 'string', format: 'email' },
+      password: { type: 'string' },
       personalEmail: { type: 'string' },
       phone: { type: 'string' },
       secondaryPhone: { type: 'string' },

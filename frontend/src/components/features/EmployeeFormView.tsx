@@ -90,7 +90,7 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
     if (!validate()) return;
     setSaving(true); setServerError(null);
     try {
-      const url = mode === 'edit' ? `/api/employees/${employee!.id}` : '/api/employees';
+      const url = mode === 'edit' ? `/api/employees/${employee!.employeeId}` : '/api/employees';
       const body = JSON.stringify({ ...form, employeeId: form.employeeId.trim().toUpperCase(), panNumber: form.panNumber.trim().toUpperCase() });
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body });
       const data = await res.json();
