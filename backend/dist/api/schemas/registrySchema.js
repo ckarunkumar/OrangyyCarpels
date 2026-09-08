@@ -35,6 +35,7 @@ exports.createEmployeeSchema = {
             status: { type: 'string', enum: ['Active', 'Inactive'] },
             role: { type: 'string', enum: ['Super Admin', 'Project Manager', 'Employee'] },
             avatar: { type: ['string', 'null'] },
+            password: { type: 'string' },
         },
     },
 };
@@ -55,6 +56,7 @@ exports.updateEmployeeSchema = {
             designation: { type: 'string' },
             department: { type: 'string' },
             email: { type: 'string', format: 'email' },
+            password: { type: 'string' },
             personalEmail: { type: 'string' },
             phone: { type: 'string' },
             secondaryPhone: { type: 'string' },

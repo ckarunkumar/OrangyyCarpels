@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { hashPassword } from '../src/utils/passwordUtils';
 
 const prisma = new PrismaClient();
 
@@ -19,6 +20,7 @@ async function main() {
       designation: 'Studio Director',
       department: 'Leadership',
       email: 'arun@orangy.design',
+      password: hashPassword('Arun@Orangyy2026_'),
       phone: '+91 9008152920',
       costRate: '₹8,000/hr',
       capacity: '40 hrs/week',
@@ -52,6 +54,7 @@ async function main() {
       designation: 'Senior Project Manager',
       department: 'Project Management',
       email: 'navaneetha@orangy.design',
+      password: hashPassword('Navan@Manager123!'),
       phone: '+91 9597101210',
       costRate: '₹4,500/hr',
       capacity: '40 hrs/week',
@@ -85,6 +88,7 @@ async function main() {
       designation: 'Senior Product Designer',
       department: 'Product Design',
       email: 'alex.carter@orangy.studio',
+      password: hashPassword('Alex#Designer99*'),
       phone: '+91 98765 43210',
       costRate: '₹3,500/hr',
       capacity: '40 hrs/week',
@@ -118,6 +122,7 @@ async function main() {
       designation: 'UX Researcher',
       department: 'User Research',
       email: 'emma.watson@orangy.studio',
+      password: hashPassword('Emma$Research2026%'),
       phone: '+91 99999 88888',
       costRate: '₹2,800/hr',
       capacity: '35 hrs/week',

@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmployeeService = void 0;
 const prisma_1 = require("../lib/prisma");
+const passwordUtils_1 = require("../utils/passwordUtils");
 class EmployeeService {
     static async getEmployees(role) {
         if (role === 'Employee')
@@ -47,6 +48,16 @@ class EmployeeService {
         if (await prisma_1.prisma.employee.findUnique({ where: { email: cleanEmail } })) {
             throw new Error(`Email address "${cleanEmail}" is already registered to another employee.`);
         }
+        let finalHashedPassword = '';
+        if (data.password && data.password.trim()) {
+            const policy = (0, passwordUtils_1.validatePasswordPolicy)(data.password);
+            if (!policy.isValid)
+                throw new Error(policy.error);
+            finalHashedPassword = (0, passwordUtils_1.hashPassword)(data.password.trim());
+        }
+        else {
+            finalHashedPassword = (0, passwordUtils_1.hashPassword)((0, passwordUtils_1.generateDefaultPassword)());
+        }
         const todayStr = new Date().toISOString().slice(0, 10);
         const relievingDate = data.relievingDate?.trim() || '';
         const isRelieved = Boolean(relievingDate && relievingDate <= todayStr);
@@ -54,7 +65,7 @@ class EmployeeService {
             data: {
                 employeeId: targetEmpId, fullName: data.fullName.trim(), dob: data.dob?.trim() || '',
                 designation: data.designation?.trim() || 'Team Member', department: data.department?.trim() || 'General',
-                email: cleanEmail, personalEmail: data.personalEmail?.trim() || '', phone: data.phone.trim(),
+                email: cleanEmail, password: finalHashedPassword, personalEmail: data.personalEmail?.trim() || '', phone: data.phone.trim(),
                 secondaryPhone: data.secondaryPhone?.trim() || '', permanentAddress: data.permanentAddress?.trim() || '',
                 guardianName: data.guardianName?.trim() || '', motherName: data.motherName?.trim() || '',
                 bloodGroup: data.bloodGroup?.trim() || '', linkedInUrl: data.linkedInUrl?.trim() || '',
@@ -90,6 +101,13 @@ class EmployeeService {
             if (dup && dup.employeeId !== employeeId)
                 throw new Error(`Email "${data.email}" is already registered to another employee.`);
         }
+        let passwordUpdate = undefined;
+        if (data.password && data.password.trim()) {
+            const policy = (0, passwordUtils_1.validatePasswordPolicy)(data.password);
+            if (!policy.isValid)
+                throw new Error(policy.error);
+            passwordUpdate = (0, passwordUtils_1.hashPassword)(data.password.trim());
+        }
         const todayStr = new Date().toISOString().slice(0, 10);
         const targetRelieving = data.relievingDate !== undefined ? data.relievingDate?.trim() || '' : (existing.relievingDate || '');
         const isRelieved = Boolean(targetRelieving && targetRelieving <= todayStr);
@@ -104,6 +122,7 @@ class EmployeeService {
                 ...(data.designation && { designation: data.designation.trim() }),
                 ...(data.department && { department: data.department.trim() }),
                 ...(data.email && { email: data.email.trim().toLowerCase() }),
+                ...(passwordUpdate && { password: passwordUpdate }),
                 ...(data.personalEmail !== undefined && { personalEmail: data.personalEmail.trim() }),
                 ...(data.phone && { phone: data.phone.trim() }),
                 ...(data.secondaryPhone !== undefined && { secondaryPhone: data.secondaryPhone.trim() }),
