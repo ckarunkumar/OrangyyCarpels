@@ -38,15 +38,10 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# 2. Setup 2GB Swap Memory (Prevent OOM if supported by VPS)
-echo -e "${BLUE}[1/8] Configuring Swap Memory...${NC}"
-if ! swapon --show 2>/dev/null | grep -q '/swapfile'; then
-  (fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null) || true
-  chmod 600 /swapfile 2>/dev/null || true
-  mkswap /swapfile 2>/dev/null || true
-  swapon /swapfile 2>/dev/null || true
-fi
-echo -e "${GREEN}✔ Memory check completed.${NC}"
+# 2. System Resource Check
+echo -e "${BLUE}[1/7] Checking System Resources...${NC}"
+free -h 2>/dev/null || true
+echo -e "${GREEN}✔ System check completed.${NC}"
 
 # 3. Install System Packages, MariaDB, Nginx
 echo -e "\n${BLUE}[2/8] Installing System Dependencies, MariaDB & Nginx...${NC}"
