@@ -49,6 +49,10 @@ export default function ProjectDrawer({ open, mode, project, clients, employees 
       setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setStatus('Active');
       const defaultPM = employees.find((e) => e.role === 'Project Manager');
       setManagerId(defaultPM?.employeeId || ''); setAssignedEmployees([]);
+      fetch('/api/projects/next-id')
+        .then((res) => res.json())
+        .then((d) => { if (d.nextId) setProjectId(d.nextId); })
+        .catch(() => setProjectId('PC0001'));
     }
     setTimeout(() => inputRef.current?.focus(), 150);
   }, [open, mode, project, clients, employees]);
@@ -109,7 +113,7 @@ export default function ProjectDrawer({ open, mode, project, clients, employees 
 
           {/* 1. Project Info (3-Column Layout Grid) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5">
-            <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Project ID *</label><input type="text" placeholder="AODP0001" disabled={mode === 'edit'} value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputCls} font-mono uppercase ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
+            <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Project ID *</label><input type="text" placeholder="PC0001" disabled={mode === 'edit'} value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputCls} font-mono uppercase ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
             <div><label className={labelCls}>Client *</label><select value={clientId} onChange={(e) => handleClientChange(e.target.value)} className={inputCls}>{clients.map((c) => (<option key={c.id} value={c.id}>{c.displayName || c.name}</option>))}</select></div>
             <div><label className={labelCls}>Project Name *</label><input ref={inputRef} type="text" placeholder="e.g. Design System V2" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
 

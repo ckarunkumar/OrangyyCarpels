@@ -25,14 +25,17 @@ __exportStar(require("./projectService"), exports);
 class RegistryService {
     // Employee methods
     static getEmployees = employeeService_1.EmployeeService.getEmployees;
+    static getNextEmployeeId = employeeService_1.EmployeeService.getNextEmployeeId;
     static createEmployee = employeeService_1.EmployeeService.createEmployee;
     static updateEmployee = employeeService_1.EmployeeService.updateEmployee;
     // Client methods
     static getClients = clientService_1.ClientService.getClients;
+    static getNextClientId = clientService_1.ClientService.getNextClientId;
     static createClient = clientService_1.ClientService.createClient;
     static updateClient = clientService_1.ClientService.updateClient;
     // Project methods
     static getAllProjects = projectService_1.ProjectService.getAllProjects;
+    static getNextProjectId = projectService_1.ProjectService.getNextProjectId;
     static createProject = projectService_1.ProjectService.createProject;
     static updateProject = projectService_1.ProjectService.updateProject;
     static getRateHistory = projectService_1.ProjectService.getRateHistory;

@@ -11,7 +11,8 @@ Orangyy Carpels is a resource, project, timesheet, HR, and billing management ap
 * **Language**: TypeScript
 * **Backend**: Node.js + Fastify
 * **ORM**: Prisma
-* **Database**: MySQL
+* **Database**: MySQL 8.0 (100% unified standard across Local and Server environments)
+* **Database GUI**: Prisma Studio (Web-based visual manager on port 5555)
 * **Authentication**: Session-based (cookie-based sessions)
 * **Scheduler**: System Cron
 * **Process Manager**: PM2
@@ -43,6 +44,7 @@ Orangyy Carpels is a resource, project, timesheet, HR, and billing management ap
 * **Reusable components**: Place common components in `frontend/components/ui`. Place domain-specific feature components in `frontend/components/features`.
 
 ## Constraints
+* **Strict Tech Stack Lock**: The entire tech stack (React + Vite, Tailwind CSS, TypeScript, Node.js + Fastify, Prisma ORM, MySQL 8.0 unified across Local & Server, Prisma Studio, PM2, Nginx, Google Gemini API) is 100% frozen and strictly locked. Absolutely no changes, replacements, or additions without explicit written approval from the user.
 * **Do not break existing features**: Ensure all changes are verified and tested.
 * **No unnecessary dependencies**: Minimize external npm packages.
 * **Hardcode labels**: No i18n support in V1 (keep it simple).

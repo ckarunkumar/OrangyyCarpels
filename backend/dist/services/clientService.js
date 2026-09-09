@@ -27,17 +27,26 @@ class ClientService {
             })),
         }));
     }
+    static async getNextClientId() {
+        const clients = await prisma_1.prisma.client.findMany({ select: { id: true } });
+        let maxNum = 0;
+        for (const c of clients) {
+            const match = c.id.match(/^ODC(\d+)$/i);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum)
+                    maxNum = num;
+            }
+        }
+        const nextNum = maxNum + 1;
+        return `ODC${String(nextNum).padStart(4, '0')}`;
+    }
     static async createClient(role, data) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can create client profiles.');
         let targetClientId = data.id?.trim().toUpperCase();
         if (!targetClientId) {
-            let count = (await prisma_1.prisma.client.count()) + 1;
-            targetClientId = `AODC${String(count).padStart(4, '0')}`;
-            while (await prisma_1.prisma.client.findUnique({ where: { id: targetClientId } })) {
-                count++;
-                targetClientId = `AODC${String(count).padStart(4, '0')}`;
-            }
+            targetClientId = await ClientService.getNextClientId();
         }
         const cleanName = data.name.trim();
         if (await prisma_1.prisma.client.findUnique({ where: { id: targetClientId } })) {

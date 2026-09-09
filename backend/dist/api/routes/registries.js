@@ -14,6 +14,16 @@ const registryRoutes = async (fastify) => {
             return reply.status(403).send({ error: err.message });
         }
     });
+    // GET next employee ID
+    fastify.get('/employees/next-id', async (request, reply) => {
+        try {
+            const nextId = await registryService_1.RegistryService.getNextEmployeeId();
+            return { nextId };
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message });
+        }
+    });
     // POST create employee
     fastify.post('/employees', { schema: registrySchema_1.createEmployeeSchema }, async (request, reply) => {
         const employeeData = request.body;
@@ -49,6 +59,16 @@ const registryRoutes = async (fastify) => {
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });
+        }
+    });
+    // GET next client ID
+    fastify.get('/clients/next-id', async (request, reply) => {
+        try {
+            const nextId = await registryService_1.RegistryService.getNextClientId();
+            return { nextId };
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message });
         }
     });
     // POST create client
@@ -87,6 +107,16 @@ const registryRoutes = async (fastify) => {
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });
+        }
+    });
+    // GET next project ID
+    fastify.get('/projects/next-id', async (request, reply) => {
+        try {
+            const nextId = await registryService_1.RegistryService.getNextProjectId();
+            return { nextId };
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message });
         }
     });
     // POST create project under client

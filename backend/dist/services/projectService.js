@@ -19,6 +19,20 @@ class ProjectService {
             assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
         }));
     }
+    static async getNextProjectId() {
+        const projects = await prisma_1.prisma.project.findMany({ select: { id: true } });
+        let maxNum = 0;
+        for (const p of projects) {
+            const match = p.id.match(/^PC(\d+)$/i);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum)
+                    maxNum = num;
+            }
+        }
+        const nextNum = maxNum + 1;
+        return `PC${String(nextNum).padStart(4, '0')}`;
+    }
     static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can create projects.');
@@ -27,12 +41,7 @@ class ProjectService {
             throw new Error(`Client with ID ${clientId} not found.`);
         let targetProjectId = id?.trim().toUpperCase();
         if (!targetProjectId) {
-            let count = (await prisma_1.prisma.project.count()) + 1;
-            targetProjectId = `AODP${String(count).padStart(4, '0')}`;
-            while (await prisma_1.prisma.project.findUnique({ where: { id: targetProjectId } })) {
-                count++;
-                targetProjectId = `AODP${String(count).padStart(4, '0')}`;
-            }
+            targetProjectId = await ProjectService.getNextProjectId();
         }
         const cleanName = name.trim();
         if (await prisma_1.prisma.project.findUnique({ where: { id: targetProjectId } })) {

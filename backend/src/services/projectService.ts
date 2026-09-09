@@ -18,6 +18,20 @@ export class ProjectService {
     }));
   }
 
+  static async getNextProjectId(): Promise<string> {
+    const projects = await prisma.project.findMany({ select: { id: true } });
+    let maxNum = 0;
+    for (const p of projects) {
+      const match = p.id.match(/^PC(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    const nextNum = maxNum + 1;
+    return `PC${String(nextNum).padStart(4, '0')}`;
+  }
+
   static async createProject(
     role: string, clientId: string, name: string, billingType: string, rate: string,
     budgetHours?: number, startDate?: string, endDate?: string, id?: string,
@@ -29,12 +43,7 @@ export class ProjectService {
     if (!client) throw new Error(`Client with ID ${clientId} not found.`);
     let targetProjectId = id?.trim().toUpperCase();
     if (!targetProjectId) {
-      let count = (await prisma.project.count()) + 1;
-      targetProjectId = `AODP${String(count).padStart(4, '0')}`;
-      while (await prisma.project.findUnique({ where: { id: targetProjectId } })) {
-        count++;
-        targetProjectId = `AODP${String(count).padStart(4, '0')}`;
-      }
+      targetProjectId = await ProjectService.getNextProjectId();
     }
     const cleanName = name.trim();
     if (await prisma.project.findUnique({ where: { id: targetProjectId } })) {

@@ -6,7 +6,7 @@ import { HolidayService } from '../../services/holidayService';
 const leaveRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/leaves/balance', async (request, reply) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
-    const empId = request.user.employeeId || `AODE${String(request.user.id).padStart(4, '0')}`;
+    const empId = request.user.employeeId || `ODE${String(request.user.id).padStart(4, '0')}`;
     const year = Number((request.query as any)?.year) || 2026;
     const balance = await LeaveService.getBalance(empId, year);
     return reply.send(balance);

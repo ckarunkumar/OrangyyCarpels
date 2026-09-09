@@ -1,7 +1,7 @@
 export interface EmployeeProfile {
   employeeId: string; id?: string; fullName: string; dob?: string; designation: string;
   department: string; email: string; personalEmail?: string; phone: string; secondaryPhone?: string;
-  permanentAddress?: string; guardianName?: string; motherName?: string; bloodGroup?: string;
+  permanentAddress?: string; gender?: string; guardianName?: string; motherName?: string; bloodGroup?: string;
   linkedInUrl?: string; aadhaarNumber?: string; panNumber?: string; costRate: string; capacity: string;
   joiningDate?: string; relievingDate?: string; status: 'Active' | 'Inactive';
   role: 'Super Admin' | 'Project Manager' | 'Employee'; location?: string; avatar?: string | null;

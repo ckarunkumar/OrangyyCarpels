@@ -16,6 +16,7 @@ export class EmployeeService {
         fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
         department: emp.department, email: emp.email, personalEmail: emp.personalEmail || '',
         phone: emp.phone, secondaryPhone: emp.secondaryPhone || '', permanentAddress: emp.permanentAddress || '',
+        gender: emp.gender || 'Not Specified',
         guardianName: emp.guardianName || '', motherName: emp.motherName || '', bloodGroup: emp.bloodGroup || '',
         linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '', panNumber: emp.panNumber || '',
         costRate: role === 'Super Admin' ? emp.costRate : 'RESTRICTED', capacity: emp.capacity,
@@ -28,16 +29,25 @@ export class EmployeeService {
     });
   }
 
+  static async getNextEmployeeId(): Promise<string> {
+    const employees = await prisma.employee.findMany({ select: { employeeId: true } });
+    let maxNum = 0;
+    for (const emp of employees) {
+      const match = emp.employeeId.match(/^ODE(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    const nextNum = maxNum + 1;
+    return `ODE${String(nextNum).padStart(4, '0')}`;
+  }
+
   static async createEmployee(role: string, data: Omit<EmployeeProfile, 'id'>): Promise<EmployeeProfile> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can create employee profiles.');
     let targetEmpId = data.employeeId?.trim();
     if (!targetEmpId) {
-      let count = (await prisma.employee.count()) + 1;
-      targetEmpId = `AODE${String(count).padStart(4, '0')}`;
-      while (await prisma.employee.findUnique({ where: { employeeId: targetEmpId } })) {
-        count++;
-        targetEmpId = `AODE${String(count).padStart(4, '0')}`;
-      }
+      targetEmpId = await EmployeeService.getNextEmployeeId();
     }
     const cleanEmail = data.email.trim().toLowerCase();
     if (await prisma.employee.findUnique({ where: { employeeId: targetEmpId } })) {
@@ -65,6 +75,7 @@ export class EmployeeService {
         designation: data.designation?.trim() || 'Team Member', department: data.department?.trim() || 'General',
         email: cleanEmail, password: finalHashedPassword, personalEmail: data.personalEmail?.trim() || '', phone: data.phone.trim(),
         secondaryPhone: data.secondaryPhone?.trim() || '', permanentAddress: data.permanentAddress?.trim() || '',
+        gender: data.gender || 'Not Specified',
         guardianName: data.guardianName?.trim() || '', motherName: data.motherName?.trim() || '',
         bloodGroup: data.bloodGroup?.trim() || '', linkedInUrl: data.linkedInUrl?.trim() || '',
         aadhaarNumber: data.aadhaarNumber?.trim() || '', panNumber: data.panNumber?.trim() || '',
@@ -80,7 +91,8 @@ export class EmployeeService {
     const exp = Array.isArray(emp.experience) ? (emp.experience as any[]) : [];
     return {
       ...emp, id: emp.employeeId, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
-      permanentAddress: emp.permanentAddress || '', guardianName: emp.guardianName || '', motherName: emp.motherName || '',
+      permanentAddress: emp.permanentAddress || '', gender: emp.gender || 'Not Specified',
+      guardianName: emp.guardianName || '', motherName: emp.motherName || '',
       bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '',
       panNumber: emp.panNumber || '', joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
       status: emp.status as 'Active' | 'Inactive', role: emp.role as EmployeeProfile['role'],
@@ -123,6 +135,7 @@ export class EmployeeService {
         ...(data.phone && { phone: data.phone.trim() }),
         ...(data.secondaryPhone !== undefined && { secondaryPhone: data.secondaryPhone.trim() }),
         ...(data.permanentAddress !== undefined && { permanentAddress: data.permanentAddress.trim() }),
+        ...(data.gender !== undefined && { gender: data.gender }),
         ...(data.guardianName !== undefined && { guardianName: data.guardianName.trim() }),
         ...(data.motherName !== undefined && { motherName: data.motherName.trim() }),
         ...(data.bloodGroup !== undefined && { bloodGroup: data.bloodGroup.trim() }),
@@ -145,7 +158,8 @@ export class EmployeeService {
     const exp = Array.isArray(updated.experience) ? (updated.experience as any[]) : [];
     return {
       ...updated, id: updated.employeeId, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
-      permanentAddress: updated.permanentAddress || '', guardianName: updated.guardianName || '', motherName: updated.motherName || '',
+      permanentAddress: updated.permanentAddress || '', gender: updated.gender || 'Not Specified',
+      guardianName: updated.guardianName || '', motherName: updated.motherName || '',
       bloodGroup: updated.bloodGroup || '', linkedInUrl: updated.linkedInUrl || '', aadhaarNumber: updated.aadhaarNumber || '',
       panNumber: updated.panNumber || '', joiningDate: updated.joiningDate || '', relievingDate: updated.relievingDate || '',
       status: updated.status as 'Active' | 'Inactive', role: updated.role as EmployeeProfile['role'],

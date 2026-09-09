@@ -75,6 +75,10 @@ export default function ClientDrawer({ open, mode, client, onClose, onSaved }: C
         });
       } else {
         setForm(EMPTY_FORM);
+        fetch('/api/clients/next-id')
+          .then((res) => res.json())
+          .then((d) => { if (d.nextId) setForm((prev) => ({ ...prev, clientId: d.nextId })); })
+          .catch(() => setForm((prev) => ({ ...prev, clientId: 'ODC0001' })));
       }
       setTimeout(() => legalNameRef.current?.focus(), 150);
     }
@@ -136,7 +140,7 @@ export default function ClientDrawer({ open, mode, client, onClose, onSaved }: C
           <div className="space-y-2.5">
             <h4 className={headingCls}>Company Info</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3">
-              <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Client ID *</label><input type="text" placeholder="AODC0001" disabled={mode === 'edit'} value={form.clientId} onChange={set('clientId')} className={`${inputCls} font-mono ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
+              <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Client ID *</label><input type="text" placeholder="ODC0001" disabled={mode === 'edit'} value={form.clientId} onChange={set('clientId')} className={`${inputCls} font-mono ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
               <div><label className={labelCls}>Company Legal Name *</label><input ref={legalNameRef} type="text" placeholder="e.g. Acme Corporation Pvt Ltd" value={form.legalName} onChange={set('legalName')} className={inputCls} /></div>
               <div><label className={labelCls}>Company Display Name *</label><input type="text" placeholder="e.g. Acme" value={form.displayName} onChange={set('displayName')} className={inputCls} /></div>
               <div><label className={labelCls}>Office Address</label><input type="text" placeholder="Street, City, PIN" value={form.address} onChange={set('address')} className={inputCls} /></div>

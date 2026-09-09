@@ -1,14 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+
+const STORAGE_KEY = 'oc_remember_credentials';
 
 export default function LoginView() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setEmail(parsed.email);
+        if (parsed.password) setPassword(parsed.password);
+        setRememberMe(true);
+      }
+    } catch {
+      // Ignore storage read errors
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,18 +39,23 @@ export default function LoginView() {
     }
     setLoading(true);
     setError(null);
-    const result = await login(email.trim().toLowerCase(), password);
+
+    const result = await login(email.trim().toLowerCase(), password, rememberMe);
     setLoading(false);
     if (!result.success) {
       setError(result.error || 'Authentication failed.');
+    } else {
+      try {
+        if (rememberMe) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ email: email.trim().toLowerCase(), password }));
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch {
+        // Ignore storage write errors
+      }
     }
   };
-
-  const demoAccounts = [
-    { label: 'Super Admin', email: 'arun@orangy.design', pass: 'Arun@Orangyy2026_' },
-    { label: 'Project Manager', email: 'navaneetha@orangy.design', pass: 'Navan@Manager123!' },
-    { label: 'Sr Designer', email: 'alex.carter@orangy.studio', pass: 'Alex#Designer99*' },
-  ];
 
   return (
     <div className="min-h-screen bg-studio-bg flex flex-col justify-center items-center font-sans p-6">
@@ -88,11 +110,24 @@ export default function LoginView() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-studio-muted hover:text-studio-text"
+                  className="absolute right-3 top-2.5 text-studio-muted hover:text-studio-text cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            {/* Remember Me Checkbox */}
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-studio-border text-brand-orange focus:ring-brand-orange cursor-pointer"
+                />
+                <span className="text-[11.5px] text-studio-text font-medium">Save password & keep active (15 days)</span>
+              </label>
             </div>
 
             {error && (
@@ -111,28 +146,6 @@ export default function LoginView() {
               {!loading && <ArrowRight className="w-4 h-4" />}
             </button>
           </form>
-
-          {/* Quick Demo Accounts */}
-          <div className="pt-3 border-t border-studio-border/60 space-y-2">
-            <p className="text-[11px] font-medium text-studio-muted">Quick Sign-in (Demo Accounts):</p>
-            <div className="flex flex-col gap-1.5">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => {
-                    setEmail(acc.email);
-                    setPassword(acc.pass);
-                    setError(null);
-                  }}
-                  className="w-full text-left px-2.5 py-1.5 rounded border border-studio-border/50 bg-studio-bg/20 hover:bg-studio-bg/50 transition-colors flex items-center justify-between text-[11px] text-studio-text"
-                >
-                  <span className="font-medium text-studio-text">{acc.label}</span>
-                  <span className="text-studio-muted font-mono text-[10px]">{acc.email}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

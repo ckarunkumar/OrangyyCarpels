@@ -8,6 +8,7 @@ const loginSchema = {
     properties: {
       email: { type: 'string', format: 'email' },
       password: { type: 'string', minLength: 1 },
+      rememberMe: { type: 'boolean' },
     },
   },
 };
@@ -48,20 +49,21 @@ const updateProfileSchema = {
 const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // POST login user
   fastify.post('/auth/login', { schema: loginSchema }, async (request, reply) => {
-    const { email, password } = request.body as { email: string; password: string };
+    const { email, password, rememberMe } = request.body as { email: string; password: string; rememberMe?: boolean };
     const result = await AuthService.login(email, password);
 
     if (!result.success || !result.sessionId || !result.session) {
       return reply.status(401).send({ error: result.error || 'Authentication failed.' });
     }
 
-    // Set HTTP-only session cookie
+    // Set HTTP-only session cookie (15 days if rememberMe or default 15 days session)
+    const maxAgeSeconds = rememberMe !== false ? (3600 * 24 * 15) : (3600 * 24 * 7);
     reply.setCookie('sessionId', result.sessionId, {
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 3600 * 24 * 7, // 7 days
+      maxAge: maxAgeSeconds,
     });
 
     return result.session;

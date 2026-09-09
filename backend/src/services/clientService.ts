@@ -26,16 +26,25 @@ export class ClientService {
     }));
   }
 
+  static async getNextClientId(): Promise<string> {
+    const clients = await prisma.client.findMany({ select: { id: true } });
+    let maxNum = 0;
+    for (const c of clients) {
+      const match = c.id.match(/^ODC(\d+)$/i);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (num > maxNum) maxNum = num;
+      }
+    }
+    const nextNum = maxNum + 1;
+    return `ODC${String(nextNum).padStart(4, '0')}`;
+  }
+
   static async createClient(role: string, data: Omit<ClientProfile, 'projects'>): Promise<ClientProfile> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can create client profiles.');
     let targetClientId = data.id?.trim().toUpperCase();
     if (!targetClientId) {
-      let count = (await prisma.client.count()) + 1;
-      targetClientId = `AODC${String(count).padStart(4, '0')}`;
-      while (await prisma.client.findUnique({ where: { id: targetClientId } })) {
-        count++;
-        targetClientId = `AODC${String(count).padStart(4, '0')}`;
-      }
+      targetClientId = await ClientService.getNextClientId();
     }
     const cleanName = data.name.trim();
     if (await prisma.client.findUnique({ where: { id: targetClientId } })) {

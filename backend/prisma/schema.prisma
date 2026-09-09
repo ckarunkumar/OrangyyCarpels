@@ -19,6 +19,7 @@ model Employee {
   phone                  String   // Mobile Number
   secondaryPhone         String?  @default("")
   permanentAddress       String?  @default("")
+  gender                 String?  @default("Not Specified") // Male, Female, Not Specified
   guardianName           String?  @default("") // Father's or Guardian name
   motherName             String?  @default("") // Mother's name
   bloodGroup             String?  @default("")
