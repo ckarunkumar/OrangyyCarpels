@@ -59,8 +59,8 @@ npm install --no-audit
 echo ">> Generating Prisma Client..."
 npx prisma generate
 
-echo ">> Applying Prisma Migrations (versioned)..."
-npx prisma migrate deploy
+echo ">> Applying Database Schema..."
+npx prisma db push --accept-data-loss
 
 echo ">> Compiling Backend TypeScript..."
 npm run build
