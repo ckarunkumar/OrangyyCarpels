@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
-import { Plus, Mail, Phone, Pencil, CheckCircle2 } from 'lucide-react';
+import { Plus, Mail, Phone, Pencil, CheckCircle2, Shield } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
 import { Employee } from './EmployeeDrawer';
 import EmployeeDetailDrawer from './EmployeeDetailDrawer';
@@ -90,11 +90,12 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
         ) : (
           <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
             <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-              <div className="col-span-2">Emp ID</div>
+              <div className="col-span-1">Emp ID</div>
               <div className="col-span-3">Name</div>
               <div className="col-span-2">Designation</div>
+              <div className="col-span-2">System Role</div>
               <div className="col-span-2">Email</div>
-              <div className="col-span-2">Phone</div>
+              <div className="col-span-1">Phone</div>
               <div className="col-span-1 text-right">Status</div>
             </div>
 
@@ -106,7 +107,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
               ) : (
                 employees.map((emp) => (
                   <div key={emp.employeeId} onClick={() => { setSelectedEmployee(emp); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
-                    <div className="col-span-2"><span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{emp.employeeId}</span></div>
+                    <div className="col-span-1"><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{emp.employeeId}</span></div>
                     <div className="col-span-3 min-w-0 pr-1 flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-studio-sidebar flex items-center justify-center text-[11px] font-bold text-studio-muted border border-studio-border shrink-0 overflow-hidden">
                         {emp.avatar ? <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" /> : <span>{emp.fullName[0]}</span>}
@@ -114,8 +115,20 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
                       <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">{emp.fullName}</p>
                     </div>
                     <div className="col-span-2"><span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded border bg-orange-50 text-brand-orange border-brand-orange/30 truncate max-w-full">{emp.designation || 'Team Member'}</span></div>
+                    <div className="col-span-2">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+                        emp.role === 'Super Admin'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : emp.role === 'Project Manager'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-slate-50 text-slate-700 border-slate-200'
+                      }`}>
+                        <Shield className={`w-2.5 h-2.5 ${emp.role === 'Super Admin' ? 'text-purple-600' : emp.role === 'Project Manager' ? 'text-blue-600' : 'text-slate-500'}`} />
+                        {emp.role || 'Employee'}
+                      </span>
+                    </div>
                     <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{emp.email}</span></div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{emp.phone}</span></div>
+                    <div className="col-span-1 text-studio-muted truncate flex items-center gap-1"><Phone className="w-3 h-3 text-studio-muted shrink-0" /><span className="truncate text-[11px]">{emp.phone}</span></div>
                     <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
                       {isAdmin && <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEdit(emp); }} title="Edit Employee" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity"><Pencil className="w-3.5 h-3.5" /></button>}
                       <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${emp.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{emp.status}</span>
