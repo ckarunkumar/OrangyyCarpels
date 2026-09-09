@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { X, Lock, Camera, LogOut, Check, AlertCircle, MapPin, Phone, Mail, Briefcase, Building, KeyRound, CheckCircle2, Circle } from 'lucide-react';
+import { X, Lock, Camera, LogOut, Check, AlertCircle, MapPin, Phone, Mail, Briefcase, Building, KeyRound, CheckCircle2, Circle, Eye, EyeOff } from 'lucide-react';
 
 interface UserProfileDrawerProps {
   open: boolean;
@@ -20,10 +20,11 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
   const [showPassSection, setShowPassSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
   const [passSaving, setPassSaving] = useState(false);
   const [passSuccess, setPassSuccess] = useState(false);
   const [passError, setPassError] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isMinLength = newPassword.length >= 9;
@@ -33,15 +34,11 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
 
   useEffect(() => {
     if (user && open) {
-      setPhone(user.phone || '');
-      setLocation(user.location || 'Delhi, India');
-      setAvatar(user.avatar || null);
-      setSuccessMsg(false);
-      setErrorMsg(null);
-      setCurrentPassword('');
-      setNewPassword('');
-      setPassSuccess(false);
-      setPassError(null);
+      setPhone(user.phone || ''); setLocation(user.location || 'Delhi, India');
+      setAvatar(user.avatar || null); setSuccessMsg(false); setErrorMsg(null);
+      setCurrentPassword(''); setNewPassword('');
+      setShowCurrentPass(false); setShowNewPass(false);
+      setPassSuccess(false); setPassError(null);
     }
   }, [user, open]);
 
@@ -62,12 +59,8 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
     setSaving(true); setErrorMsg(null); setSuccessMsg(false);
     const result = await updateProfile({ phone: phone.trim(), location: location.trim(), avatar });
     setSaving(false);
-    if (result.success) {
-      setSuccessMsg(true);
-      setTimeout(() => setSuccessMsg(false), 2500);
-    } else {
-      setErrorMsg(result.error || 'Failed to update profile.');
-    }
+    if (result.success) { setSuccessMsg(true); setTimeout(() => setSuccessMsg(false), 2500); }
+    else { setErrorMsg(result.error || 'Failed to update profile.'); }
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -78,13 +71,9 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
     const res = await changePassword(currentPassword, newPassword);
     setPassSaving(false);
     if (res.success) {
-      setPassSuccess(true);
-      setCurrentPassword('');
-      setNewPassword('');
+      setPassSuccess(true); setCurrentPassword(''); setNewPassword('');
       setTimeout(() => setPassSuccess(false), 3000);
-    } else {
-      setPassError(res.error || 'Failed to change password.');
-    }
+    } else { setPassError(res.error || 'Failed to change password.'); }
   };
 
   return (
@@ -92,10 +81,7 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
       <div onClick={onClose} className={`fixed inset-0 z-50 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
       <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-[390px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-studio-border shrink-0">
-          <div>
-            <h3 className="text-[15px] font-bold text-studio-text">User Profile</h3>
-            <p className="text-[11px] text-studio-muted mt-0.5">Manage your studio profile & security</p>
-          </div>
+          <div><h3 className="text-[15px] font-bold text-studio-text">User Profile</h3><p className="text-[11px] text-studio-muted mt-0.5">Manage your studio profile & security</p></div>
           <button type="button" onClick={onClose} className="w-7 h-7 rounded flex items-center justify-center text-studio-muted hover:bg-studio-bg transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
@@ -148,28 +134,29 @@ export default function UserProfileDrawer({ open, onClose }: UserProfileDrawerPr
                 
                 <div className="space-y-1">
                   <label className="text-[10.5px] font-semibold text-studio-muted">Current Password</label>
-                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="•••••••••" className="w-full px-2.5 py-1.5 border border-studio-border rounded text-[12px] bg-white focus:outline-none focus:border-brand-orange" />
+                  <div className="relative">
+                    <input type={showCurrentPass ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="•••••••••" className="w-full pl-2.5 pr-8 py-1.5 border border-studio-border rounded text-[12px] bg-white focus:outline-none focus:border-brand-orange" />
+                    <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-2.5 top-2 text-studio-muted hover:text-studio-text cursor-pointer" title={showCurrentPass ? 'Hide password' : 'Show password'}>
+                      {showCurrentPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <label className="text-[10.5px] font-semibold text-studio-muted">New Password</label>
-                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 9 chars, 1 uppercase, 1 special (!@#$%&_*)" className="w-full px-2.5 py-1.5 border border-studio-border rounded text-[12px] bg-white focus:outline-none focus:border-brand-orange" />
+                  <div className="relative">
+                    <input type={showNewPass ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 9 chars, 1 uppercase, 1 special (!@#$%&_*)" className="w-full pl-2.5 pr-8 py-1.5 border border-studio-border rounded text-[12px] bg-white focus:outline-none focus:border-brand-orange" />
+                    <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-2.5 top-2 text-studio-muted hover:text-studio-text cursor-pointer" title={showNewPass ? 'Hide password' : 'Show password'}>
+                      {showNewPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Password Policy Checks */}
                 <div className="text-[10px] space-y-1 bg-white p-2 rounded border border-studio-border/50 text-studio-muted">
-                  <div className={`flex items-center gap-1.5 ${isMinLength ? 'text-green-600 font-medium' : ''}`}>
-                    {isMinLength ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}
-                    <span>At least 9 characters</span>
-                  </div>
-                  <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-green-600 font-medium' : ''}`}>
-                    {hasUpper ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}
-                    <span>At least 1 uppercase letter (A-Z)</span>
-                  </div>
-                  <div className={`flex items-center gap-1.5 ${hasSpecial ? 'text-green-600 font-medium' : ''}`}>
-                    {hasSpecial ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}
-                    <span>At least 1 special char (! @ # $ % & _ *)</span>
-                  </div>
+                  <div className={`flex items-center gap-1.5 ${isMinLength ? 'text-green-600 font-medium' : ''}`}>{isMinLength ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}<span>At least 9 characters</span></div>
+                  <div className={`flex items-center gap-1.5 ${hasUpper ? 'text-green-600 font-medium' : ''}`}>{hasUpper ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}<span>At least 1 uppercase letter (A-Z)</span></div>
+                  <div className={`flex items-center gap-1.5 ${hasSpecial ? 'text-green-600 font-medium' : ''}`}>{hasSpecial ? <CheckCircle2 className="w-3 h-3 text-green-600" /> : <Circle className="w-3 h-3" />}<span>At least 1 special char (! @ # $ % & _ *)</span></div>
                 </div>
 
                 <button type="submit" disabled={passSaving || !isPassValid || !currentPassword} className="w-full py-1.5 text-[11.5px] font-semibold text-white bg-studio-text rounded hover:bg-black transition-colors disabled:opacity-40">{passSaving ? 'Updating...' : 'Update Password'}</button>

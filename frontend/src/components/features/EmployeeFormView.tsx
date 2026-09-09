@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Camera, Trash2 } from 'lucide-react';
+import { ArrowLeft, Camera, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Employee } from './EmployeeDrawer';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
@@ -27,12 +27,13 @@ interface EmployeeFormViewProps {
 export default function EmployeeFormView({ mode, employee, onBack, onSaved }: EmployeeFormViewProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setErrors({}); setServerError(null);
+    setErrors({}); setServerError(null); setShowPassword(false);
     if (mode === 'edit' && employee) {
       setForm({
         employeeId: employee.employeeId || '', fullName: employee.fullName, dob: employee.dob || '',
@@ -171,7 +172,12 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
             <div><label className={labelCls}>Status</label><select value={form.status} onChange={set('status')} className={inputCls()}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
             <div className="md:col-span-2">
               <label className="block text-[11px] font-bold text-studio-text mb-1">{mode === 'edit' ? 'Reset Password (optional)' : 'Set Custom Password (optional)'}</label>
-              <input type="password" placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Leave blank for auto-generated password'} value={form.password || ''} onChange={set('password')} className={inputCls(!!errors.password)} />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Leave blank for auto-generated password'} value={form.password || ''} onChange={set('password')} className={`${inputCls(!!errors.password)} pr-8`} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-2.5 text-studio-muted hover:text-studio-text cursor-pointer" title={showPassword ? 'Hide password' : 'Show password'}>
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
               {errors.password && <p className="text-[10px] text-red-500 mt-0.5">{errors.password}</p>}
             </div>
           </div>
