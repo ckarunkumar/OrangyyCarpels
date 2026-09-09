@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
-python3 deploy/one-shot-deploy.py
+python3 deploy/one-shot-deploy.py "$@"

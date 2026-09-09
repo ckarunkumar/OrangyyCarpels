@@ -38,19 +38,20 @@ def main():
     local_pass = "Sachin_99"
     local_db = "orangyycarpels"
     
-    # Remote Defaults
-    default_ip = "162.19.81.108"
-    default_port = "20091"
+    # Server connection settings
+    hostname = os.environ.get("SERVER_IP", "162.19.81.108")
+    port = int(os.environ.get("SERVER_PORT", "20091"))
+    default_pass = "hdf1nMKKUxGq25y%"
     remote_db = "orangyycarpels_fortest"
     remote_db_pass = "Orangyy@Carpels2026!"
 
-    ip_input = input(f"Enter Server IP [{default_ip}]: ").strip()
-    hostname = ip_input if ip_input else default_ip
-    
-    port_input = input(f"Enter SSH Port [{default_port}]: ").strip()
-    port = int(port_input) if port_input else int(default_port)
-    
-    password = getpass.getpass("Enter Server Root Password: ").strip()
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        password = sys.argv[1].strip()
+    elif os.environ.get("SERVER_PASS"):
+        password = os.environ.get("SERVER_PASS").strip()
+    else:
+        pass_input = getpass.getpass("Enter Server Root Password [Press Enter for default]: ").strip()
+        password = pass_input if pass_input else default_pass
 
     mysqldump_bin = find_mysqldump()
     temp_sql = tempfile.NamedTemporaryFile(suffix=".sql", delete=False).name
