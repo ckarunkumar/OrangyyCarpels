@@ -45,6 +45,7 @@ Orangyy Carpels is a resource, project, timesheet, HR, and billing management ap
 
 ## Constraints
 * **Strict Tech Stack Lock**: The entire tech stack (React + Vite, Tailwind CSS, TypeScript, Node.js + Fastify, Prisma ORM, MySQL 8.0 unified across Local & Server, Prisma Studio, PM2, Nginx, Google Gemini API) is 100% frozen and strictly locked. Absolutely no changes, replacements, or additions without explicit written approval from the user.
+* **No Automatic Git Commits**: Never run `git commit`, `git add`, or git push automatically after changes. All git commits and repository operations must remain 100% manual by the user.
 * **Do not break existing features**: Ensure all changes are verified and tested.
 * **No unnecessary dependencies**: Minimize external npm packages.
 * **Hardcode labels**: No i18n support in V1 (keep it simple).

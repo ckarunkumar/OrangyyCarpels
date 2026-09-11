@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
-import { DollarSign, Clock, Layers, FolderKanban, RefreshCw, History, TrendingUp } from 'lucide-react';
+import { DollarSign, Clock, Layers, FolderKanban, History, TrendingUp } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
 import RateHistoryDrawer from './RateHistoryDrawer';
 import BillingBadge from '../ui/BillingBadge';
@@ -20,32 +20,23 @@ interface BillingOverview {
   projects: ProjectBilling[]; activeMonthYear: string;
 }
 
-const FISCAL_YEARS = ['FY 2026-27 (Current)', 'FY 2025-26 (Past)', 'FY 2024-25 (Archived)'];
+const FISCAL_YEARS = ['FY 2026-27', 'FY 2025-26', 'FY 2024-25'];
 
 export default function DashboardView({ activeRole }: { activeRole: UserRole }) {
   const [data, setData] = useState<BillingOverview | null>(null);
   const [selectedFY, setSelectedFY] = useState(FISCAL_YEARS[0]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [historyProj, setHistoryProj] = useState<ProjectBilling | null>(null);
 
-  const fetchDashboard = () => {
+  const fetchDashboard = (fy: string = selectedFY) => {
     setLoading(true);
-    fetch('/api/billing/summary')
+    fetch(`/api/billing/summary?fy=${encodeURIComponent(fy)}`)
       .then((res) => res.ok ? res.json() : null)
       .then((resData) => { if (resData) setData(resData); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchDashboard(); }, [activeRole]);
-
-  const handleSyncRates = async () => {
-    setSyncing(true);
-    try {
-      const res = await fetch('/api/billing/rates/sync', { method: 'POST' });
-      if (res.ok) fetchDashboard();
-    } finally { setSyncing(false); }
-  };
+  useEffect(() => { fetchDashboard(selectedFY); }, [activeRole, selectedFY]);
 
   const renderSuperAdmin = () => (
     <div className="space-y-5">
@@ -71,18 +62,6 @@ export default function DashboardView({ activeRole }: { activeRole: UserRole }) 
           <span className="text-[10px] text-studio-muted mt-0.5 block">{data?.activeProjectsCount || 0} active project accounts</span>
         </div>
       </div>
-
-      {data?.exchangeRates && (
-        <div className="p-3 bg-studio-sidebar border border-studio-border rounded-lg flex items-center justify-between overflow-x-auto text-[11px]">
-          <span className="font-bold text-studio-text uppercase tracking-wider shrink-0 mr-3">Exchange Rates (to INR):</span>
-          <div className="flex items-center gap-4 text-studio-muted font-mono shrink-0">
-            {data.exchangeRates.filter((r) => r.currency !== 'INR').slice(0, 7).map((r) => (
-              <span key={r.currency} className="flex items-center gap-1"><span className="font-bold text-studio-text">{r.currency}</span>: ₹{r.rateToINR.toFixed(2)}</span>
-            ))}
-          </div>
-          <span className="text-[10px] text-studio-muted font-sans shrink-0 ml-3">Month: {data.activeMonthYear}</span>
-        </div>
-      )}
 
       <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
         <div className="bg-studio-sidebar border-b border-studio-border px-4 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-2 items-center">
@@ -172,12 +151,9 @@ export default function DashboardView({ activeRole }: { activeRole: UserRole }) 
           </div>
           {activeRole === 'Super Admin' && (
             <div className="flex items-center gap-2">
-              <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)} className="px-2.5 py-1.5 border border-studio-border rounded bg-white text-[12px] font-medium text-studio-text">
+              <select value={selectedFY} onChange={(e) => setSelectedFY(e.target.value)} className="px-2.5 py-1.5 border border-studio-border rounded bg-white text-[12px] font-medium text-studio-text cursor-pointer hover:border-brand-orange focus:outline-none focus:border-brand-orange">
                 {FISCAL_YEARS.map((fy) => (<option key={fy} value={fy}>{fy}</option>))}
               </select>
-              <button onClick={handleSyncRates} disabled={syncing} className="flex items-center gap-1 px-3 py-1.5 bg-white border border-studio-border hover:border-brand-orange text-studio-text hover:text-brand-orange rounded text-[12px] font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-2xs">
-                <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Syncing...' : 'Sync Rates'}
-              </button>
             </div>
           )}
         </div>

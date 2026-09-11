@@ -7,12 +7,22 @@ class EmployeeService {
     static async getEmployees(role) {
         if (role === 'Employee')
             throw new Error('Access Denied: Employees cannot view the full registry.');
-        const employees = await prisma_1.prisma.employee.findMany();
+        const [employees, allProjects] = await Promise.all([
+            prisma_1.prisma.employee.findMany(),
+            prisma_1.prisma.project.findMany({ select: { id: true, name: true, status: true, managerId: true, assignedEmployees: true } }),
+        ]);
         const todayStr = new Date().toISOString().slice(0, 10);
         return employees.map((emp) => {
             const isRelieved = Boolean(emp.relievingDate && emp.relievingDate <= todayStr);
             const edu = Array.isArray(emp.education) ? emp.education : [];
             const exp = Array.isArray(emp.experience) ? emp.experience : [];
+            const empIdLower = emp.employeeId.toLowerCase();
+            const empNameLower = emp.fullName.toLowerCase();
+            const assignedProjs = allProjects.filter((p) => {
+                const pMgrLower = (p.managerId || '').toLowerCase().trim();
+                const assignedList = (p.assignedEmployees || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+                return pMgrLower === empIdLower || pMgrLower === empNameLower || assignedList.includes(empIdLower) || assignedList.includes(empNameLower);
+            });
             return {
                 id: emp.employeeId, employeeId: emp.employeeId,
                 fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
@@ -27,6 +37,8 @@ class EmployeeService {
                 role: emp.role, location: emp.location, avatar: emp.avatar,
                 education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
                 experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
+                assignedProjectsCount: assignedProjs.length,
+                assignedProjects: assignedProjs.map((p) => ({ id: p.id, name: p.name, status: p.status })),
             };
         });
     }

@@ -3,29 +3,34 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const timesheetService_1 = require("../../services/timesheetService");
 const timesheetSchema_1 = require("../schemas/timesheetSchema");
 const timesheetRoutes = async (fastify) => {
-    // GET projects summary for timesheet view
+    // GET projects summary for timesheet view (scoped to assigned projects for employees)
     fastify.get('/timesheets/projects-summary', async (request) => {
         const { month } = request.query;
-        const isReviewer = request.user?.role === 'Super Admin' || request.user?.role === 'Project Manager';
-        const employeeId = isReviewer ? undefined : (request.user?.userId ? String(request.user.userId) : undefined);
-        return timesheetService_1.TimesheetService.getEmployeeProjectsSummary(month || '2026-08', employeeId);
+        const role = request.user?.role || 'Employee';
+        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        return timesheetService_1.TimesheetService.getEmployeeProjectsSummary(month || '2026-08', employeeId, role);
     });
     // GET full month daily entries for a specific project
-    fastify.get('/timesheets/daily-entries', async (request) => {
+    fastify.get('/timesheets/daily-entries', async (request, reply) => {
         const { projectId, month, weekStart } = request.query;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
-        const isReviewer = request.user?.role === 'Super Admin' || request.user?.role === 'Project Manager';
-        const employeeId = isReviewer ? undefined : (request.user?.userId ? String(request.user.userId) : undefined);
-        return timesheetService_1.TimesheetService.getProjectDailyEntries(projectId, monthStr, employeeId);
+        const role = request.user?.role || 'Employee';
+        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        try {
+            return await timesheetService_1.TimesheetService.getProjectDailyEntries(projectId, monthStr, employeeId, role);
+        }
+        catch (err) {
+            return reply.status(403).send({ error: err.message });
+        }
     });
     // POST save daily entries (draft auto-save)
     fastify.post('/timesheets/daily-entries/save', async (request, reply) => {
         const { projectId, month, weekStart, entries } = request.body;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
-        const isReviewer = request.user?.role === 'Super Admin' || request.user?.role === 'Project Manager';
-        const employeeId = isReviewer ? undefined : (request.user?.userId ? String(request.user.userId) : undefined);
+        const role = request.user?.role || 'Employee';
+        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
         try {
-            return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, request.user.role, entries, 'Draft');
+            return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, role, entries, 'Draft');
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });
@@ -35,9 +40,10 @@ const timesheetRoutes = async (fastify) => {
     fastify.post('/timesheets/daily-entries/submit', async (request, reply) => {
         const { projectId, month, weekStart, entries } = request.body;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
+        const role = request.user?.role || 'Employee';
         const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
         try {
-            return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, request.user.role, entries, 'Submitted');
+            return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, role, entries, 'Submitted');
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });
@@ -46,9 +52,10 @@ const timesheetRoutes = async (fastify) => {
     // POST approve daily entries (PM -> PM_Approved, Super Admin -> Approved)
     fastify.post('/timesheets/daily-entries/approve', async (request, reply) => {
         const { projectId, month } = request.body;
+        const role = request.user?.role || 'Employee';
         const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
         try {
-            return await timesheetService_1.TimesheetService.approveTimesheet(projectId, month || '2026-08', employeeId, request.user.role);
+            return await timesheetService_1.TimesheetService.approveTimesheet(projectId, month || '2026-08', employeeId, role);
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });
@@ -57,9 +64,10 @@ const timesheetRoutes = async (fastify) => {
     // POST reopen daily entries (PM or Super Admin -> sets to Draft to allow Emp rework)
     fastify.post('/timesheets/daily-entries/reopen', async (request, reply) => {
         const { projectId, month } = request.body;
+        const role = request.user?.role || 'Employee';
         const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
         try {
-            return await timesheetService_1.TimesheetService.reopenTimesheet(projectId, month || '2026-08', employeeId, request.user.role);
+            return await timesheetService_1.TimesheetService.reopenTimesheet(projectId, month || '2026-08', employeeId, role);
         }
         catch (err) {
             return reply.status(403).send({ error: err.message });

@@ -2,6 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addRateVersionSchema = exports.getBillingSummarySchema = void 0;
 exports.getBillingSummarySchema = {
+    querystring: {
+        type: 'object',
+        properties: {
+            fy: { type: 'string' },
+        },
+    },
     response: {
         200: {
             type: 'object',

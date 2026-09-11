@@ -1,4 +1,10 @@
 export const getBillingSummarySchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      fy: { type: 'string' },
+    },
+  },
   response: {
     200: {
       type: 'object',

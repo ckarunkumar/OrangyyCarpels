@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
-import { Plus, Mail, Phone, Pencil, CheckCircle2, Shield } from 'lucide-react';
+import { Plus, Mail, Phone, Pencil, CheckCircle2, Shield, FolderGit2 } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
 import { Employee } from './EmployeeDrawer';
 import EmployeeDetailDrawer from './EmployeeDetailDrawer';
@@ -77,7 +77,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
 
         <Breadcrumbs items={[{ label: 'Team' }]} />
         <div className="flex justify-between items-center border-b border-studio-border pb-3">
-          <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">Team</h2><p className="text-[12px] text-studio-muted">Manage studio team members, contact details, and designations</p></div>
+          <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">Team</h2><p className="text-[12px] text-studio-muted">Manage studio team members, contact details, and assigned projects</p></div>
           {isAdmin && (
             <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer">
               <Plus className="w-4 h-4" /> Add Team Member
@@ -92,10 +92,10 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
             <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
               <div className="col-span-1">Emp ID</div>
               <div className="col-span-3">Name</div>
-              <div className="col-span-2">Designation</div>
               <div className="col-span-2">System Role</div>
               <div className="col-span-2">Email</div>
               <div className="col-span-1">Phone</div>
+              <div className="col-span-2">Project's</div>
               <div className="col-span-1 text-right">Status</div>
             </div>
 
@@ -114,7 +114,6 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
                       </div>
                       <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">{emp.fullName}</p>
                     </div>
-                    <div className="col-span-2"><span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded border bg-orange-50 text-brand-orange border-brand-orange/30 truncate max-w-full">{emp.designation || 'Team Member'}</span></div>
                     <div className="col-span-2">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
                         emp.role === 'Super Admin'
@@ -129,6 +128,16 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
                     </div>
                     <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{emp.email}</span></div>
                     <div className="col-span-1 text-studio-muted truncate flex items-center gap-1"><Phone className="w-3 h-3 text-studio-muted shrink-0" /><span className="truncate text-[11px]">{emp.phone}</span></div>
+                    <div className="col-span-2">
+                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                        (emp.assignedProjectsCount || 0) > 0
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'bg-slate-50 text-slate-600 border-slate-200'
+                      }`}>
+                        <FolderGit2 className={`w-3 h-3 ${(emp.assignedProjectsCount || 0) > 0 ? 'text-blue-600' : 'text-slate-400'}`} />
+                        {(emp.assignedProjectsCount || 0)} {(emp.assignedProjectsCount || 0) === 1 ? 'Project' : 'Projects'}
+                      </span>
+                    </div>
                     <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
                       {isAdmin && <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEdit(emp); }} title="Edit Employee" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity"><Pencil className="w-3.5 h-3.5" /></button>}
                       <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${emp.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{emp.status}</span>

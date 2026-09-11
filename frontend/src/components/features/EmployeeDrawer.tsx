@@ -8,6 +8,7 @@ export interface Employee {
   aadhaarNumber?: string; panNumber?: string; joiningDate?: string; relievingDate?: string; status: 'Active' | 'Inactive';
   role: 'Super Admin' | 'Project Manager' | 'Employee'; location?: string; avatar?: string | null;
   education?: Array<{ degree: string; school: string; year: string }>; experience?: Array<{ company: string; role: string; period: string }>;
+  assignedProjectsCount?: number; assignedProjects?: Array<{ id: string; name: string; status: string }>;
 }
 
 type FormState = {
@@ -26,11 +27,7 @@ const EMPTY_FORM: FormState = {
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const GENDERS = ['Male', 'Female', 'Not Specified'];
-
-interface EmployeeDrawerProps {
-  open: boolean; mode: 'add' | 'edit'; employee: Employee | null;
-  onClose: () => void; onSaved: () => void;
-}
+interface EmployeeDrawerProps { open: boolean; mode: 'add' | 'edit'; employee: Employee | null; onClose: () => void; onSaved: () => void; }
 
 export default function EmployeeDrawer({ open, mode, employee, onClose, onSaved }: EmployeeDrawerProps) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -87,7 +84,9 @@ export default function EmployeeDrawer({ open, mode, employee, onClose, onSaved 
     if (!form.dob.trim()) errs.dob = 'Date of birth is required';
     if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errs.email = 'Valid email is required';
     if (!form.phone.trim()) errs.phone = 'Mobile number is required';
-    if (form.password && form.password.trim() && (form.password.length < 9 || !/[A-Z]/.test(form.password) || !/[!@#$%&_*]/.test(form.password))) {
+    if (mode === 'add' && (!form.password || !form.password.trim())) {
+      errs.password = 'Member login password is required';
+    } else if (form.password && form.password.trim() && (form.password.length < 9 || !/[A-Z]/.test(form.password) || !/[!@#$%&_*]/.test(form.password))) {
       errs.password = 'Min 9 chars, 1 uppercase, 1 special (!@#$%&_*)';
     }
     setErrors(errs); return Object.keys(errs).length === 0;
@@ -175,9 +174,9 @@ export default function EmployeeDrawer({ open, mode, employee, onClose, onSaved 
               <div><label className={labelCls}>Role</label><select value={form.role} onChange={set('role')} className={inputCls()}><option value="Employee">Employee</option><option value="Project Manager">Project Manager</option><option value="Super Admin">Super Admin</option></select></div>
               <div><label className={labelCls}>Status</label><select value={form.status} onChange={set('status')} className={inputCls()}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
               <div className="md:col-span-2">
-                <label className="block text-[11px] font-bold text-studio-text mb-1">{mode === 'edit' ? 'Reset Password (optional)' : 'Set Custom Password (optional)'}</label>
+                <label className="block text-[11px] font-bold text-studio-text mb-1">{mode === 'edit' ? 'Reset Password' : <>Member Login Password <span className="text-red-500">*</span></>}</label>
                 <div className="relative">
-                  <input type={showPassword ? 'text' : 'password'} placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Leave blank for auto-generated password'} value={form.password || ''} onChange={set('password')} className={`${inputCls(!!errors.password)} pr-8`} />
+                  <input type={showPassword ? 'text' : 'password'} placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Min 9 chars, 1 uppercase, 1 special (!@#$%&_*)'} value={form.password || ''} onChange={set('password')} className={`${inputCls(!!errors.password)} pr-8`} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-2 text-studio-muted hover:text-studio-text cursor-pointer" title={showPassword ? 'Hide password' : 'Show password'}>
                     {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>

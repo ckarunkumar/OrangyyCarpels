@@ -19,28 +19,41 @@ export default function ProjectTimesheetView({
   const [currentMonth, setCurrentMonth] = useState(month);
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [status, setStatus] = useState<string>('Draft');
+  const [myStatus, setMyStatus] = useState<string>('Draft');
   const [pendingResources, setPendingResources] = useState<string[]>([]);
   const [projectServices, setProjectServices] = useState<string[]>([]);
   const [counts, setCounts] = useState({ total: 1, submitted: 0 });
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [pendingAction, setPendingAction] = useState<TimesheetActionType | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  const isLocked = (status === 'Approved') || (status === 'PM_Approved' && !isSA) || (status === 'Submitted' && isEmp);
+  const isLocked = isEmp
+    ? (myStatus === 'Approved' || myStatus === 'PM_Approved' || myStatus === 'Submitted')
+    : (status === 'Approved' || (status === 'PM_Approved' && !isSA));
 
   const fetchEntries = () => {
     setLoading(true);
     fetch(`/api/timesheets/daily-entries?projectId=${project.id}&month=${currentMonth}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch project timesheet.');
+        return data;
+      })
       .then((data) => {
-        setEntries(data.entries || []); setStatus(data.status || 'Draft');
+        setEntries(data.entries || []);
+        setStatus(data.status || 'Draft');
+        setMyStatus(data.myStatus || 'Draft');
         setPendingResources(data.pendingResources || []);
         setCounts({ total: data.totalAssigned || 1, submitted: data.submittedCount || 0 });
         if (data.services) setProjectServices(data.services.split(',').map((s: string) => s.trim()).filter(Boolean));
-      }).finally(() => setLoading(false));
+        setFetchError(null);
+      })
+      .catch((err) => { setFetchError(err.message); setEntries([]); })
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchEntries(); }, [project.id, currentMonth]);
@@ -60,7 +73,9 @@ export default function ProjectTimesheetView({
     setActionLoading(true);
     try {
       const userEntries = isEmp ? entries.filter((e) => e.isOwner !== false) : entries;
-      await fetch('/api/timesheets/daily-entries/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, month: currentMonth, entries: userEntries }) });
+      const res = await fetch('/api/timesheets/daily-entries/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, month: currentMonth, entries: userEntries }) });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to save'); return; }
       setSaveMsg('Saved successfully!'); setTimeout(() => setSaveMsg(''), 2500); onRefresh();
     } finally { setActionLoading(false); }
   };
@@ -83,12 +98,26 @@ export default function ProjectTimesheetView({
     } finally { setActionLoading(false); }
   };
 
+  if (fetchError) {
+    return (
+      <div className="w-full space-y-4">
+        <Breadcrumbs items={[{ label: 'Time Sheet', onClick: () => onBack() }, { label: project.projectName }]} />
+        <div className="p-6 border border-red-200 bg-red-50/70 rounded-xl text-center space-y-3 shadow-sm">
+          <AlertTriangle className="w-8 h-8 text-red-600 mx-auto" />
+          <h3 className="text-[15px] font-bold text-red-900">Access Restricted</h3>
+          <p className="text-[12.5px] text-red-700 max-w-md mx-auto">{fetchError}</p>
+          <div><button onClick={() => onBack()} className="px-4 py-1.5 bg-white border border-red-300 text-red-800 rounded-lg text-[12px] font-semibold hover:bg-red-50 cursor-pointer shadow-2xs">Back to Timesheets</button></div>
+        </div>
+      </div>
+    );
+  }
+
   const totalHours = entries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
   const myTotalHours = entries.filter((e) => e.isOwner !== false).reduce((s, e) => s + (Number(e.hours) || 0), 0);
   const isHourly = project.billingType === 'T&M' || project.billingType === 'Hourly Rate (T&M)';
   const canExport = (isPM || isSA) && status !== 'Draft';
   const isPartial = status === 'Partially_Submitted';
-  const statusLabel = status === 'Approved' ? 'Locked' : status === 'PM_Approved' ? 'PM Approved' : isPartial ? `Partially Submitted (${counts.submitted}/${counts.total})` : status;
+  const statusLabel = status === 'Approved' ? 'Locked' : status === 'PM_Approved' ? 'PM Approved' : isPartial ? `Partially Submitted (${counts.submitted}/${counts.total})` : status === 'Submitted' ? (counts.total > 1 ? `Submitted (${counts.submitted}/${counts.total})` : 'Submitted') : status;
   const statusColor = status === 'Approved' ? 'bg-green-50 text-green-800 border-green-300' : status === 'PM_Approved' ? 'bg-purple-50 text-purple-800 border-purple-300' : isPartial ? 'bg-amber-50 text-amber-800 border-amber-300' : status === 'Submitted' ? 'bg-blue-50 text-blue-800 border-blue-300' : 'bg-slate-50 text-slate-700 border-slate-300';
 
   const dateGroups: DateGroupItem[] = useMemo(() => {
@@ -138,7 +167,7 @@ export default function ProjectTimesheetView({
             <span className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-bold flex items-center gap-1 shadow-2xs ${statusColor}`}>
               {status === 'Approved' && <Lock className="w-3 h-3" />}{isPartial && <AlertTriangle className="w-3 h-3 text-amber-600" />}{statusLabel}
             </span>
-            {isEmp && status === 'Draft' && (
+            {isEmp && myStatus === 'Draft' && (
               <button type="button" onClick={() => setPendingAction('Submit')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-orange text-white text-[11.5px] font-bold shadow-2xs hover:bg-opacity-90 cursor-pointer"><Send className="w-3.5 h-3.5" /> Submit</button>
             )}
             {isPM && status === 'Submitted' && (<>
@@ -177,7 +206,7 @@ export default function ProjectTimesheetView({
           </div>
           <div className="bg-studio-sidebar border-t border-studio-border px-5 py-2 flex justify-between items-center text-[12px] shadow-xs shrink-0">
             <div className="flex items-center gap-2">
-              {isLocked && (<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded font-semibold flex items-center gap-1.5 text-[11px]"><Lock className="w-3 h-3" /> Locked for edits ({statusLabel}).</span>)}
+              {isLocked && (<span className="text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded font-semibold flex items-center gap-1.5 text-[11px]"><Lock className="w-3 h-3" /> Locked for edits ({isEmp ? myStatus : statusLabel}).</span>)}
               {isEmp && !isLocked && (<span className="text-studio-muted text-[11px]">My Logged: <strong className="text-studio-text font-mono">{myTotalHours}h</strong></span>)}
             </div>
             <div className="font-bold text-studio-text">Monthly Total: <span className="font-mono text-brand-orange text-[15px]">{totalHours} hrs</span></div>

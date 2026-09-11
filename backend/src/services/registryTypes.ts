@@ -8,6 +8,8 @@ export interface EmployeeProfile {
   password?: string | null;
   education: Array<{ degree: string; school: string; year: string }>;
   experience: Array<{ company: string; role: string; period: string }>;
+  assignedProjectsCount?: number;
+  assignedProjects?: Array<{ id: string; name: string; status: string }>;
 }
 
 

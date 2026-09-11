@@ -93,17 +93,37 @@ export class BillingService {
     return updatedRates;
   }
 
-  static async getBillingSummary(role: string): Promise<BillingOverview> {
+  static parseFiscalYear(fy?: string): { startDate: string; endDate: string; fyLabel: string } {
+    const match = (fy || '').match(/(\d{4})[-/](\d{2,4})/);
+    let startYear = 2026;
+    if (match) startYear = parseInt(match[1], 10);
+    const endYear = startYear + 1;
+    const shortEnd = String(endYear).slice(-2);
+    return {
+      startDate: `${startYear}-04-01`,
+      endDate: `${endYear}-03-31`,
+      fyLabel: `FY ${startYear}-${shortEnd}`,
+    };
+  }
+
+  static async getBillingSummary(role: string, fy?: string): Promise<BillingOverview> {
     if (role === 'Employee') throw new Error('Access Denied: Employees cannot view billing financials.');
-    const monthYear = this.getCurrentMonthYear();
+    const { startDate: fyStart, endDate: fyEnd, fyLabel } = this.parseFiscalYear(fy);
     const exchangeRates = await this.getExchangeRates();
     const rateMap = new Map<string, number>(exchangeRates.map((r) => [r.currency, r.rateToINR]));
 
     const projects = await prisma.project.findMany({
-      include: { client: true },
+      include: {
+        client: true,
+        dailyEntries: {
+          where: { date: { gte: fyStart, lte: fyEnd } },
+        },
+      },
     });
 
     let totalRevenueINR = 0, tmRevenueINR = 0, monthlyFixedRevenueINR = 0, projectFixedRevenueINR = 0, totalHoursLogged = 0;
+    let activeProjectsInFYCount = 0;
+    const isCurrentFY = fyLabel === 'FY 2026-27';
 
     const projectSummaries: ProjectBillingSummary[] = projects.map((p: any) => {
       const rateVersions: RateVersionItem[] = Array.isArray(p.rateVersions) ? p.rateVersions : [];
@@ -116,10 +136,24 @@ export class BillingService {
         bTypeRaw === 'Hourly Rate (T&M)' ? 'T&M' :
         bTypeRaw === 'Monthly Resource Cost (Fixed)' || bTypeRaw === 'Monthly Res Cost (Fixed)' ? 'Fixed RC' :
         bTypeRaw === 'Project Cost (Fixed)' ? 'Fixed PC' : bTypeRaw;
-      const loggedHours = p.loggedHours || 0;
+
+      const entriesHours = p.dailyEntries?.reduce((sum: number, d: any) => sum + (d.hours || 0), 0) || 0;
+      const loggedHours = entriesHours > 0 ? entriesHours : (isCurrentFY ? (p.loggedHours || 0) : 0);
+
+      const pStart = p.startDate || '2026-04-01';
+      const pEnd = p.endDate || '2099-12-31';
+      const isProjectActiveInFY = pStart <= fyEnd && pEnd >= fyStart;
+      if (isProjectActiveInFY && p.status === 'Active') activeProjectsInFYCount++;
+
       totalHoursLogged += loggedHours;
 
-      let nativeAmountBilled = (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') ? loggedHours * rateAmount : rateAmount;
+      let nativeAmountBilled = 0;
+      if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') {
+        nativeAmountBilled = loggedHours * rateAmount;
+      } else if (isProjectActiveInFY) {
+        nativeAmountBilled = rateAmount;
+      }
+
       const inrAmountBilled = Math.round(nativeAmountBilled * rateToINR);
       totalRevenueINR += inrAmountBilled;
       if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') tmRevenueINR += inrAmountBilled;
@@ -130,14 +164,14 @@ export class BillingService {
         projectId: p.id, projectName: p.name, clientId: p.clientId, clientName: p.client.displayName || p.client.name,
         billingType, currency, rateAmount, rateFormatted: `${currency.replace(/\s*\(.*\)/, '')} ${rateAmount.toLocaleString()}`,
         budgetHours: p.budgetHours, loggedHours, nativeAmountBilled, exchangeRateToINR: rateToINR,
-        inrAmountBilled, status: p.status, effectiveStartDate: activeVersion?.effectiveStartDate || 'Initial',
+        inrAmountBilled, status: isProjectActiveInFY ? p.status : 'Archived', effectiveStartDate: activeVersion?.effectiveStartDate || 'Initial',
       };
     });
 
     return {
       totalRevenueINR, tmRevenueINR, monthlyFixedRevenueINR, projectFixedRevenueINR,
-      totalHoursLogged, activeProjectsCount: projects.filter((p: any) => p.status === 'Active').length,
-      exchangeRates, projects: projectSummaries, activeMonthYear: monthYear,
+      totalHoursLogged, activeProjectsCount: activeProjectsInFYCount || (isCurrentFY ? projects.filter((p: any) => p.status === 'Active').length : 0),
+      exchangeRates, projects: projectSummaries, activeMonthYear: fyLabel,
     };
   }
 

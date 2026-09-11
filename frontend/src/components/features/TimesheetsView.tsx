@@ -12,6 +12,7 @@ import MonthYearPicker from '../ui/MonthYearPicker';
 export interface ProjectTimesheetItem {
   id: string; client: string; projectName: string; billingType: string;
   timeLogged: number; budgetHours: number; percentage: number; status: string;
+  myStatus?: string; submittedCount?: number; totalAssigned?: number;
 }
 
 export default function TimesheetsView({ activeRole }: { activeRole: UserRole }) {
@@ -104,9 +105,9 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
           <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
             <div className="col-span-4">PROJECT & CLIENT</div>
             <div className="col-span-2">BILLING TYPE</div>
-            <div className="col-span-2 text-center">LOGGED</div>
+            <div className="col-span-1 text-center">LOGGED</div>
             <div className="col-span-2">BUDGET</div>
-            <div className="col-span-1 text-center">STATUS</div>
+            <div className="col-span-2 text-center">STATUS</div>
             <div className="col-span-1 text-right">ACTION</div>
           </div>
 
@@ -118,7 +119,18 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
             ) : (
               projects.map((proj) => {
                 const isHourly = proj.billingType === 'T&M' || proj.billingType === 'Hourly Rate (T&M)';
-                const isLockedForEmp = isEmp && (proj.status === 'Submitted' || proj.status === 'PM_Approved' || proj.status === 'Approved');
+                const isLockedForEmp = isEmp && (proj.myStatus ? proj.myStatus !== 'Draft' : (proj.status === 'Submitted' || proj.status === 'PM_Approved' || proj.status === 'Approved'));
+                const isPartial = proj.status === 'Partially_Submitted';
+                const badgeText = proj.status === 'Approved' ? 'Approved' :
+                                  proj.status === 'PM_Approved' ? 'PM Approved' :
+                                  isPartial ? `Partially Submitted (${proj.submittedCount || 0}/${proj.totalAssigned || 1})` :
+                                  proj.status === 'Submitted' ? ((proj.totalAssigned || 1) > 1 ? `Submitted (${proj.submittedCount || proj.totalAssigned}/${proj.totalAssigned})` : 'Submitted') :
+                                  'Draft';
+                const badgeColor = proj.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' :
+                                   proj.status === 'PM_Approved' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                   isPartial ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                                   proj.status === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                   'bg-slate-50 text-slate-700 border-slate-200';
 
                 return (
                   <div key={proj.id} onClick={() => setSelectedProjectForDetail(proj)} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer">
@@ -127,7 +139,7 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
                       <p className="text-[11px] text-studio-muted truncate mt-0.5">{proj.client} • <span className="font-mono">{proj.id}</span></p>
                     </div>
                     <div className="col-span-2 flex items-center"><BillingBadge type={proj.billingType} /></div>
-                    <div className="col-span-2 text-center font-mono text-studio-muted text-[12px]">{proj.timeLogged}h</div>
+                    <div className="col-span-1 text-center font-mono text-studio-muted text-[12px]">{proj.timeLogged}h</div>
                     <div className="col-span-2 min-w-0">
                       {isHourly ? (
                         <div className="space-y-1">
@@ -136,9 +148,9 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
                         </div>
                       ) : (<span className="text-[11px] font-mono text-studio-muted">{proj.timeLogged}h</span>)}
                     </div>
-                    <div className="col-span-1 text-center">
-                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Approved' ? 'bg-green-50 text-green-700 border-green-200' : proj.status === 'PM_Approved' ? 'bg-purple-50 text-purple-700 border-purple-200' : proj.status === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                        {proj.status === 'PM_Approved' ? 'PM Approved' : proj.status || 'Draft'}
+                    <div className="col-span-2 text-center">
+                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border inline-block max-w-full truncate ${badgeColor}`}>
+                        {badgeText}
                       </span>
                     </div>
                     <div className="col-span-1 text-right flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
