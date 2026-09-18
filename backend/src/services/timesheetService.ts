@@ -1,8 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { NotificationService } from './notificationService';
 
-export interface TimesheetRow { id: number; client: string; project: string; task: string; hours: number[]; billable: boolean; }
-export interface WeeklyTimesheet { weekStart: string; status: 'Draft' | 'Submitted' | 'PM_Approved' | 'Approved' | 'Locked'; rows: TimesheetRow[]; isMonthClosed?: boolean; }
 export interface ProjectTimesheetItem {
   id: string; client: string; projectName: string; billingType: string; timeLogged: number;
   budgetHours: number; percentage: number; status: string; myStatus?: string;
@@ -344,39 +342,5 @@ export class TimesheetService {
   static async syncProjectLoggedHours(projectId: string) {
     const agg = await prisma.dailyTimesheetEntry.aggregate({ where: { projectId }, _sum: { hours: true } });
     await prisma.project.update({ where: { id: projectId }, data: { loggedHours: agg._sum.hours || 0 } });
-  }
-
-  static async getWeeklySheet(weekStart: string): Promise<WeeklyTimesheet> {
-    let sheet = await prisma.timesheet.findUnique({ where: { weekStart }, include: { rows: true } });
-    if (!sheet) sheet = await prisma.timesheet.create({ data: { weekStart, status: 'Draft' }, include: { rows: true } });
-    const isClosed = this.isMonthClosed(weekStart);
-    return { weekStart: sheet.weekStart, status: (isClosed && sheet.status !== 'Approved' ? 'Locked' : sheet.status) as WeeklyTimesheet['status'], isMonthClosed: isClosed, rows: sheet.rows.map((r) => ({ id: r.id, client: r.client, project: r.project, task: r.task, billable: r.billable, hours: [r.mon, r.tue, r.wed, r.thu, r.fri, r.sat, r.sun] })) };
-  }
-
-  static async saveDraft(weekStart: string, role: string, rows: any[]) {
-    try { return { success: true, data: await this.updateSheet(weekStart, rows) }; } catch (e: any) { return { success: false, error: e.message }; }
-  }
-
-  static async submitSheet(weekStart: string, role: string, rows: any[]) {
-    try {
-      const sheet = await this.updateSheet(weekStart, rows);
-      await prisma.timesheet.update({ where: { weekStart }, data: { status: 'Submitted' } });
-      return { success: true, data: { ...sheet, status: 'Submitted' as const } };
-    } catch (e: any) { return { success: false, error: e.message }; }
-  }
-
-  static async approveOrRejectSheet(weekStart: string, role: string, action: 'approve' | 'reject') {
-    if (role !== 'Project Manager' && role !== 'Super Admin') return { success: false, error: 'Unauthorized' };
-    await prisma.timesheet.update({ where: { weekStart }, data: { status: action === 'approve' ? 'Approved' : 'Draft' } });
-    return { success: true, data: await this.getWeeklySheet(weekStart) };
-  }
-
-  static async updateSheet(weekStart: string, rows: TimesheetRow[]) {
-    if (this.isMonthClosed(weekStart)) throw new Error('Month closed. Timesheets are locked.');
-    let sheet = await prisma.timesheet.findUnique({ where: { weekStart } });
-    if (!sheet) sheet = await prisma.timesheet.create({ data: { weekStart, status: 'Draft' } });
-    await prisma.timesheetRow.deleteMany({ where: { timesheetId: sheet.id } });
-    await prisma.timesheetRow.createMany({ data: rows.map((r) => ({ timesheetId: sheet.id, client: r.client, project: r.project, task: r.task, billable: r.billable, mon: r.hours[0] || 0, tue: r.hours[1] || 0, wed: r.hours[2] || 0, thu: r.hours[3] || 0, fri: r.hours[4] || 0, sat: r.hours[5] || 0, sun: r.hours[6] || 0 })) });
-    return this.getWeeklySheet(weekStart);
   }
 }

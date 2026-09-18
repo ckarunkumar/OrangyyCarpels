@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
 import { Plus, Mail, Phone, Pencil, CheckCircle2, Shield, FolderGit2 } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
-import { Employee } from './EmployeeDrawer';
+import { Employee } from '../../types/registry';
 import EmployeeDetailDrawer from './EmployeeDetailDrawer';
 import EmployeeFormView from './EmployeeFormView';
 import Breadcrumbs from '../ui/Breadcrumbs';

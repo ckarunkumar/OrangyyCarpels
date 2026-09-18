@@ -34,7 +34,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 const timesheetService_1 = require("../../services/timesheetService");
-const timesheetSchema_1 = require("../schemas/timesheetSchema");
 const timesheetRoutes = async (fastify) => {
     // GET timesheet PM / Employee summary for dashboard (scoped by managerId or employee self, date range)
     fastify.get('/timesheets/summary', async (request, reply) => {
@@ -122,32 +121,6 @@ const timesheetRoutes = async (fastify) => {
         catch (err) {
             return reply.status(403).send({ error: err.message });
         }
-    });
-    // Legacy timesheet routes for fallback
-    fastify.get('/timesheets', { schema: timesheetSchema_1.getTimesheetSchema }, async (request) => {
-        const { weekStart } = request.query;
-        return timesheetService_1.TimesheetService.getWeeklySheet(weekStart);
-    });
-    fastify.post('/timesheets/save', { schema: timesheetSchema_1.saveTimesheetSchema }, async (request, reply) => {
-        const { weekStart, rows } = request.body;
-        const result = await timesheetService_1.TimesheetService.saveDraft(weekStart, request.user.role, rows);
-        if (!result.success)
-            return reply.status(403).send({ error: result.error });
-        return result.data;
-    });
-    fastify.post('/timesheets/submit', { schema: timesheetSchema_1.saveTimesheetSchema }, async (request, reply) => {
-        const { weekStart, rows } = request.body;
-        const result = await timesheetService_1.TimesheetService.submitSheet(weekStart, request.user.role, rows);
-        if (!result.success)
-            return reply.status(403).send({ error: result.error });
-        return result.data;
-    });
-    fastify.post('/timesheets/approve', { schema: timesheetSchema_1.approveTimesheetSchema }, async (request, reply) => {
-        const { weekStart, action } = request.body;
-        const result = await timesheetService_1.TimesheetService.approveOrRejectSheet(weekStart, request.user.role, action);
-        if (!result.success)
-            return reply.status(403).send({ error: result.error });
-        return result.data;
     });
 };
 exports.default = timesheetRoutes;

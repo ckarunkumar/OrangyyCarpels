@@ -1,5 +1,5 @@
 import { X, FolderKanban, Building2, Pencil, Clock } from 'lucide-react';
-import { Project } from './ProjectDrawer';
+import { Project } from '../../types/registry';
 import BillingBadge from '../ui/BillingBadge';
 
 interface ProjectDetailDrawerProps {

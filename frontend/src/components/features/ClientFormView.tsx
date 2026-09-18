@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { Client } from './ClientDrawer';
+import { Client } from '../../types/registry';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
 const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 'AUD ($)', 'CAD ($)', 'AED (د.إ)', 'JPY (¥)', 'CHF (Fr.)'];

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, UserCheck, X, ChevronDown } from 'lucide-react';
-import { Project } from './ProjectDrawer';
-import { Client } from './ClientDrawer';
-import { Employee } from './EmployeeDrawer';
+import { Project, Client, Employee } from '../../types/registry';
 import { UserRole } from '../ui/Layout';
 import Breadcrumbs from '../ui/Breadcrumbs';
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
 import { Plus, Building2, Globe, Pencil, Mail, Phone, CheckCircle2 } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
-import { Client } from './ClientDrawer';
+import { Client } from '../../types/registry';
 import ClientDetailDrawer from './ClientDetailDrawer';
 import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';

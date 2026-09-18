@@ -339,46 +339,5 @@ class TimesheetService {
         const agg = await prisma_1.prisma.dailyTimesheetEntry.aggregate({ where: { projectId }, _sum: { hours: true } });
         await prisma_1.prisma.project.update({ where: { id: projectId }, data: { loggedHours: agg._sum.hours || 0 } });
     }
-    static async getWeeklySheet(weekStart) {
-        let sheet = await prisma_1.prisma.timesheet.findUnique({ where: { weekStart }, include: { rows: true } });
-        if (!sheet)
-            sheet = await prisma_1.prisma.timesheet.create({ data: { weekStart, status: 'Draft' }, include: { rows: true } });
-        const isClosed = this.isMonthClosed(weekStart);
-        return { weekStart: sheet.weekStart, status: (isClosed && sheet.status !== 'Approved' ? 'Locked' : sheet.status), isMonthClosed: isClosed, rows: sheet.rows.map((r) => ({ id: r.id, client: r.client, project: r.project, task: r.task, billable: r.billable, hours: [r.mon, r.tue, r.wed, r.thu, r.fri, r.sat, r.sun] })) };
-    }
-    static async saveDraft(weekStart, role, rows) {
-        try {
-            return { success: true, data: await this.updateSheet(weekStart, rows) };
-        }
-        catch (e) {
-            return { success: false, error: e.message };
-        }
-    }
-    static async submitSheet(weekStart, role, rows) {
-        try {
-            const sheet = await this.updateSheet(weekStart, rows);
-            await prisma_1.prisma.timesheet.update({ where: { weekStart }, data: { status: 'Submitted' } });
-            return { success: true, data: { ...sheet, status: 'Submitted' } };
-        }
-        catch (e) {
-            return { success: false, error: e.message };
-        }
-    }
-    static async approveOrRejectSheet(weekStart, role, action) {
-        if (role !== 'Project Manager' && role !== 'Super Admin')
-            return { success: false, error: 'Unauthorized' };
-        await prisma_1.prisma.timesheet.update({ where: { weekStart }, data: { status: action === 'approve' ? 'Approved' : 'Draft' } });
-        return { success: true, data: await this.getWeeklySheet(weekStart) };
-    }
-    static async updateSheet(weekStart, rows) {
-        if (this.isMonthClosed(weekStart))
-            throw new Error('Month closed. Timesheets are locked.');
-        let sheet = await prisma_1.prisma.timesheet.findUnique({ where: { weekStart } });
-        if (!sheet)
-            sheet = await prisma_1.prisma.timesheet.create({ data: { weekStart, status: 'Draft' } });
-        await prisma_1.prisma.timesheetRow.deleteMany({ where: { timesheetId: sheet.id } });
-        await prisma_1.prisma.timesheetRow.createMany({ data: rows.map((r) => ({ timesheetId: sheet.id, client: r.client, project: r.project, task: r.task, billable: r.billable, mon: r.hours[0] || 0, tue: r.hours[1] || 0, wed: r.hours[2] || 0, thu: r.hours[3] || 0, fri: r.hours[4] || 0, sat: r.hours[5] || 0, sun: r.hours[6] || 0 })) });
-        return this.getWeeklySheet(weekStart);
-    }
 }
 exports.TimesheetService = TimesheetService;

@@ -135,30 +135,6 @@ model ExchangeRate {
   source    String   @default("online")
 }
 
-model Timesheet {
-  id        Int            @id @default(autoincrement())
-  weekStart String         @unique
-  status    String         // Draft, Submitted, Approved
-  rows      TimesheetRow[]
-}
-
-model TimesheetRow {
-  id          Int       @id @default(autoincrement())
-  client      String
-  project     String
-  task        String
-  billable    Boolean
-  mon         Float     @default(0)
-  tue         Float     @default(0)
-  wed         Float     @default(0)
-  thu         Float     @default(0)
-  fri         Float     @default(0)
-  sat         Float     @default(0)
-  sun         Float     @default(0)
-  timesheetId Int
-  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-}
-
 model DailyTimesheetEntry {
   id          Int      @id @default(autoincrement())
   date        String   // e.g. 2026-08-17

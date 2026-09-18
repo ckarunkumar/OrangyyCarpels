@@ -8,8 +8,6 @@ async function main() {
 
   // 1. Purge all operational and dummy data
   await prisma.dailyTimesheetEntry.deleteMany({});
-  await prisma.timesheetRow.deleteMany({});
-  await prisma.timesheet.deleteMany({});
   await prisma.leaveRequest.deleteMany({});
   await prisma.notification.deleteMany({});
   await prisma.project.deleteMany({});

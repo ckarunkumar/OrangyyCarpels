@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, Trash2, Eye, EyeOff } from 'lucide-react';
-import { Employee } from './EmployeeDrawer';
+import { Employee } from '../../types/registry';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
 type FormState = {

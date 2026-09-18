@@ -1,10 +1,5 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { TimesheetService } from '../../services/timesheetService';
-import {
-  getTimesheetSchema,
-  saveTimesheetSchema,
-  approveTimesheetSchema,
-} from '../schemas/timesheetSchema';
 
 const timesheetRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
   // GET timesheet PM / Employee summary for dashboard (scoped by managerId or employee self, date range)
@@ -100,33 +95,6 @@ const timesheetRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => 
     } catch (err: any) {
       return reply.status(403).send({ error: err.message });
     }
-  });
-
-  // Legacy timesheet routes for fallback
-  fastify.get('/timesheets', { schema: getTimesheetSchema }, async (request) => {
-    const { weekStart } = request.query as { weekStart: string };
-    return TimesheetService.getWeeklySheet(weekStart);
-  });
-
-  fastify.post('/timesheets/save', { schema: saveTimesheetSchema }, async (request, reply) => {
-    const { weekStart, rows } = request.body as { weekStart: string; rows: any[] };
-    const result = await TimesheetService.saveDraft(weekStart, request.user!.role, rows);
-    if (!result.success) return reply.status(403).send({ error: result.error });
-    return result.data;
-  });
-
-  fastify.post('/timesheets/submit', { schema: saveTimesheetSchema }, async (request, reply) => {
-    const { weekStart, rows } = request.body as { weekStart: string; rows: any[] };
-    const result = await TimesheetService.submitSheet(weekStart, request.user!.role, rows);
-    if (!result.success) return reply.status(403).send({ error: result.error });
-    return result.data;
-  });
-
-  fastify.post('/timesheets/approve', { schema: approveTimesheetSchema }, async (request, reply) => {
-    const { weekStart, action } = request.body as { weekStart: string; action: 'approve' | 'reject' };
-    const result = await TimesheetService.approveOrRejectSheet(weekStart, request.user!.role, action);
-    if (!result.success) return reply.status(403).send({ error: result.error });
-    return result.data;
   });
 };
 

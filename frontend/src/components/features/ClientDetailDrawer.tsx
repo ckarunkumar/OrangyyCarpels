@@ -1,5 +1,5 @@
 import { X, Building2, Globe, FolderKanban, Pencil, Mail, Phone, MapPin, CreditCard, Shield, User, Clock } from 'lucide-react';
-import { Client } from './ClientDrawer';
+import { Client } from '../../types/registry';
 
 interface ClientDetailDrawerProps {
   open: boolean;

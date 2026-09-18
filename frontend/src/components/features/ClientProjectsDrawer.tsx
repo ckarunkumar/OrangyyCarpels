@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, FolderKanban, Building2, Clock } from 'lucide-react';
-import { Client } from './ClientDrawer';
+import { Client } from '../../types/registry';
 import BillingBadge from '../ui/BillingBadge';
 
 interface ClientProjectsDrawerProps {

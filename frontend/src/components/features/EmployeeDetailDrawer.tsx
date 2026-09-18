@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Mail, Phone, MapPin, Pencil, Calendar, Heart, Shield, Users, Globe, Building, Briefcase, Hash, ZoomIn } from 'lucide-react';
-import { Employee } from './EmployeeDrawer';
+import { Employee } from '../../types/registry';
 
 interface EmployeeDetailDrawerProps {
   open: boolean;

@@ -2,14 +2,12 @@ import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
 import { Plus, FolderKanban, Pencil, Search, UserCheck, Users, CheckCircle2 } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
-import { Project } from './ProjectDrawer';
-import { Client } from './ClientDrawer';
+import { Project, Client, Employee } from '../../types/registry';
 import ProjectDetailDrawer from './ProjectDetailDrawer';
 import MonthlyBudgetDrawer from './MonthlyBudgetDrawer';
 import ProjectFormView from './ProjectFormView';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import BillingBadge from '../ui/BillingBadge';
-import { Employee } from './EmployeeDrawer';
 
 export default function ProjectsView({ activeRole }: { activeRole: UserRole }) {
   const [projects, setProjects] = useState<Project[]>([]);
