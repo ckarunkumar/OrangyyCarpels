@@ -5,6 +5,7 @@ import Breadcrumbs from '../ui/Breadcrumbs';
 import LeaveApplyDrawer from './LeaveApplyDrawer';
 import LeaveApprovalDrawer from './LeaveApprovalDrawer';
 import TeamAvailabilityView from './TeamAvailabilityView';
+import ApprovalsCalendarView from './ApprovalsCalendarView';
 
 const LEAVE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029];
 
@@ -16,9 +17,11 @@ const DEFAULT_MY_REQUESTS = [
 ];
 
 const DEFAULT_APPROVAL_REQUESTS = [
-  { id: 201, employeeName: 'Employee User', leaveType: 'Leave', leaveCategory: 'Sick Leave', startDate: '13-09-2026', endDate: '13-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'Sick', status: 'Pending_PM' },
-  { id: 202, employeeName: 'Employee User', leaveType: 'Work From Home', leaveCategory: 'WFH', startDate: '02-08-2026', endDate: '02-08-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'WFH', status: 'Approved' },
-  { id: 203, employeeName: 'Employee User', leaveType: 'optional Holiday', leaveCategory: 'Sick Leave', startDate: '19-07-2026', endDate: '19-07-2026', isHalfDay: true, halfDaySession: 'Second Half', daysCount: 0.5, reason: 'Sick', status: 'Approved' },
+  { id: 201, employeeName: 'Vishnu', leaveType: 'Leave', leaveCategory: 'Sick Leave', startDate: '01-09-2026', endDate: '01-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'Sick', status: 'Approved' },
+  { id: 202, employeeName: 'Sivakami', leaveType: 'Work From Home', leaveCategory: 'WFH', startDate: '11-09-2026', endDate: '11-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'WFH', status: 'Pending_PM' },
+  { id: 203, employeeName: 'Purjith', leaveType: 'casual Leave', leaveCategory: 'casual Leave', startDate: '17-09-2026', endDate: '17-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'Personal', status: 'Approved' },
+  { id: 204, employeeName: 'Vishnu', leaveType: 'Leave', leaveCategory: 'Sick Leave', startDate: '21-09-2026', endDate: '21-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'Sick', status: 'Pending_PM' },
+  { id: 205, employeeName: 'Sivakami', leaveType: 'Work From Home', leaveCategory: 'WFH', startDate: '30-09-2026', endDate: '30-09-2026', isHalfDay: false, halfDaySession: null, daysCount: 1, reason: 'WFH', status: 'Pending_PM' },
 ];
 
 const formatDateDMY = (dateStr: string) => {
@@ -42,7 +45,9 @@ const getCategoryLabel = (req: any) => {
 
 export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
   const [selectedYear, setSelectedYear] = useState(2026);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'calendar' | 'approvals'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard' | 'calendar'>(
+    activeRole === 'Employee' ? 'dashboard' : 'approvals'
+  );
   const [balance, setBalance] = useState<any>(null);
   const [myRequests, setMyRequests] = useState<any[]>(DEFAULT_MY_REQUESTS);
   const [approvalRequests, setApprovalRequests] = useState<any[]>(DEFAULT_APPROVAL_REQUESTS);
@@ -116,8 +121,23 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs: Approvals -> My Leaves -> Holiday Calendar for SA & PM */}
       <div className="border-b border-studio-border flex gap-6 text-[13px] font-medium">
+        {activeRole !== 'Employee' && (
+          <button
+            onClick={() => setActiveTab('approvals')}
+            className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'approvals' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" /> Approvals
+            {totalPendingCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                {totalPendingCount}
+              </span>
+            )}
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
@@ -134,24 +154,19 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
         >
           <Calendar className="w-4 h-4" /> Holiday Calendar
         </button>
-        {activeRole !== 'Employee' && (
-          <button
-            onClick={() => setActiveTab('approvals')}
-            className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'approvals' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
-            }`}
-          >
-            <CheckCircle2 className="w-4 h-4" /> Approvals
-            {totalPendingCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                {totalPendingCount}
-              </span>
-            )}
-          </button>
-        )}
       </div>
 
-      {/* Tab 1: My Leaves */}
+      {/* Tab 1 (for SA/PM): Approvals Calendar View */}
+      {activeTab === 'approvals' && activeRole !== 'Employee' && (
+        <ApprovalsCalendarView
+          requests={approvalRequests}
+          compOffRequests={approvalCompOffs}
+          selectedYear={selectedYear}
+          onReview={(item, type) => setReviewItem({ item, type })}
+        />
+      )}
+
+      {/* Tab 2: My Leaves */}
       {activeTab === 'dashboard' && (
         <div className="space-y-4">
           {/* 6 KPI Cards in 1 Row */}
@@ -265,145 +280,9 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
         </div>
       )}
 
-      {/* Tab 2: Holiday Calendar */}
+      {/* Tab 3: Holiday Calendar */}
       {activeTab === 'calendar' && (
         <TeamAvailabilityView holidays={holidays} />
-      )}
-
-      {/* Tab 3: Approvals (SA & PM only) */}
-      {activeTab === 'approvals' && activeRole !== 'Employee' && (
-        <div className="space-y-4">
-          {/* Section 1: Pending Leave & WFH Approvals */}
-          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
-            <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-              <span>PENDING LEAVE & WFH APPROVALS ({pendingLeavesCount})</span>
-              <span className="font-mono text-[11px] text-slate-500 font-bold uppercase">{approvalRequests.length} RECORDS</span>
-            </div>
-
-            <div className="w-full overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-studio-border/60 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-2.5 px-5 font-bold">APPLICATION TYPE</th>
-                    <th className="py-2.5 px-5 font-bold">LEAVE CATEGORY</th>
-                    <th className="py-2.5 px-5 font-bold">START DATE</th>
-                    <th className="py-2.5 px-5 font-bold">END DATE</th>
-                    <th className="py-2.5 px-5 font-bold">HALF-DAY</th>
-                    <th className="py-2.5 px-5 font-bold">NUMBER OF DAYS</th>
-                    <th className="py-2.5 px-5 font-bold">REASON / NOTES</th>
-                    <th className="py-2.5 px-5 font-bold text-left">STATUS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-studio-border/40 text-[12.5px] text-slate-700">
-                  {approvalRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500 text-[12.5px]">
-                        No leave requests requiring approval.
-                      </td>
-                    </tr>
-                  ) : (
-                    approvalRequests.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-5 font-medium text-slate-800">{r.leaveType}</td>
-                        <td className="py-3.5 px-5 text-slate-600 font-medium">{getCategoryLabel(r)}</td>
-                        <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.startDate)}</td>
-                        <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.endDate)}</td>
-                        <td className="py-3.5 px-5">
-                          {r.halfDaySession === 'First half' || r.halfDaySession === 'First Half' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">First half</span>
-                          ) : r.halfDaySession === 'Second Half' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">Second Half</span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-medium">None</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{r.daysCount === 0.5 ? '0.5 Day' : `${r.daysCount} Day`}</td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{r.reason}</td>
-                        <td className="py-3.5 px-5">
-                          {r.status?.startsWith('Pending') ? (
-                            <button
-                              type="button"
-                              onClick={() => setReviewItem({ item: r, type: 'leave' })}
-                              className="px-4 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-orange-600 transition-colors shadow-xs cursor-pointer"
-                            >
-                              Review
-                            </button>
-                          ) : r.status === 'Approved' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/80 text-[11px] font-medium">
-                              Approved
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200/80 text-[11px] font-medium">
-                              Declined
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Section 2: Pending Comp-Off Overtime Claims */}
-          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
-            <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-              <span>PENDING COMP-OFF OVERTIME CLAIMS</span>
-              <span className="font-mono text-[11px] text-slate-500 font-bold uppercase">{approvalCompOffs.length} RECORDS</span>
-            </div>
-            {approvalCompOffs.length === 0 ? (
-              <div className="p-8 text-center text-[12.5px] text-slate-500 font-medium">
-                No pending comp-off claims requiring authorization
-              </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-studio-border/60 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="py-2.5 px-5 font-bold">EMPLOYEE</th>
-                      <th className="py-2.5 px-5 font-bold">WORKED DATE</th>
-                      <th className="py-2.5 px-5 font-bold">HOURS WORKED</th>
-                      <th className="py-2.5 px-5 font-bold">DAYS CREDIT</th>
-                      <th className="py-2.5 px-5 font-bold">REASON / NOTES</th>
-                      <th className="py-2.5 px-5 font-bold text-left">STATUS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-studio-border/40 text-[12.5px] text-slate-700">
-                    {approvalCompOffs.map((c) => (
-                      <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-5 font-medium text-slate-800">{c.employeeName}</td>
-                        <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(c.workedDate)}</td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{c.hoursWorked} hrs</td>
-                        <td className="py-3.5 px-5 font-semibold text-brand-orange">+{c.daysCredit} Day</td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{c.reason}</td>
-                        <td className="py-3.5 px-5">
-                          {c.status?.startsWith('Pending') ? (
-                            <button
-                              type="button"
-                              onClick={() => setReviewItem({ item: c, type: 'compoff' })}
-                              className="px-4 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-orange-600 transition-colors shadow-xs cursor-pointer"
-                            >
-                              Review
-                            </button>
-                          ) : c.status === 'Approved' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/80 text-[11px] font-medium">
-                              Approved
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200/80 text-[11px] font-medium">
-                              Declined
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
       )}
     </div>
   );
