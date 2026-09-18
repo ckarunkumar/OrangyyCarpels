@@ -182,9 +182,9 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
               <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
                 <div className="col-span-3">CLIENT NAME</div>
                 <div className="col-span-1">BILLING TYPE</div>
-                <div className="col-span-1 text-center">TOTAL PROJECTS</div>
-                <div className="col-span-1 text-center">DRAFT PROJECTS</div>
-                <div className="col-span-1 text-center">SUBMITTED PROJECTS</div>
+                <div className="col-span-1 text-center">TOTAL</div>
+                <div className="col-span-1 text-center">DRAFT</div>
+                <div className="col-span-1 text-center">SUBMITTED</div>
                 <div className="col-span-1 text-center">LOGGED</div>
                 <div className="col-span-2">HOURS BURNED</div>
                 <div className="col-span-1 text-center">STATUS</div>

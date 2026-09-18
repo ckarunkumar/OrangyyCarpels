@@ -131,13 +131,13 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
                     </div>
                     <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.billingCurrency}</span></div>
                     
-                    <div className="col-span-2 flex items-center gap-1.5">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Active'); }} title={`Active Projects: ${activeCount}`} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[10.5px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    <div className="col-span-2 flex items-center gap-2">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Active'); }} title={`Active Projects: ${activeCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[12px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
                         <span>{activeCount}</span>
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Inactive'); }} title={`Inactive Projects: ${inactiveCount}`} className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[10.5px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Inactive'); }} title={`Inactive Projects: ${inactiveCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[12px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs">
+                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
                         <span>{inactiveCount}</span>
                       </button>
                     </div>

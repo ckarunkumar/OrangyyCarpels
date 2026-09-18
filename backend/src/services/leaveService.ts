@@ -96,15 +96,88 @@ export class LeaveService {
     return prisma.leaveRequest.findMany({ where, orderBy: { appliedAt: 'desc' } });
   }
 
+  static async updateLeave(user: { id?: string | number; employeeId: string; fullName: string; role: string }, id: number, data: { leaveType: string; startDate: string; endDate: string; isHalfDay?: boolean; halfDaySession?: string; reason: string }): Promise<any> {
+    const existing = await prisma.leaveRequest.findUnique({ where: { id } });
+    if (!existing) throw new Error('Leave request not found');
+    if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase()) {
+      throw new Error('Unauthorized: You can only edit your own leave applications');
+    }
+
+    const isHalfDay = !!data.isHalfDay;
+    const daysCount = isHalfDay ? 0.5 : 1.0;
+
+    return prisma.leaveRequest.update({
+      where: { id },
+      data: {
+        leaveType: data.leaveType,
+        startDate: data.startDate,
+        endDate: isHalfDay ? data.startDate : data.endDate,
+        isHalfDay,
+        halfDaySession: isHalfDay ? data.halfDaySession || 'First Half' : null,
+        daysCount,
+        reason: (data.reason || '').trim(),
+      },
+    });
+  }
+
+  static async deleteLeave(user: { id?: string | number; employeeId: string; role: string }, id: number): Promise<any> {
+    const existing = await prisma.leaveRequest.findUnique({ where: { id } });
+    if (!existing) throw new Error('Leave request not found');
+    if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase()) {
+      throw new Error('Unauthorized: You can only cancel your own leave applications');
+    }
+
+    // Revert deducted balance if it was approved
+    if (existing.status === 'Approved') {
+      if (existing.leaveType === 'Casual Leave') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { decrement: existing.daysCount } } });
+      } else if (existing.leaveType === 'Sick Leave') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { decrement: existing.daysCount } } });
+      } else if (existing.leaveType === 'Earned Leave') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { decrement: existing.daysCount } } });
+      } else if (existing.leaveType === 'Comp-off') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { increment: existing.daysCount } } });
+      } else if (existing.leaveType === 'Optional Holiday') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { decrement: 1 } } });
+      } else if (existing.leaveType === 'Work From Home') {
+        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { decrement: 1 } } });
+      }
+    }
+
+    return prisma.leaveRequest.delete({ where: { id } });
+  }
+
   static async approveOrRejectLeave(user: { id?: string | number; employeeId: string; fullName: string; role: string }, id: number, action: 'approve' | 'reject', remarks?: string): Promise<any> {
     if (user.role !== 'Project Manager' && user.role !== 'Super Admin') throw new Error('Unauthorized');
     const existing = await prisma.leaveRequest.findUnique({ where: { id } });
     if (!existing) throw new Error('Leave request not found');
 
     if (action === 'reject') {
+      // If was previously approved, rollback quotas
+      if (existing.status === 'Approved') {
+        if (existing.leaveType === 'Casual Leave') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { decrement: existing.daysCount } } });
+        } else if (existing.leaveType === 'Sick Leave') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { decrement: existing.daysCount } } });
+        } else if (existing.leaveType === 'Earned Leave') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { decrement: existing.daysCount } } });
+        } else if (existing.leaveType === 'Comp-off') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { increment: existing.daysCount } } });
+        } else if (existing.leaveType === 'Optional Holiday') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { decrement: 1 } } });
+        } else if (existing.leaveType === 'Work From Home') {
+          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { decrement: 1 } } });
+        }
+      }
+
       return prisma.leaveRequest.update({
         where: { id },
-        data: { status: 'Rejected', rejectionReason: remarks || 'Declined', pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval, saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval },
+        data: {
+          status: 'Declined',
+          rejectionReason: remarks || 'Declined',
+          pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval,
+          saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval,
+        },
       });
     }
 

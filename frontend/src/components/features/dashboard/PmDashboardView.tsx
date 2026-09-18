@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import Breadcrumbs from '../../ui/Breadcrumbs';
 import PmDashboardKpiCards from './PmDashboardKpiCards';
 import PmStudioClientTable, { PmClientRowData } from './PmStudioClientTable';
 import PmClientProjectsTable, { PmProjectRowData } from './PmClientProjectsTable';
@@ -51,6 +52,14 @@ export default function PmDashboardView() {
 
   return (
     <div className="w-full space-y-6">
+      <Breadcrumbs
+        items={
+          selectedClient
+            ? [{ label: 'Studio Dashboard', onClick: () => setSelectedClient(null) }, { label: selectedClient.clientName }]
+            : [{ label: 'Studio Dashboard' }]
+        }
+      />
+
       <PmDashboardFilterHeader
         title={selectedClient ? selectedClient.clientName : 'Studio Dashboard'}
         isDrilldown={!!selectedClient}

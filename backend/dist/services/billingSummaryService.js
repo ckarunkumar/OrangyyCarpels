@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.BillingSummaryService = void 0;
 const prisma_1 = require("../lib/prisma");
 const billingCalculator_1 = require("./billingCalculator");
+const timesheetService_1 = require("./timesheetService");
 class BillingSummaryService {
     static async getSummary(role, fy, month, periodTypeParam, clientIdFilter) {
         if (role !== 'Super Admin' && role !== 'Project Manager') {
@@ -42,7 +43,7 @@ class BillingSummaryService {
             const rateAmount = activeVersion ? activeVersion.rateAmount : billingCalculator_1.BillingCalculator.parseRateAmount(p.rate);
             const bTypeRaw = p.billingType || p.client.defaultBillingType || 'T&M';
             const billingModel = bTypeRaw.includes('T&M') || bTypeRaw.includes('Hourly') ? 'T&M' :
-                bTypeRaw.includes('RC') || bTypeRaw.includes('Resource') || bTypeRaw.includes('Retainer') ? 'Fixed RC' : 'Fixed PC';
+                bTypeRaw.includes('RC') || bTypeRaw.includes('Resource') || bTypeRaw.includes('Retainer') ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
             const entriesHours = p.dailyEntries?.reduce((sum, d) => sum + (d.hours || 0), 0) || 0;
             let loggedHours = entriesHours;
             if (loggedHours === 0 && isActiveInPeriod && periodType === 'yearly') {
@@ -52,7 +53,7 @@ class BillingSummaryService {
             if (billingModel === 'T&M') {
                 nativeAmountBilled = loggedHours * rateAmount;
             }
-            else if (billingModel === 'Fixed RC' || billingModel === 'Fixed PC') {
+            else if (billingModel === 'Resources Cost (Fix)' || billingModel === 'Project Cost (Fix)') {
                 if (isActiveInPeriod)
                     nativeAmountBilled = rateAmount;
             }
@@ -66,11 +67,11 @@ class BillingSummaryService {
                 activeProjectsCount++;
             if (billingModel === 'T&M')
                 tmRevenueINR += inrAmountBilled;
-            else if (billingModel === 'Fixed RC')
+            else if (billingModel === 'Resources Cost (Fix)')
                 monthlyFixedRevenueINR += inrAmountBilled;
-            else if (billingModel === 'Fixed PC')
+            else if (billingModel === 'Project Cost (Fix)')
                 projectFixedRevenueINR += inrAmountBilled;
-            const budgetHours = p.budgetHours || 0;
+            const budgetHours = (0, timesheetService_1.getMonthlyBudgetHours)(p);
             const hoursBurnedPercent = budgetHours > 0 ? Math.min(100, Math.round((loggedHours / budgetHours) * 100)) : 0;
             projectSummaries.push({
                 projectId: p.id,
@@ -108,8 +109,8 @@ class BillingSummaryService {
                     totalProjects: 1,
                     totalRevenueINR: proj.inrAmountBilled,
                     tmRevenueINR: proj.billingModel === 'T&M' ? proj.inrAmountBilled : 0,
-                    monthlyFixedRevenueINR: proj.billingModel === 'Fixed RC' ? proj.inrAmountBilled : 0,
-                    projectFixedRevenueINR: proj.billingModel === 'Fixed PC' ? proj.inrAmountBilled : 0,
+                    monthlyFixedRevenueINR: proj.billingModel === 'Resources Cost (Fix)' ? proj.inrAmountBilled : 0,
+                    projectFixedRevenueINR: proj.billingModel === 'Project Cost (Fix)' ? proj.inrAmountBilled : 0,
                     totalHoursLogged: proj.loggedHours,
                 });
             }
@@ -119,9 +120,9 @@ class BillingSummaryService {
                 existing.totalHoursLogged += proj.loggedHours;
                 if (proj.billingModel === 'T&M')
                     existing.tmRevenueINR += proj.inrAmountBilled;
-                if (proj.billingModel === 'Fixed RC')
+                if (proj.billingModel === 'Resources Cost (Fix)')
                     existing.monthlyFixedRevenueINR += proj.inrAmountBilled;
-                if (proj.billingModel === 'Fixed PC')
+                if (proj.billingModel === 'Project Cost (Fix)')
                     existing.projectFixedRevenueINR += proj.inrAmountBilled;
             }
         }

@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface ApprovalRequest {
   id: number | string;
@@ -20,10 +19,12 @@ interface Props {
   requests: ApprovalRequest[];
   compOffRequests: any[];
   selectedYear: number;
+  monthIdx?: number;
+  year?: number;
   onReview: (item: any, type: 'leave' | 'compoff') => void;
 }
 
-const MONTH_NAMES = [
+export const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
@@ -70,36 +71,12 @@ export default function ApprovalsCalendarView({
   requests,
   compOffRequests,
   selectedYear,
+  monthIdx = 8,
+  year,
   onReview,
 }: Props) {
-  // Default to September of selected year (or current month if matches)
-  const [currentMonthIdx, setCurrentMonthIdx] = useState(8); // 8 = September (0-indexed)
-  const [currentYear, setCurrentYear] = useState(selectedYear || 2026);
-
-  // Sync year when parent changes selectedYear
-  useMemo(() => {
-    if (selectedYear && selectedYear !== currentYear) {
-      setCurrentYear(selectedYear);
-    }
-  }, [selectedYear]);
-
-  const handlePrevMonth = () => {
-    if (currentMonthIdx === 0) {
-      setCurrentMonthIdx(11);
-      setCurrentYear((y) => y - 1);
-    } else {
-      setCurrentMonthIdx((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonthIdx === 11) {
-      setCurrentMonthIdx(0);
-      setCurrentYear((y) => y + 1);
-    } else {
-      setCurrentMonthIdx((m) => m + 1);
-    }
-  };
+  const currentMonthIdx = monthIdx;
+  const currentYear = year || selectedYear || 2026;
 
   const currentMonthStr = `${currentYear}-${String(currentMonthIdx + 1).padStart(2, '0')}`;
 
@@ -138,50 +115,51 @@ export default function ApprovalsCalendarView({
 
     const days: {
       dayNumber: number;
-      dateStr: string;
       isCurrentMonth: boolean;
-      items: (typeof requestsWithDates)[0][];
+      dateStr: string;
+      items: ApprovalRequest[];
     }[] = [];
 
-    // Trailing days from previous month
+    // Previous month overflow days
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
       const dayNum = daysInPrevMonth - i;
-      const prevMonth = currentMonthIdx === 0 ? 12 : currentMonthIdx;
-      const prevYear = currentMonthIdx === 0 ? currentYear - 1 : currentYear;
-      const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const prevM = currentMonthIdx === 0 ? 12 : currentMonthIdx;
+      const prevY = currentMonthIdx === 0 ? currentYear - 1 : currentYear;
+      const dateStr = `${prevY}-${String(prevM).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      const items = requestsWithDates.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD);
       days.push({
         dayNumber: dayNum,
-        dateStr,
         isCurrentMonth: false,
-        items: [],
-      });
-    }
-
-    // Days of current month
-    for (let day = 1; day <= daysInCurrentMonth; day++) {
-      const dateStr = `${currentYear}-${String(currentMonthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const items = requestsWithDates.filter((r) => {
-        return r.startYMD <= dateStr && dateStr <= r.endYMD;
-      });
-      days.push({
-        dayNumber: day,
         dateStr,
-        isCurrentMonth: true,
         items,
       });
     }
 
-    // Leading days for next month to complete the week rows
-    const remainingDays = (7 - (days.length % 7)) % 7;
-    for (let day = 1; day <= remainingDays; day++) {
-      const nextMonth = currentMonthIdx === 11 ? 1 : currentMonthIdx + 2;
-      const nextYear = currentMonthIdx === 11 ? currentYear + 1 : currentYear;
-      const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // Current month days
+    for (let d = 1; d <= daysInCurrentMonth; d++) {
+      const dateStr = `${currentYear}-${String(currentMonthIdx + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const items = requestsWithDates.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD);
       days.push({
-        dayNumber: day,
+        dayNumber: d,
+        isCurrentMonth: true,
         dateStr,
+        items,
+      });
+    }
+
+    // Next month overflow days (fill up to 35 or 42 grid cells)
+    const totalSlots = days.length <= 35 ? 35 : 42;
+    const remaining = totalSlots - days.length;
+    for (let n = 1; n <= remaining; n++) {
+      const nextM = currentMonthIdx === 11 ? 1 : currentMonthIdx + 2;
+      const nextY = currentMonthIdx === 11 ? currentYear + 1 : currentYear;
+      const dateStr = `${nextY}-${String(nextM).padStart(2, '0')}-${String(n).padStart(2, '0')}`;
+      const items = requestsWithDates.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD);
+      days.push({
+        dayNumber: n,
         isCurrentMonth: false,
-        items: [],
+        dateStr,
+        items,
       });
     }
 
@@ -192,38 +170,11 @@ export default function ApprovalsCalendarView({
     <div className="space-y-4">
       {/* Approvals Calendar Card */}
       <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
-        {/* Card Header matching Image 2 */}
-        <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-4 flex-wrap">
-            {/* Month Navigator Button */}
-            <div className="flex items-center border border-studio-border rounded-lg bg-white px-2 py-1 shadow-2xs">
-              <button
-                type="button"
-                onClick={handlePrevMonth}
-                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors cursor-pointer"
-                title="Previous Month"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-1.5 px-2 text-[12px] font-semibold text-slate-700 select-none">
-                <CalendarIcon className="w-3.5 h-3.5 text-brand-orange" />
-                <span>{MONTH_NAMES[currentMonthIdx]} {currentYear}</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleNextMonth}
-                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors cursor-pointer"
-                title="Next Month"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Section Title */}
-            <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              PENDING LEAVE & WFH APPROVALS ({pendingCountInMonth})
-            </span>
-          </div>
+        {/* Card Header matching Image 2 with month filter positioned in top-right parallel to tabs */}
+        <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 flex items-center justify-between">
+          <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+            PENDING LEAVE &amp; WFH APPROVALS ({pendingCountInMonth})
+          </span>
 
           <div className="font-mono text-[11px] text-slate-500 font-bold uppercase">
             {monthRequests.length} RECORDS
@@ -266,15 +217,42 @@ export default function ApprovalsCalendarView({
                 {day.items.map((item) => {
                   const isApproved = item.status === 'Approved';
                   const isDeclined = item.status === 'Declined' || item.status === 'Rejected';
+                  const isPastMonth = day.dateStr < `${currentYear}-${String(currentMonthIdx + 1).padStart(2, '0')}-01`;
 
-                  // Styles for each status matching Image 2
-                  if (isApproved) {
+                  // 1. Past-month leave applications displayed in grey
+                  if (isPastMonth) {
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left bg-[#F0FDF4] border-[#DCFCE7] shadow-2xs"
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left bg-[#F1F5F9] border-[#CBD5E1] shadow-2xs"
+                        title="Past-month leave application"
                       >
-                        <div className="w-5 h-5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold flex items-center justify-center shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-[#E2E8F0] text-[#64748B] text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {getInitial(item.employeeName)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-bold text-slate-700 leading-tight truncate">
+                            {item.employeeName || 'Employee'}
+                          </div>
+                          <div className="text-[9.5px] font-medium text-[#64748B] leading-tight truncate">
+                            {getCategoryLabel(item)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 2. Approved applications: Green & clickable for SA/PM to decline if needed
+                  if (isApproved) {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onReview(item, 'leave')}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left bg-[#F0FDF4] border-[#DCFCE7] hover:bg-[#DCFCE7]/70 transition-colors shadow-2xs cursor-pointer group"
+                        title="Approved application. Click to review or decline."
+                      >
+                        <div className="w-5 h-5 rounded-full bg-[#DCFCE7] text-[#16A34A] text-[10px] font-bold flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                           {getInitial(item.employeeName)}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -285,24 +263,26 @@ export default function ApprovalsCalendarView({
                             {getCategoryLabel(item)}
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   }
 
+                  // 3. Declined applications: Darker/clearer red shade distinct from orange
                   if (isDeclined) {
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left bg-[#FEF2F2] border-[#FEE2E2] shadow-2xs"
+                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left bg-[#FEE2E2] border-[#FCA5A5] shadow-2xs"
+                        title="Declined leave application"
                       >
-                        <div className="w-5 h-5 rounded-full bg-[#FEE2E2] text-[#DC2626] text-[10px] font-bold flex items-center justify-center shrink-0">
+                        <div className="w-5 h-5 rounded-full bg-[#FECACA] text-[#B91C1C] text-[10px] font-bold flex items-center justify-center shrink-0">
                           {getInitial(item.employeeName)}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[11px] font-bold text-slate-800 leading-tight truncate">
+                          <div className="text-[11px] font-bold text-slate-900 leading-tight truncate">
                             {item.employeeName || 'Employee'}
                           </div>
-                          <div className="text-[9.5px] font-medium text-[#DC2626] leading-tight truncate">
+                          <div className="text-[9.5px] font-bold text-[#B91C1C] leading-tight truncate">
                             {getCategoryLabel(item)}
                           </div>
                         </div>
@@ -310,7 +290,7 @@ export default function ApprovalsCalendarView({
                     );
                   }
 
-                  // Default: Pending (Peach/Orange with red/orange badge)
+                  // 4. New / Pending applications: Orange
                   return (
                     <button
                       key={item.id}

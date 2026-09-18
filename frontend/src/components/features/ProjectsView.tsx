@@ -108,10 +108,12 @@ export default function ProjectsView({ activeRole }: { activeRole: UserRole }) {
 
         <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
           <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-            <div className="col-span-4">Project & Client</div>
+            <div className="col-span-2">Project Name</div>
+            <div className="col-span-1">Project Code</div>
+            <div className="col-span-2">Client Name</div>
             <div className="col-span-2">Project Manager</div>
             <div className="col-span-1 text-center">Team</div>
-            <div className="col-span-2">Billing Type</div>
+            <div className="col-span-1">Billing Type</div>
             <div className="col-span-2">Budget / Hours</div>
             <div className="col-span-1 text-right">Status</div>
           </div>
@@ -138,33 +140,55 @@ export default function ProjectsView({ activeRole }: { activeRole: UserRole }) {
 
                 return (
                   <div key={proj.id} onClick={() => { setSelectedProject(proj); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer">
-                    <div className="col-span-4 min-w-0 pr-2 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0">
-                        <FolderKanban className="w-4 h-4 text-studio-muted group-hover:text-brand-orange transition-colors" />
+                    {/* 1. Project Name */}
+                    <div className="col-span-2 min-w-0 pr-2 flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0">
+                        <FolderKanban className="w-3.5 h-3.5 text-studio-muted group-hover:text-brand-orange transition-colors" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors text-[13px]">{proj.name}</p>
-                        <p className="text-[11px] text-studio-muted font-mono truncate mt-0.5">{proj.id} : {proj.clientName || proj.clientId} {proj.businessLine ? `• ${proj.businessLine}` : ''}</p>
-                      </div>
+                      <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors text-[12.5px]">{proj.name}</p>
                     </div>
+
+                    {/* 2. Project Code */}
+                    <div className="col-span-1 min-w-0">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">
+                        {proj.id}
+                      </span>
+                    </div>
+
+                    {/* 3. Client Name */}
+                    <div className="col-span-2 min-w-0 pr-2">
+                      <p className="font-medium text-studio-text truncate text-[12px]">
+                        {proj.clientName || proj.clientId}
+                      </p>
+                    </div>
+
+                    {/* 4. Project Manager */}
                     <div className="col-span-2 min-w-0 pr-2">
                       <p className="text-[12px] font-medium text-studio-text truncate flex items-center gap-1.5">
                         <UserCheck className="w-3.5 h-3.5 text-brand-orange shrink-0" />
                         <span className="truncate">{proj.managerName || proj.managerId || 'Unassigned'}</span>
                       </p>
                     </div>
+
+                    {/* 5. Team */}
                     <div className="col-span-1 text-center" title={assignedNames}>
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 cursor-help">
-                        <Users className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 cursor-help">
+                        <Users className="w-3 h-3 text-blue-600 shrink-0" />
                         <span>{assignedCount}</span>
                       </span>
                     </div>
-                    <div className="col-span-2 flex items-center"><BillingBadge type={proj.billingType} /></div>
+
+                    {/* 6. Billing Type */}
+                    <div className="col-span-1 flex items-center">
+                      <BillingBadge type={proj.billingType} />
+                    </div>
+
+                    {/* 7. Budget / Hours */}
                     <div className="col-span-2 pr-2">
                       {isHourly ? (
                         <div className="space-y-1">
                           <div className="flex justify-between items-center text-[10.5px] font-mono text-studio-muted">
-                            <span>{proj.loggedHours}/{proj.budgetHours}h</span>
+                            <span>{proj.loggedHours || 0}/{proj.budgetHours || 0}h</span>
                             <span className="font-bold text-brand-orange">{consumption}%</span>
                           </div>
                           <div className="w-full h-1.5 bg-studio-sidebar rounded-full overflow-hidden border border-studio-border/60">
@@ -172,9 +196,11 @@ export default function ProjectsView({ activeRole }: { activeRole: UserRole }) {
                           </div>
                         </div>
                       ) : (
-                        <span className="text-[11.5px] font-mono text-studio-muted">{proj.loggedHours}h tracked</span>
+                        <span className="text-[11.5px] font-mono text-studio-muted">{proj.loggedHours || 0}h tracked</span>
                       )}
                     </div>
+
+                    {/* 8. Status */}
                     <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
                       {isAdmin && <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEdit(proj); }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity"><Pencil className="w-3.5 h-3.5" /></button>}
                       <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{proj.status}</span>

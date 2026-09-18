@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TimesheetService = void 0;
+exports.getMonthlyBudgetHours = getMonthlyBudgetHours;
 const prisma_1 = require("../lib/prisma");
 const notificationService_1 = require("./notificationService");
 function hasProjectAccess(proj, code, name, role = 'Employee') {
@@ -15,6 +16,24 @@ function hasProjectAccess(proj, code, name, role = 'Employee') {
         return true;
     const assigned = (proj.assignedEmployees || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
     return Boolean((cLower && assigned.includes(cLower)) || (nLower && assigned.includes(nLower)));
+}
+function getMonthlyBudgetHours(project) {
+    const totalBudget = project.budgetHours || 0;
+    if (!project.budgetType || project.budgetType === 'Monthly') {
+        return totalBudget || 100;
+    }
+    if (!project.startDate || !project.endDate) {
+        return totalBudget || 100;
+    }
+    const [sYear, sMonth] = project.startDate.split('-').map(Number);
+    const [eYear, eMonth] = project.endDate.split('-').map(Number);
+    if (!sYear || !sMonth || !eYear || !eMonth) {
+        return totalBudget || 100;
+    }
+    const monthsCount = (eYear - sYear) * 12 + (eMonth - sMonth) + 1;
+    if (monthsCount <= 0)
+        return totalBudget || 100;
+    return Math.round(totalBudget / monthsCount);
 }
 class TimesheetService {
     static isMonthClosed(weekStart) {
@@ -36,7 +55,7 @@ class TimesheetService {
         return visibleProjects.map((p) => {
             const isHourly = p.billingType === 'T&M' || p.billingType === 'Hourly Rate (T&M)';
             const monthLogged = p.dailyEntries?.reduce((acc, d) => acc + d.hours, 0) || 0;
-            const budget = p.budgetHours || 100;
+            const budget = getMonthlyBudgetHours(p);
             const percentage = isHourly ? Math.min(100, Math.round((monthLogged / budget) * 100)) : 0;
             const rawAssigned = (p.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
             const assignedList = rawAssigned.length > 0 ? rawAssigned.map((a) => (empById.get(a.toLowerCase())?.employeeId || a).toLowerCase()) : [];
@@ -134,7 +153,7 @@ class TimesheetService {
                 const eid = (e.employeeId || '').toLowerCase();
                 return eid === emp.id.toLowerCase() || eid === emp.name.toLowerCase();
             });
-            const isSub = userEntries.some((e) => e.status === 'Submitted' || e.status === 'PM_Approved' || e.status === 'Approved') && !userEntries.some((e) => e.status === 'Draft');
+            const isSub = userEntries.some((e) => e.status === 'Submitted' || e.status === 'PM_Approved' || e.status === 'Approved');
             if (isSub)
                 submittedSet.add(emp.id.toLowerCase());
             else
@@ -182,14 +201,15 @@ class TimesheetService {
                     const eid = (e.employeeId || '').toLowerCase();
                     return eid === currentEmpCode.toLowerCase() || eid === currentEmpName.toLowerCase();
                 });
+                const isMyRowReadOnly = role === 'Employee' ? myStatus !== 'Draft' : false;
                 if (myRec) {
-                    entries.push({ id: myRec.id, sno: dayStr, date, dayLabel, description: myRec.description || '', task: myRec.task || '', hours: myRec.hours || 0, isBillable: myRec.isBillable !== false, isWeekend, resourceName: currentEmpName || empById.get(myRec.employeeId?.toLowerCase() || '')?.fullName || '', employeeId: myRec.employeeId || currentEmpCode, isOwner: true, isReadOnly: myStatus !== 'Draft', status: myRec.status });
+                    entries.push({ id: myRec.id, sno: dayStr, date, dayLabel, description: myRec.description || '', task: myRec.task || '', hours: myRec.hours || 0, isBillable: myRec.isBillable !== false, isWeekend, resourceName: currentEmpName || empById.get(myRec.employeeId?.toLowerCase() || '')?.fullName || '', employeeId: myRec.employeeId || currentEmpCode, isOwner: true, isReadOnly: isMyRowReadOnly, status: myRec.status });
                 }
                 else {
-                    entries.push({ sno: dayStr, date, dayLabel, description: '', task: '', hours: 0, isBillable: true, isWeekend, resourceName: currentEmpName, employeeId: currentEmpCode, isOwner: true, isReadOnly: myStatus !== 'Draft', status: 'Draft' });
+                    entries.push({ sno: dayStr, date, dayLabel, description: '', task: '', hours: 0, isBillable: true, isWeekend, resourceName: currentEmpName, employeeId: currentEmpCode, isOwner: true, isReadOnly: isMyRowReadOnly, status: 'Draft' });
                 }
                 dayRecords.filter((e) => e !== myRec && ((e.hours && e.hours > 0) || e.description || e.task || e.status !== 'Draft')).forEach((rec) => {
-                    entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: false, isReadOnly: true, status: rec.status });
+                    entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: false, isReadOnly: role === 'Employee', status: rec.status });
                 });
             }
             else if (dayRecords.length > 0) {
@@ -200,7 +220,7 @@ class TimesheetService {
             }
         }
         const finalServices = resolvedServices.length > 0 ? resolvedServices.join(', ') : (project?.service || '');
-        return { entries, status, myStatus, pendingResources, totalAssigned, submittedCount, services: finalServices, businessLines: project?.businessLine || '' };
+        return { entries, status, overallStatus: status, myStatus, pendingResources, totalAssigned, submittedCount, services: finalServices, businessLines: project?.businessLine || '' };
     }
     static async saveDailyEntries(projectId, month, employeeId, role, entries, targetStatus = 'Draft') {
         const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
@@ -213,27 +233,48 @@ class TimesheetService {
         if (!hasProjectAccess(proj, currentEmpCode, currentEmpName, role)) {
             throw new Error('Access Denied: You are not assigned to this project.');
         }
-        const whereClause = { projectId, date: { startsWith: month }, ...(currentEmpCode && { employeeId: currentEmpCode }) };
+        const isEmployeeRole = role === 'Employee';
+        const whereClause = { projectId, date: { startsWith: month }, ...(isEmployeeRole && currentEmpCode && { employeeId: currentEmpCode }) };
         const existing = await prisma_1.prisma.dailyTimesheetEntry.findMany({ where: whereClause });
         const isApproved = existing.some((d) => d.status === 'Approved');
         const isPMApproved = existing.some((d) => d.status === 'PM_Approved');
         const isSubmitted = existing.some((d) => d.status === 'Submitted');
-        if (role === 'Employee' && (isSubmitted || isPMApproved || isApproved) && targetStatus === 'Draft')
+        if (isEmployeeRole && (isSubmitted || isPMApproved || isApproved) && targetStatus === 'Draft')
             throw new Error('Cannot edit submitted or approved timesheet.');
-        if (role === 'Employee' && (isSubmitted || isPMApproved || isApproved) && targetStatus === 'Submitted')
+        if (isEmployeeRole && (isSubmitted || isPMApproved || isApproved) && targetStatus === 'Submitted')
             throw new Error('Timesheet is already submitted for this month.');
         if (role === 'Project Manager' && (isPMApproved || isApproved) && targetStatus === 'Draft')
             throw new Error('PM cannot edit timesheet after approval or final lock.');
         if (role === 'Super Admin' && isApproved && targetStatus === 'Draft')
             throw new Error('Timesheet is locked. Please unlock/reopen to make edits.');
-        const userEntries = currentEmpCode ? entries.filter((e) => e.isOwner !== false && (!e.employeeId || e.employeeId.toLowerCase() === currentEmpCode.toLowerCase())) : entries;
+        const userEntries = isEmployeeRole && currentEmpCode
+            ? entries.filter((e) => e.isOwner !== false && (!e.employeeId || e.employeeId.toLowerCase() === currentEmpCode.toLowerCase()))
+            : entries;
         for (const e of userEntries) {
-            const rec = e.id ? existing.find((x) => x.id === e.id) : existing.find((x) => x.date === e.date);
+            const targetEmpId = e.employeeId || currentEmpCode || '';
+            const rec = e.id
+                ? existing.find((x) => x.id === e.id)
+                : existing.find((x) => x.date === e.date && (targetEmpId ? (x.employeeId || '').toLowerCase() === targetEmpId.toLowerCase() : true));
             if (rec) {
-                await prisma_1.prisma.dailyTimesheetEntry.update({ where: { id: rec.id }, data: { description: e.description || '', task: e.task || '', hours: Number(e.hours) || 0, isBillable: e.isBillable !== false, status: targetStatus } });
+                const preserveStatus = (role === 'Project Manager' || role === 'Super Admin') && (rec.status === 'Submitted' || rec.status === 'PM_Approved') && targetStatus === 'Draft';
+                const finalStatus = preserveStatus ? rec.status : targetStatus;
+                await prisma_1.prisma.dailyTimesheetEntry.update({
+                    where: { id: rec.id },
+                    data: { description: e.description || '', task: e.task || '', hours: Number(e.hours) || 0, isBillable: e.isBillable !== false, status: finalStatus },
+                });
             }
             else if ((e.hours && e.hours > 0) || e.description || e.task || targetStatus === 'Submitted') {
-                await prisma_1.prisma.dailyTimesheetEntry.create({ data: { projectId, date: e.date, dayLabel: e.dayLabel || '', sno: e.sno || '', weekStart: `${month}-01`, description: e.description || '', task: e.task || '', hours: Number(e.hours) || 0, isBillable: e.isBillable !== false, status: targetStatus, employeeId: currentEmpCode || '' } });
+                const empExisting = existing.filter((x) => (x.employeeId || '').toLowerCase() === targetEmpId.toLowerCase());
+                const empStatus = ((role === 'Project Manager' || role === 'Super Admin') && targetStatus === 'Draft')
+                    ? (empExisting.find((x) => x.status === 'Submitted' || x.status === 'PM_Approved')?.status || targetStatus)
+                    : targetStatus;
+                await prisma_1.prisma.dailyTimesheetEntry.create({
+                    data: {
+                        projectId, date: e.date, dayLabel: e.dayLabel || '', sno: e.sno || '', weekStart: `${month}-01`,
+                        description: e.description || '', task: e.task || '', hours: Number(e.hours) || 0, isBillable: e.isBillable !== false,
+                        status: empStatus, employeeId: targetEmpId,
+                    },
+                });
             }
         }
         if (targetStatus === 'Submitted') {
@@ -250,7 +291,31 @@ class TimesheetService {
         if (sheetData.status === 'Partially_Submitted')
             throw new Error(`Cannot approve timesheet. Waiting for submission from: ${sheetData.pendingResources.join(', ')}`);
         const nextStatus = role === 'Super Admin' ? 'Approved' : 'PM_Approved';
-        await prisma_1.prisma.dailyTimesheetEntry.updateMany({ where: { projectId, date: { startsWith: month } }, data: { status: nextStatus } });
+        const existing = await prisma_1.prisma.dailyTimesheetEntry.findMany({ where: { projectId, date: { startsWith: month } } });
+        if (existing.length === 0) {
+            const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
+            const rawAssigned = (proj?.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
+            const empCodes = rawAssigned.length > 0 ? rawAssigned : [employeeId || ''];
+            for (const code of empCodes) {
+                await prisma_1.prisma.dailyTimesheetEntry.create({
+                    data: {
+                        projectId,
+                        date: `${month}-01`,
+                        dayLabel: '01',
+                        sno: '01',
+                        weekStart: `${month}-01`,
+                        description: '',
+                        task: '',
+                        hours: 0,
+                        status: nextStatus,
+                        employeeId: code,
+                    },
+                });
+            }
+        }
+        else {
+            await prisma_1.prisma.dailyTimesheetEntry.updateMany({ where: { projectId, date: { startsWith: month } }, data: { status: nextStatus } });
+        }
         const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
         const nRole = nextStatus === 'PM_Approved' ? 'Super Admin' : 'Employee';
         await notificationService_1.NotificationService.createNotification({ role: nRole, title: `Timesheet ${nextStatus}: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) updated to ${nextStatus}.`, type: 'timesheet_approve', projectId });
@@ -260,6 +325,10 @@ class TimesheetService {
     static async reopenTimesheet(projectId, month, employeeId, role) {
         if (role !== 'Project Manager' && role !== 'Super Admin')
             throw new Error('Only PM and SA can reopen timesheets.');
+        const existing = await prisma_1.prisma.dailyTimesheetEntry.findMany({ where: { projectId, date: { startsWith: month } } });
+        if (role === 'Project Manager' && existing.some((d) => d.status === 'PM_Approved' || d.status === 'Approved')) {
+            throw new Error('Access Denied: Only Super Admin can reopen a PM-Approved or Locked timesheet.');
+        }
         await prisma_1.prisma.dailyTimesheetEntry.updateMany({ where: { projectId, date: { startsWith: month } }, data: { status: 'Draft' } });
         const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
         await notificationService_1.NotificationService.createNotification({ role: 'Employee', title: `Timesheet Reopened: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) was reopened for rework by ${role}.`, type: 'timesheet_reopen', projectId });

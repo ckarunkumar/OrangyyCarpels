@@ -36,8 +36,8 @@ class CompOffService {
         });
         return newClaim;
     }
-    static async getCompOffRequests(user) {
-        if (user.role === 'Employee') {
+    static async getCompOffRequests(user, scope = 'mine') {
+        if (scope === 'mine') {
             const employee = await prisma_1.prisma.employee.findUnique({
                 where: { employeeId: user.employeeId },
                 select: { compOffRequests: true, employeeId: true, fullName: true },
@@ -49,8 +49,10 @@ class CompOffService {
                 employeeName: r.employeeName || employee.fullName,
             }));
         }
-        // PM or Super Admin sees all requests across all employees
+        if (user.role === 'Employee')
+            return [];
         const employees = await prisma_1.prisma.employee.findMany({
+            where: { employeeId: { not: user.employeeId } },
             select: { employeeId: true, fullName: true, compOffRequests: true },
         });
         const allClaims = [];

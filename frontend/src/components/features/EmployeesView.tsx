@@ -95,7 +95,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
               <div className="col-span-2">System Role</div>
               <div className="col-span-2">Email</div>
               <div className="col-span-1">Phone</div>
-              <div className="col-span-2">Project's</div>
+              <div className="col-span-2">Projects</div>
               <div className="col-span-1 text-right">Status</div>
             </div>
 
@@ -107,14 +107,16 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
               ) : (
                 employees.map((emp) => (
                   <div key={emp.employeeId} onClick={() => { setSelectedEmployee(emp); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
-                    <div className="col-span-1"><span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{emp.employeeId}</span></div>
-                    <div className="col-span-3 min-w-0 pr-1 flex items-center gap-2.5">
+                    <div className="col-span-1 min-w-0">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">{emp.employeeId}</span>
+                    </div>
+                    <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-studio-sidebar flex items-center justify-center text-[11px] font-bold text-studio-muted border border-studio-border shrink-0 overflow-hidden">
                         {emp.avatar ? <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" /> : <span>{emp.fullName[0]}</span>}
                       </div>
                       <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">{emp.fullName}</p>
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-2 flex items-center">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
                         emp.role === 'Super Admin'
                           ? 'bg-purple-50 text-purple-700 border-purple-200'
@@ -126,10 +128,16 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
                         {emp.role || 'Employee'}
                       </span>
                     </div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{emp.email}</span></div>
-                    <div className="col-span-1 text-studio-muted truncate flex items-center gap-1"><Phone className="w-3 h-3 text-studio-muted shrink-0" /><span className="truncate text-[11px]">{emp.phone}</span></div>
-                    <div className="col-span-2">
-                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" />
+                      <span className="truncate">{emp.email}</span>
+                    </div>
+                    <div className="col-span-1 text-studio-muted truncate flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-studio-muted shrink-0" />
+                      <span className="truncate text-[11px]">{emp.phone}</span>
+                    </div>
+                    <div className="col-span-2 flex items-center">
+                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded border ${
                         (emp.assignedProjectsCount || 0) > 0
                           ? 'bg-blue-50 text-blue-700 border-blue-200'
                           : 'bg-slate-50 text-slate-600 border-slate-200'

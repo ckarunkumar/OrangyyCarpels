@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TimesheetPmSummaryService = void 0;
 const prisma_1 = require("../lib/prisma");
 const billingCalculator_1 = require("./billingCalculator");
+const timesheetService_1 = require("./timesheetService");
 class TimesheetPmSummaryService {
     static async getPmSummary(role, userId, fy, fromDate, toDate, clientIdFilter, scopeParam) {
         const isSelfScope = role === 'Employee' || scopeParam === 'self';
@@ -63,17 +64,17 @@ class TimesheetPmSummaryService {
             }
             const bTypeRaw = p.billingType || p.client?.defaultBillingType || 'T&M';
             const billingModel = bTypeRaw.includes('T&M') || bTypeRaw.includes('Hourly') ? 'T&M' :
-                bTypeRaw.includes('RC') || bTypeRaw.includes('Resource') || bTypeRaw.includes('Retainer') ? 'Fixed RC' : 'Fixed PC';
+                bTypeRaw.includes('RC') || bTypeRaw.includes('Resource') || bTypeRaw.includes('Retainer') ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
             if (p.status === 'Active')
                 activeProjectsCount++;
             totalHours += projectHours;
             if (billingModel === 'T&M')
                 tmHours += projectHours;
-            else if (billingModel === 'Fixed RC')
+            else if (billingModel === 'Resources Cost (Fix)')
                 retainerHours += projectHours;
-            else if (billingModel === 'Fixed PC')
+            else if (billingModel === 'Project Cost (Fix)')
                 fixedHours += projectHours;
-            const budgetHours = p.budgetHours || 0;
+            const budgetHours = (0, timesheetService_1.getMonthlyBudgetHours)(p);
             const hoursBurnedPercent = budgetHours > 0 ? Math.min(100, Math.round((projectHours / budgetHours) * 100)) : 0;
             projectSummaries.push({
                 projectId: p.id,
@@ -131,7 +132,7 @@ class TimesheetPmSummaryService {
                 continue;
             const defaultBType = c.defaultBillingType || (myActiveProjectsForClient[0]?.billingType) || 'T&M';
             const billingMethod = defaultBType.includes('T&M') || defaultBType.includes('Hourly') ? 'T & M' :
-                defaultBType.includes('RC') || defaultBType.includes('Retainer') ? 'Fixed RC' : 'Fixed PC';
+                defaultBType.includes('RC') || defaultBType.includes('Resource') || defaultBType.includes('Retainer') ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
             clientSummaries.push({
                 clientId: c.id,
                 clientName: c.displayName || c.name,

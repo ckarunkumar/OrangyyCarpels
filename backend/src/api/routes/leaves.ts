@@ -4,13 +4,16 @@ import { CompOffService } from '../../services/compOffService';
 import { HolidayService } from '../../services/holidayService';
 
 const leaveRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/leaves/balance', async (request, reply) => {
+  const handleGetBalance = async (request: any, reply: any) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
     const empId = request.user.employeeId || `ODE${String(request.user.id).padStart(4, '0')}`;
     const year = Number((request.query as any)?.year) || 2026;
     const balance = await LeaveService.getBalance(empId, year);
     return reply.send(balance);
-  });
+  };
+
+  fastify.get('/leaves/balance', handleGetBalance);
+  fastify.get('/leaves/balances', handleGetBalance);
 
   fastify.get('/leaves/requests', async (request, reply) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
@@ -19,11 +22,51 @@ const leaveRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send(requests);
   });
 
+  fastify.get('/leaves/my-requests', async (request, reply) => {
+    if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+    const requests = await LeaveService.getLeaveRequests(request.user, 'mine');
+    return reply.send(requests);
+  });
+
+  fastify.get('/leaves/approval-requests', async (request, reply) => {
+    if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+    const requests = await LeaveService.getLeaveRequests(request.user, 'approvals');
+    return reply.send(requests);
+  });
+
+  fastify.get('/leaves/approval-compoffs', async (request, reply) => {
+    if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+    const records = await CompOffService.getCompOffRequests(request.user, 'approvals');
+    return reply.send(records);
+  });
+
   fastify.post('/leaves/apply', async (request, reply) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
     try {
       const record = await LeaveService.applyLeave(request.user, request.body as any);
       return reply.status(201).send(record);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.put('/leaves/requests/:id', async (request, reply) => {
+    if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+    const { id } = request.params as { id: string };
+    try {
+      const record = await LeaveService.updateLeave(request.user, Number(id), request.body as any);
+      return reply.send(record);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/leaves/requests/:id', async (request, reply) => {
+    if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
+    const { id } = request.params as { id: string };
+    try {
+      const record = await LeaveService.deleteLeave(request.user, Number(id));
+      return reply.send(record);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

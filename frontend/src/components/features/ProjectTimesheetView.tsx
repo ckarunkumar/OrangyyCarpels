@@ -85,22 +85,79 @@ export default function ProjectTimesheetView({
     return () => document.removeEventListener('mousedown', handleOutside);
   }, []);
 
+  const autoSaveTimerRef = useRef<any>(null);
+
+  const triggerAutoSave = (currentEntries: DailyEntry[], delay: number = 0) => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(async () => {
+      if (isLocked) return;
+      try {
+        setSaveMsg('Saving...');
+        const userEntries = isEmp ? currentEntries.filter((e) => e.isOwner !== false) : currentEntries;
+        const res = await fetch('/api/timesheets/daily-entries/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: project.id, month: currentMonth, entries: userEntries }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSaveMsg('Auto-saved');
+          setTimeout(() => setSaveMsg(''), 2500);
+          onRefresh();
+        } else {
+          console.error('Auto-save error:', data.error);
+        }
+      } catch (err) {
+        console.error('Auto-save network error:', err);
+      }
+    }, delay);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleEntryChange = (idx: number, field: keyof DailyEntry, val: any) => {
     if (isLocked) return;
     if (isEmp && entries[idx]?.isReadOnly) return;
-    const updated = [...entries]; updated[idx] = { ...updated[idx], [field]: val }; setEntries(updated);
+    const updated = [...entries];
+    updated[idx] = { ...updated[idx], [field]: val };
+    setEntries(updated);
+
+    // Auto-save immediately for logged time, debounced for text inputs
+    triggerAutoSave(updated, field === 'hours' ? 0 : 500);
   };
 
   const handleSave = async () => {
     if (isLocked) return;
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
     setActionLoading(true);
     try {
       const userEntries = isEmp ? entries.filter((e) => e.isOwner !== false) : entries;
-      const res = await fetch('/api/timesheets/daily-entries/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId: project.id, month: currentMonth, entries: userEntries }) });
+      const res = await fetch('/api/timesheets/daily-entries/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id, month: currentMonth, entries: userEntries }),
+      });
       const data = await res.json();
-      if (!res.ok) { alert(data.error || 'Failed to save'); return; }
-      setSaveMsg('Saved successfully!'); setTimeout(() => setSaveMsg(''), 2500); onRefresh();
-    } finally { setActionLoading(false); }
+      if (!res.ok) {
+        alert(data.error || 'Failed to save');
+        return;
+      }
+      setSaveMsg('Saved successfully!');
+      setTimeout(() => setSaveMsg(''), 2500);
+      onRefresh();
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleConfirmAction = async () => {

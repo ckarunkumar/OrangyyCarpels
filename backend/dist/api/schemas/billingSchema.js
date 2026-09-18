@@ -100,7 +100,7 @@ exports.addRateVersionSchema = {
         type: 'object',
         required: ['billingType', 'rateAmount', 'currency', 'effectiveStartDate'],
         properties: {
-            billingType: { type: 'string', enum: ['T&M', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
+            billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
             rateAmount: { type: 'number', minimum: 0 },
             currency: { type: 'string', minLength: 1 },
             effectiveStartDate: { type: 'string', minLength: 4 },

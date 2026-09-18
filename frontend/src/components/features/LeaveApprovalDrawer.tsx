@@ -83,14 +83,32 @@ export default function LeaveApprovalDrawer({ open, item, type, onClose, onProce
           </div>
 
           <div className="p-4 border-t border-studio-border flex justify-between items-center bg-studio-sidebar/40">
-            <button type="button" onClick={onClose} className="px-3.5 py-2 border border-studio-border rounded-lg text-[12px] font-medium text-studio-muted hover:bg-white transition-colors cursor-pointer">Cancel</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-2 border border-studio-border rounded-lg text-[12px] font-medium text-studio-muted hover:bg-white transition-colors cursor-pointer"
+            >
+              Close
+            </button>
             <div className="flex gap-2">
-              <button type="button" onClick={() => handleAction('reject')} disabled={loading} className="px-4 py-2 border border-red-200 bg-red-50 text-red-700 rounded-lg text-[12px] font-bold hover:bg-red-100 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+              <button
+                type="button"
+                onClick={() => handleAction('reject')}
+                disabled={loading}
+                className="px-4 py-2 border border-red-200 bg-red-50 text-red-700 rounded-lg text-[12px] font-bold hover:bg-red-100 transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-2xs"
+              >
                 <XCircle className="w-4 h-4 text-red-600" /> Decline
               </button>
-              <button type="button" onClick={() => handleAction('approve')} disabled={loading} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[12px] font-bold hover:bg-emerald-700 transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
-                <CheckCircle2 className="w-4 h-4" /> {type === 'compoff' && item.status === 'Pending_PM' ? 'Endorse Claim' : 'Approve'}
-              </button>
+              {item.status !== 'Approved' && (
+                <button
+                  type="button"
+                  onClick={() => handleAction('approve')}
+                  disabled={loading}
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[12px] font-bold hover:bg-emerald-700 transition-all shadow-xs flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> {type === 'compoff' && item.status === 'Pending_PM' ? 'Endorse Claim' : 'Approve'}
+                </button>
+              )}
             </div>
           </div>
         </div>

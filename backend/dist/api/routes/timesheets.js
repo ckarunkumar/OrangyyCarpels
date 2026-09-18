@@ -57,7 +57,7 @@ const timesheetRoutes = async (fastify) => {
     fastify.get('/timesheets/projects-summary', async (request) => {
         const { month } = request.query;
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         return timesheetService_1.TimesheetService.getEmployeeProjectsSummary(month || '2026-08', employeeId, role);
     });
     // GET full month daily entries for a specific project
@@ -65,7 +65,7 @@ const timesheetRoutes = async (fastify) => {
         const { projectId, month, weekStart } = request.query;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         try {
             return await timesheetService_1.TimesheetService.getProjectDailyEntries(projectId, monthStr, employeeId, role);
         }
@@ -78,7 +78,7 @@ const timesheetRoutes = async (fastify) => {
         const { projectId, month, weekStart, entries } = request.body;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         try {
             return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, role, entries, 'Draft');
         }
@@ -91,7 +91,7 @@ const timesheetRoutes = async (fastify) => {
         const { projectId, month, weekStart, entries } = request.body;
         const monthStr = month || (weekStart ? weekStart.slice(0, 7) : '2026-08');
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         try {
             return await timesheetService_1.TimesheetService.saveDailyEntries(projectId, monthStr, employeeId, role, entries, 'Submitted');
         }
@@ -103,7 +103,7 @@ const timesheetRoutes = async (fastify) => {
     fastify.post('/timesheets/daily-entries/approve', async (request, reply) => {
         const { projectId, month } = request.body;
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         try {
             return await timesheetService_1.TimesheetService.approveTimesheet(projectId, month || '2026-08', employeeId, role);
         }
@@ -115,7 +115,7 @@ const timesheetRoutes = async (fastify) => {
     fastify.post('/timesheets/daily-entries/reopen', async (request, reply) => {
         const { projectId, month } = request.body;
         const role = request.user?.role || 'Employee';
-        const employeeId = request.user?.userId ? String(request.user.userId) : undefined;
+        const employeeId = request.user?.employeeId || (request.user?.userId ? String(request.user.userId) : undefined);
         try {
             return await timesheetService_1.TimesheetService.reopenTimesheet(projectId, month || '2026-08', employeeId, role);
         }

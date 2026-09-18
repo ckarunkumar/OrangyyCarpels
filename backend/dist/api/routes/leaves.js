@@ -4,19 +4,40 @@ const leaveService_1 = require("../../services/leaveService");
 const compOffService_1 = require("../../services/compOffService");
 const holidayService_1 = require("../../services/holidayService");
 const leaveRoutes = async (fastify) => {
-    fastify.get('/leaves/balance', async (request, reply) => {
+    const handleGetBalance = async (request, reply) => {
         if (!request.user)
             return reply.status(401).send({ error: 'Unauthorized' });
         const empId = request.user.employeeId || `ODE${String(request.user.id).padStart(4, '0')}`;
         const year = Number(request.query?.year) || 2026;
         const balance = await leaveService_1.LeaveService.getBalance(empId, year);
         return reply.send(balance);
-    });
+    };
+    fastify.get('/leaves/balance', handleGetBalance);
+    fastify.get('/leaves/balances', handleGetBalance);
     fastify.get('/leaves/requests', async (request, reply) => {
         if (!request.user)
             return reply.status(401).send({ error: 'Unauthorized' });
-        const requests = await leaveService_1.LeaveService.getLeaveRequests(request.user);
+        const scope = request.query?.scope || 'mine';
+        const requests = await leaveService_1.LeaveService.getLeaveRequests(request.user, scope);
         return reply.send(requests);
+    });
+    fastify.get('/leaves/my-requests', async (request, reply) => {
+        if (!request.user)
+            return reply.status(401).send({ error: 'Unauthorized' });
+        const requests = await leaveService_1.LeaveService.getLeaveRequests(request.user, 'mine');
+        return reply.send(requests);
+    });
+    fastify.get('/leaves/approval-requests', async (request, reply) => {
+        if (!request.user)
+            return reply.status(401).send({ error: 'Unauthorized' });
+        const requests = await leaveService_1.LeaveService.getLeaveRequests(request.user, 'approvals');
+        return reply.send(requests);
+    });
+    fastify.get('/leaves/approval-compoffs', async (request, reply) => {
+        if (!request.user)
+            return reply.status(401).send({ error: 'Unauthorized' });
+        const records = await compOffService_1.CompOffService.getCompOffRequests(request.user, 'approvals');
+        return reply.send(records);
     });
     fastify.post('/leaves/apply', async (request, reply) => {
         if (!request.user)
@@ -24,6 +45,30 @@ const leaveRoutes = async (fastify) => {
         try {
             const record = await leaveService_1.LeaveService.applyLeave(request.user, request.body);
             return reply.status(201).send(record);
+        }
+        catch (err) {
+            return reply.status(400).send({ error: err.message });
+        }
+    });
+    fastify.put('/leaves/requests/:id', async (request, reply) => {
+        if (!request.user)
+            return reply.status(401).send({ error: 'Unauthorized' });
+        const { id } = request.params;
+        try {
+            const record = await leaveService_1.LeaveService.updateLeave(request.user, Number(id), request.body);
+            return reply.send(record);
+        }
+        catch (err) {
+            return reply.status(400).send({ error: err.message });
+        }
+    });
+    fastify.delete('/leaves/requests/:id', async (request, reply) => {
+        if (!request.user)
+            return reply.status(401).send({ error: 'Unauthorized' });
+        const { id } = request.params;
+        try {
+            const record = await leaveService_1.LeaveService.deleteLeave(request.user, Number(id));
+            return reply.send(record);
         }
         catch (err) {
             return reply.status(400).send({ error: err.message });
@@ -45,7 +90,8 @@ const leaveRoutes = async (fastify) => {
     fastify.get('/leaves/compoff', async (request, reply) => {
         if (!request.user)
             return reply.status(401).send({ error: 'Unauthorized' });
-        const records = await compOffService_1.CompOffService.getCompOffRequests(request.user);
+        const scope = request.query?.scope || 'mine';
+        const records = await compOffService_1.CompOffService.getCompOffRequests(request.user, scope);
         return reply.send(records);
     });
     fastify.post('/leaves/compoff/apply', async (request, reply) => {

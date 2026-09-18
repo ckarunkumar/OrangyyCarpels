@@ -13,7 +13,7 @@ class ProjectService {
             rate: role === 'Super Admin' ? p.rate : 'RESTRICTED',
             businessLine: p.businessLine || '', service: p.service || '',
             startDate: p.startDate || '', endDate: p.endDate || '',
-            budgetHours: p.budgetHours || 0, loggedHours: p.loggedHours || 0,
+            budgetHours: p.budgetHours || 0, budgetType: (p.budgetType || 'Monthly'), loggedHours: p.loggedHours || 0,
             status: p.status,
             managerId: p.managerId || '', managerName: p.managerName || '',
             assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -33,7 +33,7 @@ class ProjectService {
         const nextNum = maxNum + 1;
         return `PC${String(nextNum).padStart(4, '0')}`;
     }
-    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service) {
+    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can create projects.');
         const client = await prisma_1.prisma.client.findUnique({ where: { id: clientId } });
@@ -51,7 +51,7 @@ class ProjectService {
         const proj = await prisma_1.prisma.project.create({
             data: {
                 id: targetProjectId, clientId, name: cleanName, billingType, rate,
-                budgetHours: budgetHours || 0, startDate: startDate || '', endDate: endDate || '',
+                budgetHours: budgetHours || 0, budgetType: budgetType || 'Monthly', startDate: startDate || '', endDate: endDate || '',
                 status: 'Active', managerId: managerId || '', managerName: managerName || '',
                 assignedEmployees: assignedStr, businessLine: businessLine || '', service: service || '',
             },
@@ -62,7 +62,7 @@ class ProjectService {
             clientCurrency: proj.client.billingCurrency, billingType: proj.billingType,
             rate: proj.rate, businessLine: proj.businessLine || '', service: proj.service || '',
             startDate: proj.startDate || '', endDate: proj.endDate || '',
-            budgetHours: proj.budgetHours || 0, loggedHours: proj.loggedHours || 0,
+            budgetHours: proj.budgetHours || 0, budgetType: (proj.budgetType || 'Monthly'), loggedHours: proj.loggedHours || 0,
             status: proj.status,
             managerId: proj.managerId || '', managerName: proj.managerName || '',
             assignedEmployees: proj.assignedEmployees ? proj.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -103,6 +103,7 @@ class ProjectService {
                 ...(data.startDate !== undefined && { startDate: data.startDate }),
                 ...(data.endDate !== undefined && { endDate: data.endDate }),
                 ...(data.budgetHours !== undefined && { budgetHours: Number(data.budgetHours) || 0 }),
+                ...(data.budgetType !== undefined && { budgetType: data.budgetType }),
                 ...(data.status && { status: data.status }),
                 ...(data.managerId !== undefined && { managerId: data.managerId }),
                 ...(data.managerName !== undefined && { managerName: data.managerName }),
@@ -116,7 +117,7 @@ class ProjectService {
             clientCurrency: updated.client.billingCurrency, billingType: updated.billingType,
             rate: updated.rate, businessLine: updated.businessLine || '', service: updated.service || '',
             startDate: updated.startDate || '', endDate: updated.endDate || '',
-            budgetHours: updated.budgetHours || 0, loggedHours: updated.loggedHours || 0,
+            budgetHours: updated.budgetHours || 0, budgetType: (updated.budgetType || 'Monthly'), loggedHours: updated.loggedHours || 0,
             status: updated.status,
             managerId: updated.managerId || '', managerName: updated.managerName || '',
             assignedEmployees: updated.assignedEmployees ? updated.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],

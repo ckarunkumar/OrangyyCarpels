@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Home, ChevronRight, ChevronDown, Calendar, X } from 'lucide-react';
+import { ChevronDown, Calendar, X } from 'lucide-react';
 
 interface PmDashboardFilterHeaderProps {
   title: string;
   subtitle?: string;
-  isDrilldown: boolean;
-  onBackToStudio: () => void;
+  isDrilldown?: boolean;
+  onBackToStudio?: () => void;
   selectedFY: string;
   onChangeFY: (fy: string) => void;
   fromDate: string;
@@ -19,7 +19,6 @@ export default function PmDashboardFilterHeader({
   title,
   subtitle,
   isDrilldown,
-  onBackToStudio,
   selectedFY,
   onChangeFY,
   fromDate,
@@ -67,27 +66,6 @@ export default function PmDashboardFilterHeader({
 
   return (
     <div className="space-y-3">
-      {/* Breadcrumb: Home > Dashboard */}
-      <nav className="flex items-center gap-1.5 text-[12.5px] text-slate-400">
-        <button type="button" onClick={onBackToStudio} className="flex items-center hover:text-slate-600 transition-colors">
-          <Home className="w-3.5 h-3.5" />
-        </button>
-        <ChevronRight className="w-3 h-3 text-slate-300" />
-        <button
-          type="button"
-          onClick={onBackToStudio}
-          className={`hover:text-slate-900 transition-colors ${!isDrilldown ? 'text-slate-900 font-semibold' : 'text-slate-600 font-normal'}`}
-        >
-          Dashboard
-        </button>
-        {isDrilldown && (
-          <>
-            <ChevronRight className="w-3 h-3 text-slate-300" />
-            <span className="text-slate-900 font-semibold">{title}</span>
-          </>
-        )}
-      </nav>
-
       {/* Main Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

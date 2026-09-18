@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Plus, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Plus, Calendar, CheckCircle2, Clock, ChevronLeft, ChevronRight, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { UserRole } from '../ui/Layout';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import LeaveApplyDrawer from './LeaveApplyDrawer';
 import LeaveApprovalDrawer from './LeaveApprovalDrawer';
+import LeaveEditDrawer from './LeaveEditDrawer';
 import TeamAvailabilityView from './TeamAvailabilityView';
-import ApprovalsCalendarView from './ApprovalsCalendarView';
+import ApprovalsCalendarView, { MONTH_NAMES } from './ApprovalsCalendarView';
 
 const LEAVE_YEARS = [2024, 2025, 2026, 2027, 2028, 2029];
 
@@ -33,6 +34,27 @@ const formatDateDMY = (dateStr: string) => {
   return dateStr;
 };
 
+const parseDateToYMD = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.trim().split('-');
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+    }
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+  }
+  return dateStr;
+};
+
+const isPastMonthDate = (startDateStr: string, endDateStr?: string) => {
+  const dateStr = endDateStr || startDateStr;
+  if (!dateStr) return false;
+  const ymd = parseDateToYMD(dateStr);
+  const now = new Date();
+  const currentMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  return ymd < currentMonthStart;
+};
+
 const getCategoryLabel = (req: any) => {
   if (req.leaveCategory) return req.leaveCategory;
   if (req.leaveType === 'Work From Home') return 'WFH';
@@ -45,6 +67,8 @@ const getCategoryLabel = (req: any) => {
 
 export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
   const [selectedYear, setSelectedYear] = useState(2026);
+  const [approvalMonthIdx, setApprovalMonthIdx] = useState(8); // 8 = September (0-indexed)
+  const [approvalYear, setApprovalYear] = useState(2026);
   const [activeTab, setActiveTab] = useState<'approvals' | 'dashboard' | 'calendar'>(
     activeRole === 'Employee' ? 'dashboard' : 'approvals'
   );
@@ -54,39 +78,113 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
   const [approvalCompOffs, setApprovalCompOffs] = useState<any[]>([]);
   const [holidays, setHolidays] = useState<any[]>([]);
   const [openApply, setOpenApply] = useState(false);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [reviewItem, setReviewItem] = useState<{ item: any; type: 'leave' | 'compoff' } | null>(null);
+  const [activeActionMenuId, setActiveActionMenuId] = useState<string | number | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
 
-  const loadData = (year: number = selectedYear) => {
-    fetch(`/api/leaves/balance?year=${year}`).then((r) => r.json()).then(setBalance).catch(() => {});
-    fetch('/api/leaves/requests?scope=mine').then((r) => r.json()).then((d) => {
-      if (Array.isArray(d)) {
-        setMyRequests(d.length > 0 ? d : DEFAULT_MY_REQUESTS);
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target as Node)) {
+        setActiveActionMenuId(null);
       }
-    }).catch(() => {});
-    fetch('/api/leaves/requests?scope=approvals').then((r) => r.json()).then((d) => {
-      if (Array.isArray(d)) {
-        setApprovalRequests(d.length > 0 ? d : DEFAULT_APPROVAL_REQUESTS);
-      }
-    }).catch(() => {});
-    fetch('/api/leaves/compoff?scope=approvals').then((r) => r.json()).then((d) => Array.isArray(d) && setApprovalCompOffs(d)).catch(() => {});
-    fetch(`/api/leaves/holidays?year=${year}&published=true`).then((r) => r.json()).then((d) => Array.isArray(d) && setHolidays(d)).catch(() => {});
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    setApprovalYear(selectedYear);
+  }, [selectedYear]);
+
+  const handlePrevApprovalMonth = () => {
+    if (approvalMonthIdx === 0) {
+      setApprovalMonthIdx(11);
+      setApprovalYear((y) => y - 1);
+    } else {
+      setApprovalMonthIdx((m) => m - 1);
+    }
   };
 
-  useEffect(() => { loadData(selectedYear); }, [selectedYear]);
+  const handleNextApprovalMonth = () => {
+    if (approvalMonthIdx === 11) {
+      setApprovalMonthIdx(0);
+      setApprovalYear((y) => y + 1);
+    } else {
+      setApprovalMonthIdx((m) => m + 1);
+    }
+  };
 
-  const pendingLeavesCount = approvalRequests.filter((r) => r.status?.startsWith('Pending')).length;
-  const pendingCompOffsCount = approvalCompOffs.filter((c) => c.status?.startsWith('Pending')).length;
-  const totalPendingCount = pendingLeavesCount + pendingCompOffsCount;
+  const loadData = (year: number) => {
+    fetch(`/api/leaves/balances?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setBalance(d); })
+      .catch(() => {});
+
+    fetch(`/api/leaves/my-requests?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d) && d.length > 0) setMyRequests(d); })
+      .catch(() => {});
+
+    fetch(`/api/leaves/approval-requests?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d) && d.length > 0) setApprovalRequests(d); })
+      .catch(() => {});
+
+    fetch(`/api/leaves/approval-compoffs?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d) && d.length > 0) setApprovalCompOffs(d); })
+      .catch(() => {});
+
+    fetch(`/api/leaves/holidays?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d) && d.length > 0) setHolidays(d); })
+      .catch(() => {});
+  };
+
+  const handleDeleteApplication = async (id: number | string) => {
+    if (!window.confirm('Are you sure you want to cancel and delete this leave application?')) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/leaves/requests/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMyRequests((prev) => prev.filter((r) => r.id !== id));
+        setApprovalRequests((prev) => prev.filter((r) => r.id !== id));
+        loadData(selectedYear);
+      }
+    } catch (err) {
+      console.error('Delete application error:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadData(selectedYear);
+  }, [selectedYear]);
+
+  const totalPendingCount = approvalRequests.filter(
+    (r) => r.status?.startsWith('Pending') || r.status === 'Pending_PM' || r.status === 'Pending_SA'
+  ).length;
 
   return (
     <div className="w-full space-y-5 animate-in fade-in duration-200">
       <LeaveApplyDrawer
         open={openApply}
+        selectedYear={selectedYear}
+        balanceData={balance}
+        publishedHolidays={holidays}
         onClose={() => setOpenApply(false)}
         onApplied={() => loadData(selectedYear)}
-        balanceData={balance}
+      />
+      <LeaveEditDrawer
+        open={!!editingItem}
+        item={editingItem}
         selectedYear={selectedYear}
+        balanceData={balance}
         publishedHolidays={holidays}
+        onClose={() => setEditingItem(null)}
+        onSaved={() => loadData(selectedYear)}
+        onDeleted={() => loadData(selectedYear)}
       />
       <LeaveApprovalDrawer
         open={!!reviewItem}
@@ -122,38 +220,68 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
       </div>
 
       {/* Tabs: Approvals -> My Leaves -> Holiday Calendar for SA & PM */}
-      <div className="border-b border-studio-border flex gap-6 text-[13px] font-medium">
-        {activeRole !== 'Employee' && (
+      <div className="border-b border-studio-border flex justify-between items-center text-[13px] font-medium">
+        <div className="flex gap-6">
+          {activeRole !== 'Employee' && (
+            <button
+              onClick={() => setActiveTab('approvals')}
+              className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+                activeTab === 'approvals' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4" /> Approvals
+              {totalPendingCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                  {totalPendingCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
-            onClick={() => setActiveTab('approvals')}
+            onClick={() => setActiveTab('dashboard')}
             className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-              activeTab === 'approvals' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
+              activeTab === 'dashboard' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
             }`}
           >
-            <CheckCircle2 className="w-4 h-4" /> Approvals
-            {totalPendingCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-brand-orange text-white text-[10px] font-bold flex items-center justify-center shrink-0">
-                {totalPendingCount}
-              </span>
-            )}
+            <Clock className="w-4 h-4" /> My Leaves
           </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'calendar' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            <Calendar className="w-4 h-4" /> Holiday Calendar
+          </button>
+        </div>
+
+        {/* Top-right corner aligned parallel with Approvals, My Leaves, Holiday Calendar */}
+        {activeTab === 'approvals' && activeRole !== 'Employee' && (
+          <div className="pb-2">
+            <div className="flex items-center border border-studio-border rounded-lg bg-white px-2 py-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={handlePrevApprovalMonth}
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors cursor-pointer"
+                title="Previous Month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-1.5 px-2 text-[12px] font-semibold text-slate-700 select-none">
+                <Calendar className="w-3.5 h-3.5 text-brand-orange" />
+                <span>{MONTH_NAMES[approvalMonthIdx]} {approvalYear}</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleNextApprovalMonth}
+                className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition-colors cursor-pointer"
+                title="Next Month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         )}
-        <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'dashboard' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
-          }`}
-        >
-          <Clock className="w-4 h-4" /> My Leaves
-        </button>
-        <button
-          onClick={() => setActiveTab('calendar')}
-          className={`pb-2.5 flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
-            activeTab === 'calendar' ? 'border-brand-orange text-brand-orange font-bold' : 'border-transparent text-studio-muted hover:text-studio-text'
-          }`}
-        >
-          <Calendar className="w-4 h-4" /> Holiday Calendar
-        </button>
       </div>
 
       {/* Tab 1 (for SA/PM): Approvals Calendar View */}
@@ -162,6 +290,8 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
           requests={approvalRequests}
           compOffRequests={approvalCompOffs}
           selectedYear={selectedYear}
+          monthIdx={approvalMonthIdx}
+          year={approvalYear}
           onReview={(item, type) => setReviewItem({ item, type })}
         />
       )}
@@ -228,50 +358,104 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
                     <th className="py-2.5 px-5 font-bold">NUMBER OF DAYS</th>
                     <th className="py-2.5 px-5 font-bold">REASON / NOTES</th>
                     <th className="py-2.5 px-5 font-bold text-left">STATUS</th>
+                    <th className="py-2.5 px-5 font-bold text-right">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-studio-border/40 text-[12.5px] text-slate-700">
                   {myRequests.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500 text-[12.5px]">
+                      <td colSpan={9} className="py-8 text-center text-slate-500 text-[12.5px]">
                         No applications submitted yet. Click "+ Apply" to submit time-off or WFH.
                       </td>
                     </tr>
                   ) : (
-                    myRequests.map((r) => (
-                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-5 font-medium text-slate-800">{r.leaveType}</td>
-                        <td className="py-3.5 px-5 text-slate-600 font-medium">{getCategoryLabel(r)}</td>
-                        <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.startDate)}</td>
-                        <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.endDate)}</td>
-                        <td className="py-3.5 px-5">
-                          {r.halfDaySession === 'First half' || r.halfDaySession === 'First Half' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">First half</span>
-                          ) : r.halfDaySession === 'Second Half' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">Second Half</span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-medium">None</span>
-                          )}
-                        </td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{r.daysCount === 0.5 ? '0.5 Day' : `${r.daysCount} Day`}</td>
-                        <td className="py-3.5 px-5 text-slate-700 font-medium">{r.reason}</td>
-                        <td className="py-3.5 px-5">
-                          {r.status?.startsWith('Pending') ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-200/80 text-[11px] font-medium">
-                              {r.status}
-                            </span>
-                          ) : r.status === 'Approved' ? (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/80 text-[11px] font-medium">
-                              Approved
-                            </span>
-                          ) : (
-                            <span className="inline-block px-2.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200/80 text-[11px] font-medium">
-                              Declined
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                    myRequests.map((r) => {
+                      const isPastMonth = isPastMonthDate(r.startDate, r.endDate);
+                      const isPending = r.status?.startsWith('Pending') || r.status === 'Pending_PM' || r.status === 'Pending_SA';
+                      const isApproved = r.status === 'Approved';
+                      const isDeclined = r.status === 'Declined' || r.status === 'Rejected';
+
+                      return (
+                        <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3.5 px-5 font-medium text-slate-800">{r.leaveType}</td>
+                          <td className="py-3.5 px-5 text-slate-600 font-medium">{getCategoryLabel(r)}</td>
+                          <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.startDate)}</td>
+                          <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.endDate)}</td>
+                          <td className="py-3.5 px-5">
+                            {r.halfDaySession === 'First half' || r.halfDaySession === 'First Half' ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">First half</span>
+                            ) : r.halfDaySession === 'Second Half' ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200/80 text-[11px] font-medium">Second Half</span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-medium">None</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 text-slate-700 font-medium">{r.daysCount === 0.5 ? '0.5 Day' : `${r.daysCount} Day`}</td>
+                          <td className="py-3.5 px-5 text-slate-700 font-medium">{r.reason}</td>
+                          <td className="py-3.5 px-5">
+                            {isPastMonth ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1] text-[11px] font-medium" title="Past-month leave application">
+                                {r.status}
+                              </span>
+                            ) : isPending ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FFF5F2] text-[#F25624] border border-[#FFDCD2] text-[11px] font-medium">
+                                {r.status}
+                              </span>
+                            ) : isApproved ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200/80 text-[11px] font-medium">
+                                Approved
+                              </span>
+                            ) : isDeclined ? (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#FEE2E2] text-[#B91C1C] border border-[#FCA5A5] text-[11px] font-medium">
+                                Declined
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-medium">
+                                {r.status}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5 text-right relative">
+                            <div className="inline-block text-left" ref={activeActionMenuId === r.id ? actionMenuRef : undefined}>
+                              <button
+                                type="button"
+                                onClick={() => setActiveActionMenuId(activeActionMenuId === r.id ? null : r.id)}
+                                className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                                title="Actions"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                              {activeActionMenuId === r.id && (
+                                <div className="absolute right-5 mt-1 w-32 bg-white rounded-md shadow-lg border border-studio-border py-1 z-20 animate-in fade-in zoom-in-95 duration-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      setEditingItem(r);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5 text-slate-500" />
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      handleDeleteApplication(r.id);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-[12px] font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

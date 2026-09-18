@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserRole } from '../ui/Layout';
+import Breadcrumbs from '../ui/Breadcrumbs';
 import DashboardKpiCards from './dashboard/DashboardKpiCards';
 import StudioClientTable, { ClientRowData } from './dashboard/StudioClientTable';
 import ClientProjectsTable, { ProjectRowData } from './dashboard/ClientProjectsTable';
@@ -98,6 +99,14 @@ export default function DashboardView({ activeRole }: { activeRole: UserRole }) 
       />
 
       <div className="w-full space-y-6">
+        <Breadcrumbs
+          items={
+            selectedClient
+              ? [{ label: 'Studio Dashboard', onClick: handleBackToStudio }, { label: selectedClient.clientName }]
+              : [{ label: 'Studio Dashboard' }]
+          }
+        />
+
         <DashboardFilterHeader
           title={selectedClient ? selectedClient.clientName : 'Studio Dashboard'}
           isDrilldown={!!selectedClient}
