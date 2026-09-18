@@ -145,8 +145,8 @@ export default function StudioPreferencesForm() {
             <label className="block text-[11px] font-semibold text-studio-muted uppercase mb-1">Default Billing Model</label>
             <select value={defaultBillingType} onChange={(e) => setDefaultBillingType(e.target.value)} className="w-full px-3 py-2 border border-studio-border rounded-lg text-studio-text focus:outline-none focus:border-brand-orange bg-white">
               <option value="T&M">T&M (Time & Material)</option>
-              <option value="Fixed PC">Fixed PC (Project Cost)</option>
-              <option value="Fixed RC">Fixed RC (Retainer Cost)</option>
+              <option value="Resources Cost (Fix)">Resources Cost (Fix)</option>
+              <option value="Project Cost (Fix)">Project Cost (Fix)</option>
             </select>
           </div>
         </div>

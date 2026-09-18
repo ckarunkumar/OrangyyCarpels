@@ -64,7 +64,15 @@ export class LeaveService {
       throw new Error(`Insufficient Comp-off balance. You currently have ${balance.compOffBalance} days available.`);
     }
 
-    const targetStatus = user.role === 'Project Manager' ? 'Pending_SA' : 'Pending_PM';
+    let targetStatus = 'Pending_PM';
+    if (user.role === 'Project Manager') {
+      targetStatus = 'Pending_SA';
+    } else if (user.role === 'Super Admin') {
+      targetStatus = 'Pending_PM';
+    } else {
+      targetStatus = 'Pending_PM';
+    }
+
     const record = await prisma.leaveRequest.create({
       data: {
         employeeId: empId, employeeName: user.fullName, leaveType: data.leaveType,
@@ -77,10 +85,13 @@ export class LeaveService {
     return record;
   }
 
-  static async getLeaveRequests(user: { id?: string | number; employeeId: string; role: string }): Promise<any[]> {
+  static async getLeaveRequests(user: { id?: string | number; employeeId: string; role: string }, scope: 'mine' | 'approvals' = 'mine'): Promise<any[]> {
     const where: any = {};
-    if (user.role === 'Employee') {
+    if (scope === 'mine') {
       where.employeeId = user.employeeId;
+    } else {
+      if (user.role === 'Employee') return [];
+      where.employeeId = { not: user.employeeId };
     }
     return prisma.leaveRequest.findMany({ where, orderBy: { appliedAt: 'desc' } });
   }

@@ -15,9 +15,9 @@ export interface EmployeeProfile {
 
 export interface ProjectDetail {
   id: string; name: string;
-  billingType: 'T&M' | 'Fixed RC' | 'Fixed PC' | 'Hourly Rate (T&M)' | 'Monthly Resource Cost (Fixed)' | 'Monthly Res Cost (Fixed)' | 'Project Cost (Fixed)';
+  billingType: 'T&M' | 'Resources Cost (Fix)' | 'Project Cost (Fix)' | 'Fixed RC' | 'Fixed PC' | 'Hourly Rate (T&M)' | 'Monthly Resource Cost (Fixed)' | 'Monthly Res Cost (Fixed)' | 'Project Cost (Fixed)';
   rate: string; businessLine?: string; service?: string; startDate?: string; endDate?: string;
-  budgetHours: number; loggedHours: number; status: 'Active' | 'Inactive';
+  budgetHours: number; budgetType?: 'Monthly' | 'Total Project'; loggedHours: number; status: 'Active' | 'Inactive';
   managerId?: string; managerName?: string; assignedEmployees?: string[];
 }
 

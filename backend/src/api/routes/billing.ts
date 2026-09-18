@@ -13,11 +13,11 @@ interface AddRateVersionBody {
 
 export async function billingRoutes(fastify: FastifyInstance) {
   // GET /billing/summary
-  fastify.get('/billing/summary', { schema: getBillingSummarySchema }, async (request: FastifyRequest<{ Querystring: { fy?: string } }>, reply: FastifyReply) => {
+  fastify.get('/billing/summary', { schema: getBillingSummarySchema }, async (request: FastifyRequest<{ Querystring: { fy?: string; month?: string; periodType?: string; clientId?: string } }>, reply: FastifyReply) => {
     try {
       const role = request.user?.role || 'Employee';
-      const fy = request.query?.fy;
-      const summary = await BillingService.getBillingSummary(role, fy);
+      const { fy, month, periodType, clientId } = request.query || {};
+      const summary = await BillingService.getBillingSummary(role, fy, month, periodType, clientId);
       return reply.send(summary);
     } catch (err: any) {
       return reply.status(403).send({ error: err.message });

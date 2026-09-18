@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, UserCheck, X } from 'lucide-react';
+import { ArrowLeft, UserCheck, X, ChevronDown } from 'lucide-react';
 import { Project } from './ProjectDrawer';
 import { Client } from './ClientDrawer';
 import { Employee } from './EmployeeDrawer';
@@ -21,12 +21,13 @@ export default function ProjectFormView({ mode, project, clients, employees = []
   const [billingType, setBillingType] = useState<string>('T&M'); const [rateAmount, setRateAmount] = useState('50');
   const [currency, setCurrency] = useState('USD ($)'); const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(''); const [budgetHours, setBudgetHours] = useState('100');
+  const [budgetType, setBudgetType] = useState<'Monthly' | 'Total Project'>('Monthly');
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
   const [managerId, setManagerId] = useState(''); const [assignedEmployees, setAssignedEmployees] = useState<string[]>([]);
   const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const normalizeBType = (bt?: string) => (!bt || bt === 'Hourly Rate (T&M)' || bt === 'T&M') ? 'T&M' : bt?.includes('Monthly') || bt === 'Fixed RC' ? 'Fixed RC' : 'Fixed PC';
+  const normalizeBType = (bt?: string) => (!bt || bt === 'Hourly Rate (T&M)' || bt === 'T&M') ? 'T&M' : (bt?.includes('Monthly') || bt?.includes('RC') || bt?.includes('Resources')) ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
   useEffect(() => { fetch('/api/settings/business-lines').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setBlInventory(d); }).catch(() => {}); }, []);
 
   useEffect(() => {
@@ -38,12 +39,13 @@ export default function ProjectFormView({ mode, project, clients, employees = []
       const parsed = parseFloat(project.rate.replace(/[^0-9.]/g, ''));
       setRateAmount(isNaN(parsed) ? '50' : String(parsed)); setCurrency(project.currency || project.clientCurrency || 'USD ($)');
       setStartDate(project.startDate || new Date().toISOString().split('T')[0]); setEndDate(project.endDate || ''); setBudgetHours(String(project.budgetHours || 100));
+      setBudgetType(project.budgetType || 'Monthly');
       setStatus(project.status); setManagerId(project.managerId || ''); setAssignedEmployees(project.assignedEmployees || []);
     } else {
       const initC = clients[0];
       setProjectId(''); setName(''); setClientId(initC?.id || ''); setSelectedBLs([]);
       setBillingType(normalizeBType(initC?.defaultBillingType)); setRateAmount('50'); setCurrency(initC?.billingCurrency || 'USD ($)');
-      setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setStatus('Active');
+      setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setBudgetType('Monthly'); setStatus('Active');
       const defaultPM = employees.find((e) => e.role === 'Project Manager' || e.role === 'Super Admin');
       setManagerId(defaultPM?.employeeId || ''); setAssignedEmployees([]);
       fetch('/api/projects/next-id')
@@ -65,12 +67,25 @@ export default function ProjectFormView({ mode, project, clients, employees = []
 
   const removeEmployee = (empId: string) => setAssignedEmployees((prev) => prev.filter((id) => id !== empId));
   const addEmployee = (empId: string) => { if (empId && !assignedEmployees.includes(empId)) setAssignedEmployees((prev) => [...prev, empId]); };
-  const getRateLabel = () => (billingType === 'T&M') ? 'Hourly Cost *' : (billingType === 'Fixed RC') ? 'Monthly Cost *' : 'Project Cost *';
+  const getRateLabel = () => (billingType === 'T&M') ? 'Hourly Cost *' : (billingType === 'Resources Cost (Fix)') ? 'Monthly Cost *' : 'Project Cost *';
   const isHourly = billingType === 'T&M';
   const pmEmployees = employees.filter((e) => e.status === 'Active' && (e.role === 'Project Manager' || e.role === 'Super Admin'));
   const staffEmployees = employees.filter((e) => e.status === 'Active' && e.role === 'Employee');
   const unassigned = staffEmployees.filter((e) => !assignedEmployees.includes(e.employeeId || String(e.id)));
   const availableServices = (selectedBLs.length > 0 ? blInventory.filter((b) => selectedBLs.includes(b.name)) : []).flatMap((b) => b.services);
+
+  const calculateMonthBreakdown = () => {
+    if (budgetType !== 'Total Project') return null;
+    const hours = Number(budgetHours);
+    if (isNaN(hours) || hours <= 0 || !startDate || !endDate) return null;
+    const [sY, sM] = startDate.split('-').map(Number);
+    const [eY, eM] = endDate.split('-').map(Number);
+    if (!sY || !sM || !eY || !eM) return null;
+    const count = (eY - sY) * 12 + (eM - sM) + 1;
+    if (count <= 0) return null;
+    const perMonth = Math.round(hours / count);
+    return `${hours} hrs ÷ ${count} mo = ~${perMonth} hrs/mo`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,14 +96,14 @@ export default function ProjectFormView({ mode, project, clients, employees = []
     if (isHourly && (!hours || hours <= 0)) { setError('Budget hours must be positive.'); return; }
     setSaving(true); setError(null);
     try {
-      const formattedRate = `${currency.replace(/\s*\(.*\)/, '')} ${amount.toLocaleString()}${isHourly ? '/hr' : billingType === 'Fixed RC' ? '/mo' : ''}`;
+      const formattedRate = `${currency.replace(/\s*\(.*\)/, '')} ${amount.toLocaleString()}${isHourly ? '/hr' : billingType === 'Resources Cost (Fix)' ? '/mo' : ''}`;
       const selectedPM = employees.find((e) => e.employeeId === managerId);
       const url = mode === 'edit' ? `/api/projects/${project!.id}` : '/api/projects';
       const mappedServices = availableServices.map((s) => s.name).join(', ');
       const body = JSON.stringify({
         ...(projectId.trim() && { id: projectId.trim().toUpperCase() }),
         clientId, name: name.trim(), businessLine: selectedBLs.join(', '), service: mappedServices,
-        billingType, rate: formattedRate, startDate, endDate, budgetHours: hours, status,
+        billingType, rate: formattedRate, startDate, endDate, budgetHours: hours, budgetType, status,
         managerId, managerName: selectedPM?.fullName || '', assignedEmployees
       });
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body });
@@ -123,24 +138,87 @@ export default function ProjectFormView({ mode, project, clients, employees = []
           <h3 className={sectionTitleCls}>1. Project Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
             <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Project ID *</label><input type="text" placeholder="PC0001" disabled={mode === 'edit'} value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputCls} font-mono uppercase font-semibold ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
-            <div><label className={labelCls}>Client *</label><select value={clientId} onChange={(e) => handleClientChange(e.target.value)} className={inputCls}>{clients.map((c) => (<option key={c.id} value={c.id}>{c.displayName || c.name}</option>))}</select></div>
-            <div><label className={labelCls}>Project Name *</label><input ref={inputRef} type="text" placeholder="e.g. Design System V2" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
+            <div>
+              <label className={labelCls}>Client *</label>
+              <div className="relative">
+                <select value={clientId} onChange={(e) => handleClientChange(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                  {clients.map((c) => (<option key={c.id} value={c.id}>{c.displayName || c.name}</option>))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+            <div>
+              <label className={labelCls}>Status</label>
+              <div className="relative">
+                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className={`${inputCls} appearance-none pr-8`}>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
 
+            <div><label className={labelCls}>Project Name *</label><input ref={inputRef} type="text" placeholder="e.g. Design System V2" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
             {isSA ? (
-              <div><label className="flex items-center gap-1 text-[11px] font-bold text-studio-text mb-1"><UserCheck className="w-3.5 h-3.5 text-brand-orange" /> Assign PM</label><select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={inputCls}><option value="">-- Select PM --</option>{pmEmployees.map((emp) => (<option key={emp.employeeId} value={emp.employeeId}>{emp.fullName}</option>))}</select></div>
-            ) : (
-              <div><label className={labelCls}>Status</label><select value={status} onChange={(e) => setStatus(e.target.value as any)} className={inputCls}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
-            )}
-            <div><label className={labelCls}>Billing Type</label><select value={billingType} onChange={(e) => setBillingType(e.target.value)} className={inputCls}><option value="T&M">T&M</option><option value="Fixed RC">Fixed RC</option><option value="Fixed PC">Fixed PC</option></select></div>
+              <div>
+                <label className="flex items-center gap-1 text-[11px] font-bold text-studio-text mb-1"><UserCheck className="w-3.5 h-3.5 text-brand-orange" /> Assign PM</label>
+                <div className="relative">
+                  <select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                    <option value="">-- Select PM --</option>
+                    {pmEmployees.map((emp) => (<option key={emp.employeeId} value={emp.employeeId}>{emp.fullName}</option>))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+            ) : <div />}
+            <div>
+              <label className={labelCls}>Billing Type</label>
+              <div className="relative">
+                <select value={billingType} onChange={(e) => setBillingType(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                  <option value="T&M">T&M</option>
+                  <option value="Resources Cost (Fix)">Resources Cost (Fix)</option>
+                  <option value="Project Cost (Fix)">Project Cost (Fix)</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
             <div><label className={labelCls}>{getRateLabel()}</label><input type="number" placeholder="50" value={rateAmount} onChange={(e) => setRateAmount(e.target.value)} className={inputCls} /></div>
-            <div><label className={labelCls}>Currency</label><select value={currency} onChange={(e) => setCurrency(e.target.value)} className={inputCls}>{CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}</select></div>
+            <div>
+              <label className={labelCls}>Currency</label>
+              <div className="relative">
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                  {CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
             <div><label className={labelCls}>Start Date *</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} /></div>
+
             <div><label className={labelCls}>End Date</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} /></div>
-            {isHourly ? (
-              <div><label className={labelCls}>Budget Hours *</label><input type="number" placeholder="100" value={budgetHours} onChange={(e) => setBudgetHours(e.target.value)} className={inputCls} /></div>
-            ) : isSA ? (
-              <div><label className={labelCls}>Status</label><select value={status} onChange={(e) => setStatus(e.target.value as any)} className={inputCls}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
-            ) : null}
+            {isHourly && (
+              <>
+                <div>
+                  <label className={labelCls}>Budget Type</label>
+                  <div className="relative">
+                    <select value={budgetType} onChange={(e) => setBudgetType(e.target.value as any)} className={`${inputCls} appearance-none pr-8`}>
+                      <option value="Monthly">Monthly Budget</option>
+                      <option value="Total Project">Total Project Budget</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>{budgetType === 'Total Project' ? 'Total Budget Hours *' : 'Monthly Budget Hours *'}</label>
+                  <input type="number" placeholder="100" value={budgetHours} onChange={(e) => setBudgetHours(e.target.value)} className={inputCls} />
+                  {calculateMonthBreakdown() && (
+                    <span className="text-[10.5px] font-medium text-brand-orange bg-orange-50 px-2.5 py-0.5 rounded border border-orange-200 mt-1.5 inline-block">
+                      {calculateMonthBreakdown()}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -152,10 +230,13 @@ export default function ProjectFormView({ mode, project, clients, employees = []
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
             <div>
               <label className={labelCls}>Business Lines ({selectedBLs.length})</label>
-              <select value="" onChange={(e) => { if (e.target.value && !selectedBLs.includes(e.target.value)) setSelectedBLs((p) => [...p, e.target.value]); }} className={inputCls}>
-                <option value="">+ Select Business Line...</option>
-                {blInventory.filter((bl) => !selectedBLs.includes(bl.name)).map((bl) => (<option key={bl.id} value={bl.name}>{bl.name}</option>))}
-              </select>
+              <div className="relative">
+                <select value="" onChange={(e) => { if (e.target.value && !selectedBLs.includes(e.target.value)) setSelectedBLs((p) => [...p, e.target.value]); }} className={`${inputCls} appearance-none pr-8`}>
+                  <option value="">+ Select Business Line...</option>
+                  {blInventory.filter((bl) => !selectedBLs.includes(bl.name)).map((bl) => (<option key={bl.id} value={bl.name}>{bl.name}</option>))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+              </div>
               {selectedBLs.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5 max-h-16 overflow-y-auto">
                   {selectedBLs.map((bl) => (<span key={bl} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium bg-orange-50 text-brand-orange border border-orange-200"><span>{bl}</span><button type="button" onClick={() => setSelectedBLs((p) => p.filter((x) => x !== bl))} className="hover:text-red-600 cursor-pointer"><X className="w-2.5 h-2.5" /></button></span>))}
@@ -178,7 +259,13 @@ export default function ProjectFormView({ mode, project, clients, employees = []
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
               <div>
                 <label className={labelCls}>Select Team Member ({assignedEmployees.length} assigned)</label>
-                <select value="" onChange={(e) => addEmployee(e.target.value)} className={inputCls}><option value="">+ Select Employee to Assign...</option>{unassigned.map((emp) => (<option key={emp.id} value={emp.employeeId || String(emp.id)}>{emp.fullName} ({emp.designation})</option>))}</select>
+                <div className="relative">
+                  <select value="" onChange={(e) => addEmployee(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                    <option value="">+ Select Employee to Assign...</option>
+                    {unassigned.map((emp) => (<option key={emp.id} value={emp.employeeId || String(emp.id)}>{emp.fullName} ({emp.designation})</option>))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
+                </div>
               </div>
             </div>
             {assignedEmployees.length > 0 && (

@@ -58,9 +58,10 @@ export class CompOffService {
   }
 
   static async getCompOffRequests(
-    user: { id?: string | number; employeeId: string; role: string }
+    user: { id?: string | number; employeeId: string; role: string },
+    scope: 'mine' | 'approvals' = 'mine'
   ): Promise<CompOffItem[]> {
-    if (user.role === 'Employee') {
+    if (scope === 'mine') {
       const employee = await prisma.employee.findUnique({
         where: { employeeId: user.employeeId },
         select: { compOffRequests: true, employeeId: true, fullName: true },
@@ -72,8 +73,10 @@ export class CompOffService {
       }));
     }
 
-    // PM or Super Admin sees all requests across all employees
+    if (user.role === 'Employee') return [];
+
     const employees = await prisma.employee.findMany({
+      where: { employeeId: { not: user.employeeId } },
       select: { employeeId: true, fullName: true, compOffRequests: true },
     });
 

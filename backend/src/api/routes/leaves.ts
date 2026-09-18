@@ -14,7 +14,8 @@ const leaveRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/leaves/requests', async (request, reply) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
-    const requests = await LeaveService.getLeaveRequests(request.user);
+    const scope = ((request.query as any)?.scope as 'mine' | 'approvals') || 'mine';
+    const requests = await LeaveService.getLeaveRequests(request.user, scope);
     return reply.send(requests);
   });
 
@@ -42,7 +43,8 @@ const leaveRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/leaves/compoff', async (request, reply) => {
     if (!request.user) return reply.status(401).send({ error: 'Unauthorized' });
-    const records = await CompOffService.getCompOffRequests(request.user);
+    const scope = ((request.query as any)?.scope as 'mine' | 'approvals') || 'mine';
+    const records = await CompOffService.getCompOffRequests(request.user, scope);
     return reply.send(records);
   });
 

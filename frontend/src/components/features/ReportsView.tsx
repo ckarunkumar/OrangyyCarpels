@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { BarChart3, Download, FileSpreadsheet, FileText, ArrowUpRight, Clock, Users, Building2, Layers } from 'lucide-react';
 import { UserRole } from '../ui/Layout';
 import MonthYearPicker from '../ui/MonthYearPicker';
+import { getCurrentMonthIso } from '../../utils/dateUtils';
 
 interface ReportsViewProps {
   activeRole?: UserRole;
 }
 
 export default function ReportsView({ activeRole }: ReportsViewProps) {
-  const [selectedMonth, setSelectedMonth] = useState('2026-08');
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthIso());
   const [activeTab, setActiveTab] = useState<'utilization' | 'timesheets' | 'financial' | 'projects'>('utilization');
   const [summaryData, setSummaryData] = useState<{ totalHours: number; activeProjects: number; totalRevenue: number } | null>(null);
 

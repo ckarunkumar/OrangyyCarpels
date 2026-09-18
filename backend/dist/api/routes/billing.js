@@ -8,8 +8,8 @@ async function billingRoutes(fastify) {
     fastify.get('/billing/summary', { schema: billingSchema_1.getBillingSummarySchema }, async (request, reply) => {
         try {
             const role = request.user?.role || 'Employee';
-            const fy = request.query?.fy;
-            const summary = await billingService_1.BillingService.getBillingSummary(role, fy);
+            const { fy, month, periodType, clientId } = request.query || {};
+            const summary = await billingService_1.BillingService.getBillingSummary(role, fy, month, periodType, clientId);
             return reply.send(summary);
         }
         catch (err) {

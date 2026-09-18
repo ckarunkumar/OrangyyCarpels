@@ -93,6 +93,7 @@ model Project {
   startDate         String?                @default("")
   endDate           String?                @default("")
   budgetHours       Int                    @default(0)
+  budgetType        String                 @default("Monthly") // Monthly, Total Project
   loggedHours       Int                    @default(0)
   status            String // Active, Inactive
   managerId         String?                @default("")

@@ -24,7 +24,7 @@ interface RateHistoryDrawerProps {
   onSaved: () => void;
 }
 
-const BILLING_TYPES = ['T&M', 'Fixed RC', 'Fixed PC'];
+const BILLING_TYPES = ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)'];
 const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 'AUD ($)', 'CAD ($)', 'AED (د.إ)', 'JPY (¥)', 'CHF (Fr.)'];
 
 export default function RateHistoryDrawer({

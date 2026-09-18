@@ -3,6 +3,7 @@ import { UserRole } from '../components/ui/Layout';
 
 export interface User {
   userId: number;
+  employeeId?: string;
   email: string;
   role: UserRole;
   fullName: string;

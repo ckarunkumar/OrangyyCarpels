@@ -1,26 +1,28 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BillingService = void 0;
 const prisma_1 = require("../lib/prisma");
-const DEFAULT_RATES = {
-    USD: 87.50, INR: 1.00, EUR: 94.20, GBP: 110.80, SGD: 65.40,
-    AUD: 57.30, CAD: 63.80, AED: 23.82, JPY: 0.58, CHF: 98.40,
-};
+const billingCalculator_1 = require("./billingCalculator");
+const billingSummaryService_1 = require("./billingSummaryService");
+__exportStar(require("./billingTypes"), exports);
 class BillingService {
     static getCurrentMonthYear() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    }
-    static parseRateAmount(rateStr) {
-        const num = parseFloat(rateStr.replace(/[^0-9.]/g, ''));
-        return isNaN(num) ? 0 : num;
-    }
-    static extractCurrencyCode(currStr) {
-        for (const c of ['USD', 'INR', 'EUR', 'GBP', 'SGD', 'AUD', 'CAD', 'AED', 'JPY', 'CHF']) {
-            if (currStr.includes(c))
-                return c;
-        }
-        return currStr.includes('₹') ? 'INR' : 'USD';
     }
     static async getExchangeRates() {
         const monthYear = this.getCurrentMonthYear();
@@ -36,10 +38,10 @@ class BillingService {
                 liveUsdRates = (await res.json()).rates || {};
         }
         catch { /* Fallback to defaults */ }
-        const usdToInr = liveUsdRates['INR'] || DEFAULT_RATES['USD'];
+        const usdToInr = liveUsdRates['INR'] || billingCalculator_1.DEFAULT_RATES['USD'];
         const updatedRates = [];
-        for (const curr of Object.keys(DEFAULT_RATES)) {
-            let rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : DEFAULT_RATES[curr] || 1.0);
+        for (const curr of Object.keys(billingCalculator_1.DEFAULT_RATES)) {
+            const rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : billingCalculator_1.DEFAULT_RATES[curr] || 1.0);
             const existing = await prisma_1.prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear } });
             const record = await prisma_1.prisma.exchangeRate.upsert({
                 where: { id: existing?.id || 0 },
@@ -50,81 +52,8 @@ class BillingService {
         }
         return updatedRates;
     }
-    static parseFiscalYear(fy) {
-        const match = (fy || '').match(/(\d{4})[-/](\d{2,4})/);
-        let startYear = 2026;
-        if (match)
-            startYear = parseInt(match[1], 10);
-        const endYear = startYear + 1;
-        const shortEnd = String(endYear).slice(-2);
-        return {
-            startDate: `${startYear}-04-01`,
-            endDate: `${endYear}-03-31`,
-            fyLabel: `FY ${startYear}-${shortEnd}`,
-        };
-    }
-    static async getBillingSummary(role, fy) {
-        if (role === 'Employee')
-            throw new Error('Access Denied: Employees cannot view billing financials.');
-        const { startDate: fyStart, endDate: fyEnd, fyLabel } = this.parseFiscalYear(fy);
-        const exchangeRates = await this.getExchangeRates();
-        const rateMap = new Map(exchangeRates.map((r) => [r.currency, r.rateToINR]));
-        const projects = await prisma_1.prisma.project.findMany({
-            include: {
-                client: true,
-                dailyEntries: {
-                    where: { date: { gte: fyStart, lte: fyEnd } },
-                },
-            },
-        });
-        let totalRevenueINR = 0, tmRevenueINR = 0, monthlyFixedRevenueINR = 0, projectFixedRevenueINR = 0, totalHoursLogged = 0;
-        let activeProjectsInFYCount = 0;
-        const isCurrentFY = fyLabel === 'FY 2026-27';
-        const projectSummaries = projects.map((p) => {
-            const rateVersions = Array.isArray(p.rateVersions) ? p.rateVersions : [];
-            const activeVersion = rateVersions.length > 0 ? rateVersions[0] : null;
-            const currency = activeVersion?.currency || p.currency || p.client.billingCurrency;
-            const rateToINR = rateMap.get(this.extractCurrencyCode(currency)) || DEFAULT_RATES[this.extractCurrencyCode(currency)] || 1.0;
-            const rateAmount = activeVersion ? activeVersion.rateAmount : this.parseRateAmount(p.rate);
-            const bTypeRaw = p.billingType || 'T&M';
-            const billingType = bTypeRaw === 'Hourly Rate (T&M)' ? 'T&M' :
-                bTypeRaw === 'Monthly Resource Cost (Fixed)' || bTypeRaw === 'Monthly Res Cost (Fixed)' ? 'Fixed RC' :
-                    bTypeRaw === 'Project Cost (Fixed)' ? 'Fixed PC' : bTypeRaw;
-            const entriesHours = p.dailyEntries?.reduce((sum, d) => sum + (d.hours || 0), 0) || 0;
-            const loggedHours = entriesHours > 0 ? entriesHours : (isCurrentFY ? (p.loggedHours || 0) : 0);
-            const pStart = p.startDate || '2026-04-01';
-            const pEnd = p.endDate || '2099-12-31';
-            const isProjectActiveInFY = pStart <= fyEnd && pEnd >= fyStart;
-            if (isProjectActiveInFY && p.status === 'Active')
-                activeProjectsInFYCount++;
-            totalHoursLogged += loggedHours;
-            let nativeAmountBilled = 0;
-            if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') {
-                nativeAmountBilled = loggedHours * rateAmount;
-            }
-            else if (isProjectActiveInFY) {
-                nativeAmountBilled = rateAmount;
-            }
-            const inrAmountBilled = Math.round(nativeAmountBilled * rateToINR);
-            totalRevenueINR += inrAmountBilled;
-            if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)')
-                tmRevenueINR += inrAmountBilled;
-            else if (billingType === 'Fixed RC' || billingType === 'Monthly Resource Cost (Fixed)')
-                monthlyFixedRevenueINR += inrAmountBilled;
-            else if (billingType === 'Fixed PC' || billingType === 'Project Cost (Fixed)')
-                projectFixedRevenueINR += inrAmountBilled;
-            return {
-                projectId: p.id, projectName: p.name, clientId: p.clientId, clientName: p.client.displayName || p.client.name,
-                billingType, currency, rateAmount, rateFormatted: `${currency.replace(/\s*\(.*\)/, '')} ${rateAmount.toLocaleString()}`,
-                budgetHours: p.budgetHours, loggedHours, nativeAmountBilled, exchangeRateToINR: rateToINR,
-                inrAmountBilled, status: isProjectActiveInFY ? p.status : 'Archived', effectiveStartDate: activeVersion?.effectiveStartDate || 'Initial',
-            };
-        });
-        return {
-            totalRevenueINR, tmRevenueINR, monthlyFixedRevenueINR, projectFixedRevenueINR,
-            totalHoursLogged, activeProjectsCount: activeProjectsInFYCount || (isCurrentFY ? projects.filter((p) => p.status === 'Active').length : 0),
-            exchangeRates, projects: projectSummaries, activeMonthYear: fyLabel,
-        };
+    static async getBillingSummary(role, fy, month, periodType, clientId) {
+        return billingSummaryService_1.BillingSummaryService.getSummary(role, fy, month, periodType, clientId);
     }
     static async getProjectRateVersions(projectId) {
         const project = await prisma_1.prisma.project.findUnique({

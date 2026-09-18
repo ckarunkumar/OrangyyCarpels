@@ -3,6 +3,9 @@ export const getBillingSummarySchema = {
     type: 'object',
     properties: {
       fy: { type: 'string' },
+      month: { type: 'string' },
+      periodType: { type: 'string', enum: ['yearly', 'monthly', 'Yearly', 'Monthly'] },
+      clientId: { type: 'string' },
     },
   },
   response: {
@@ -16,6 +19,9 @@ export const getBillingSummarySchema = {
         totalHoursLogged: { type: 'number' },
         activeProjectsCount: { type: 'number' },
         activeMonthYear: { type: 'string' },
+        periodType: { type: 'string' },
+        selectedMonth: { type: 'string' },
+        selectedFY: { type: 'string' },
         exchangeRates: {
           type: 'array',
           items: {
@@ -29,21 +35,44 @@ export const getBillingSummarySchema = {
             },
           },
         },
+        clients: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              clientId: { type: 'string' },
+              clientName: { type: 'string' },
+              billingMethod: { type: 'string' },
+              billingCurrency: { type: 'string' },
+              totalProjects: { type: 'number' },
+              totalRevenueINR: { type: 'number' },
+              tmRevenueINR: { type: 'number' },
+              monthlyFixedRevenueINR: { type: 'number' },
+              projectFixedRevenueINR: { type: 'number' },
+              totalHoursLogged: { type: 'number' },
+            },
+          },
+        },
         projects: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
               projectId: { type: 'string' },
+              projectCode: { type: 'string' },
               projectName: { type: 'string' },
               clientId: { type: 'string' },
               clientName: { type: 'string' },
+              startDate: { type: 'string' },
+              endDate: { type: 'string' },
               billingType: { type: 'string' },
+              billingModel: { type: 'string' },
               currency: { type: 'string' },
               rateAmount: { type: 'number' },
               rateFormatted: { type: 'string' },
               budgetHours: { type: 'number' },
               loggedHours: { type: 'number' },
+              hoursBurnedPercent: { type: 'number' },
               nativeAmountBilled: { type: 'number' },
               exchangeRateToINR: { type: 'number' },
               inrAmountBilled: { type: 'number' },
@@ -69,7 +98,7 @@ export const addRateVersionSchema = {
     type: 'object',
     required: ['billingType', 'rateAmount', 'currency', 'effectiveStartDate'],
     properties: {
-      billingType: { type: 'string', enum: ['T&M', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
+      billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
       rateAmount: { type: 'number', minimum: 0 },
       currency: { type: 'string', minLength: 1 },
       effectiveStartDate: { type: 'string', minLength: 4 },

@@ -40,6 +40,17 @@ export default function SlideToActionDrawer({
     setIsDragging(true);
   };
 
+  const triggerConfirm = () => {
+    if (submitting || isCompleted) return;
+    setIsDragging(false);
+    setIsCompleted(true);
+    if (trackRef.current) {
+      maxDrag.current = trackRef.current.clientWidth - 42;
+      setSliderPos(maxDrag.current);
+    }
+    onConfirm();
+  };
+
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
       if (!isDragging || !trackRef.current) return;
@@ -50,11 +61,8 @@ export default function SlideToActionDrawer({
       if (pos > maxDrag.current) pos = maxDrag.current;
       setSliderPos(pos);
 
-      if (maxDrag.current > 0 && pos >= maxDrag.current * 0.90) {
-        setIsDragging(false);
-        setIsCompleted(true);
-        setSliderPos(maxDrag.current);
-        onConfirm();
+      if (maxDrag.current > 0 && pos >= maxDrag.current * 0.70) {
+        triggerConfirm();
       }
     };
 
@@ -159,7 +167,7 @@ export default function SlideToActionDrawer({
         </div>
 
         <div className="shrink-0 px-4 py-3.5 border-t border-studio-border bg-studio-sidebar/30 space-y-2.5">
-          <div ref={trackRef} className="relative h-11 bg-white rounded-full p-0.5 flex items-center select-none overflow-hidden border border-studio-border shadow-2xs">
+          <div ref={trackRef} onClick={triggerConfirm} className="relative h-11 bg-white rounded-full p-0.5 flex items-center select-none overflow-hidden border border-studio-border shadow-2xs cursor-pointer">
             <div className={`absolute left-0 top-0 bottom-0 rounded-full transition-all ${config.dragGlow}`} style={{ width: `${Math.max(sliderPos + 38, 38)}px` }} />
             <span className="w-full text-center text-[11px] font-bold tracking-wide text-studio-text select-none pointer-events-none" style={{ opacity: Math.max(0.1, 1 - dragPercent / 75) }}>
               {submitting ? 'Processing...' : isCompleted ? 'Confirmed' : config.sliderText}

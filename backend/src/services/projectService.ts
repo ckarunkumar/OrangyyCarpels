@@ -11,7 +11,7 @@ export class ProjectService {
       rate: role === 'Super Admin' ? p.rate : 'RESTRICTED',
       businessLine: p.businessLine || '', service: p.service || '',
       startDate: p.startDate || '', endDate: p.endDate || '',
-      budgetHours: p.budgetHours || 0, loggedHours: p.loggedHours || 0,
+      budgetHours: p.budgetHours || 0, budgetType: (p.budgetType || 'Monthly') as any, loggedHours: p.loggedHours || 0,
       status: p.status as 'Active' | 'Inactive',
       managerId: p.managerId || '', managerName: p.managerName || '',
       assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -36,7 +36,7 @@ export class ProjectService {
     role: string, clientId: string, name: string, billingType: string, rate: string,
     budgetHours?: number, startDate?: string, endDate?: string, id?: string,
     managerId?: string, managerName?: string, assignedEmployees?: string[],
-    businessLine?: string, service?: string
+    businessLine?: string, service?: string, budgetType?: string
   ): Promise<ProjectWithClient> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can create projects.');
     const client = await prisma.client.findUnique({ where: { id: clientId } });
@@ -53,7 +53,7 @@ export class ProjectService {
     const proj = await prisma.project.create({
       data: {
         id: targetProjectId, clientId, name: cleanName, billingType, rate,
-        budgetHours: budgetHours || 0, startDate: startDate || '', endDate: endDate || '',
+        budgetHours: budgetHours || 0, budgetType: budgetType || 'Monthly', startDate: startDate || '', endDate: endDate || '',
         status: 'Active', managerId: managerId || '', managerName: managerName || '',
         assignedEmployees: assignedStr, businessLine: businessLine || '', service: service || '',
       },
@@ -64,7 +64,7 @@ export class ProjectService {
       clientCurrency: proj.client.billingCurrency, billingType: proj.billingType as any,
       rate: proj.rate, businessLine: proj.businessLine || '', service: proj.service || '',
       startDate: proj.startDate || '', endDate: proj.endDate || '',
-      budgetHours: proj.budgetHours || 0, loggedHours: proj.loggedHours || 0,
+      budgetHours: proj.budgetHours || 0, budgetType: (proj.budgetType || 'Monthly') as any, loggedHours: proj.loggedHours || 0,
       status: proj.status as 'Active' | 'Inactive',
       managerId: proj.managerId || '', managerName: proj.managerName || '',
       assignedEmployees: proj.assignedEmployees ? proj.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -104,6 +104,7 @@ export class ProjectService {
         ...(data.startDate !== undefined && { startDate: data.startDate }),
         ...(data.endDate !== undefined && { endDate: data.endDate }),
         ...(data.budgetHours !== undefined && { budgetHours: Number(data.budgetHours) || 0 }),
+        ...(data.budgetType !== undefined && { budgetType: data.budgetType }),
         ...(data.status && { status: data.status }),
         ...(data.managerId !== undefined && { managerId: data.managerId }),
         ...(data.managerName !== undefined && { managerName: data.managerName }),
@@ -117,7 +118,7 @@ export class ProjectService {
       clientCurrency: updated.client.billingCurrency, billingType: updated.billingType as any,
       rate: updated.rate, businessLine: updated.businessLine || '', service: updated.service || '',
       startDate: updated.startDate || '', endDate: updated.endDate || '',
-      budgetHours: updated.budgetHours || 0, loggedHours: updated.loggedHours || 0,
+      budgetHours: updated.budgetHours || 0, budgetType: (updated.budgetType || 'Monthly') as any, loggedHours: updated.loggedHours || 0,
       status: updated.status as 'Active' | 'Inactive',
       managerId: updated.managerId || '', managerName: updated.managerName || '',
       assignedEmployees: updated.assignedEmployees ? updated.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],

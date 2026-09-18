@@ -1,66 +1,19 @@
 import { prisma } from '../lib/prisma';
+import { BillingCalculator, DEFAULT_RATES } from './billingCalculator';
+import { BillingSummaryService } from './billingSummaryService';
+import {
+  ExchangeRateInfo,
+  BillingOverview,
+  RateVersionItem,
+  MonthlyBudgetItem,
+} from './billingTypes';
 
-export interface ExchangeRateInfo {
-  id?: number; currency: string; rateToINR: number; monthYear: string;
-  isLocked: boolean; source: string; fetchedAt: Date;
-}
-
-export interface ProjectBillingSummary {
-  projectId: string; projectName: string; clientId: string; clientName: string;
-  billingType: 'T&M' | 'Fixed RC' | 'Fixed PC' | 'Hourly Rate (T&M)' | 'Monthly Resource Cost (Fixed)' | 'Project Cost (Fixed)';
-  currency: string; rateAmount: number; rateFormatted: string; budgetHours: number;
-  loggedHours: number; nativeAmountBilled: number; exchangeRateToINR: number;
-  inrAmountBilled: number; status: string; effectiveStartDate: string;
-}
-
-export interface BillingOverview {
-  totalRevenueINR: number; tmRevenueINR: number; monthlyFixedRevenueINR: number;
-  projectFixedRevenueINR: number; totalHoursLogged: number; activeProjectsCount: number;
-  exchangeRates: ExchangeRateInfo[]; projects: ProjectBillingSummary[]; activeMonthYear: string;
-}
-
-export interface RateVersionItem {
-  id: number;
-  projectId: string;
-  billingType: string;
-  rateAmount: number;
-  currency: string;
-  effectiveStartDate: string;
-  effectiveEndDate?: string;
-  notes?: string;
-  createdAt: string;
-}
-
-export interface MonthlyBudgetItem {
-  id?: number;
-  projectId: string;
-  monthYear: string;
-  budgetHours: number;
-  isLocked: boolean;
-  updatedAt: string;
-}
-
-const DEFAULT_RATES: Record<string, number> = {
-  USD: 87.50, INR: 1.00, EUR: 94.20, GBP: 110.80, SGD: 65.40,
-  AUD: 57.30, CAD: 63.80, AED: 23.82, JPY: 0.58, CHF: 98.40,
-};
+export * from './billingTypes';
 
 export class BillingService {
   static getCurrentMonthYear(): string {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }
-
-  static parseRateAmount(rateStr: string): number {
-    const num = parseFloat(rateStr.replace(/[^0-9.]/g, ''));
-    return isNaN(num) ? 0 : num;
-  }
-
-  static extractCurrencyCode(currStr: string): string {
-    for (const c of ['USD', 'INR', 'EUR', 'GBP', 'SGD', 'AUD', 'CAD', 'AED', 'JPY', 'CHF']) {
-      if (currStr.includes(c)) return c;
-    }
-    return currStr.includes('₹') ? 'INR' : 'USD';
   }
 
   static async getExchangeRates(): Promise<ExchangeRateInfo[]> {
@@ -81,7 +34,7 @@ export class BillingService {
     const updatedRates: ExchangeRateInfo[] = [];
 
     for (const curr of Object.keys(DEFAULT_RATES)) {
-      let rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : DEFAULT_RATES[curr] || 1.0);
+      const rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : DEFAULT_RATES[curr] || 1.0);
       const existing = await prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear } });
       const record = await prisma.exchangeRate.upsert({
         where: { id: existing?.id || 0 },
@@ -93,86 +46,14 @@ export class BillingService {
     return updatedRates;
   }
 
-  static parseFiscalYear(fy?: string): { startDate: string; endDate: string; fyLabel: string } {
-    const match = (fy || '').match(/(\d{4})[-/](\d{2,4})/);
-    let startYear = 2026;
-    if (match) startYear = parseInt(match[1], 10);
-    const endYear = startYear + 1;
-    const shortEnd = String(endYear).slice(-2);
-    return {
-      startDate: `${startYear}-04-01`,
-      endDate: `${endYear}-03-31`,
-      fyLabel: `FY ${startYear}-${shortEnd}`,
-    };
-  }
-
-  static async getBillingSummary(role: string, fy?: string): Promise<BillingOverview> {
-    if (role === 'Employee') throw new Error('Access Denied: Employees cannot view billing financials.');
-    const { startDate: fyStart, endDate: fyEnd, fyLabel } = this.parseFiscalYear(fy);
-    const exchangeRates = await this.getExchangeRates();
-    const rateMap = new Map<string, number>(exchangeRates.map((r) => [r.currency, r.rateToINR]));
-
-    const projects = await prisma.project.findMany({
-      include: {
-        client: true,
-        dailyEntries: {
-          where: { date: { gte: fyStart, lte: fyEnd } },
-        },
-      },
-    });
-
-    let totalRevenueINR = 0, tmRevenueINR = 0, monthlyFixedRevenueINR = 0, projectFixedRevenueINR = 0, totalHoursLogged = 0;
-    let activeProjectsInFYCount = 0;
-    const isCurrentFY = fyLabel === 'FY 2026-27';
-
-    const projectSummaries: ProjectBillingSummary[] = projects.map((p: any) => {
-      const rateVersions: RateVersionItem[] = Array.isArray(p.rateVersions) ? p.rateVersions : [];
-      const activeVersion = rateVersions.length > 0 ? rateVersions[0] : null;
-      const currency = activeVersion?.currency || p.currency || p.client.billingCurrency;
-      const rateToINR = rateMap.get(this.extractCurrencyCode(currency)) || DEFAULT_RATES[this.extractCurrencyCode(currency)] || 1.0;
-      const rateAmount = activeVersion ? activeVersion.rateAmount : this.parseRateAmount(p.rate);
-      const bTypeRaw = p.billingType || 'T&M';
-      const billingType: ProjectBillingSummary['billingType'] =
-        bTypeRaw === 'Hourly Rate (T&M)' ? 'T&M' :
-        bTypeRaw === 'Monthly Resource Cost (Fixed)' || bTypeRaw === 'Monthly Res Cost (Fixed)' ? 'Fixed RC' :
-        bTypeRaw === 'Project Cost (Fixed)' ? 'Fixed PC' : bTypeRaw;
-
-      const entriesHours = p.dailyEntries?.reduce((sum: number, d: any) => sum + (d.hours || 0), 0) || 0;
-      const loggedHours = entriesHours > 0 ? entriesHours : (isCurrentFY ? (p.loggedHours || 0) : 0);
-
-      const pStart = p.startDate || '2026-04-01';
-      const pEnd = p.endDate || '2099-12-31';
-      const isProjectActiveInFY = pStart <= fyEnd && pEnd >= fyStart;
-      if (isProjectActiveInFY && p.status === 'Active') activeProjectsInFYCount++;
-
-      totalHoursLogged += loggedHours;
-
-      let nativeAmountBilled = 0;
-      if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') {
-        nativeAmountBilled = loggedHours * rateAmount;
-      } else if (isProjectActiveInFY) {
-        nativeAmountBilled = rateAmount;
-      }
-
-      const inrAmountBilled = Math.round(nativeAmountBilled * rateToINR);
-      totalRevenueINR += inrAmountBilled;
-      if (billingType === 'T&M' || billingType === 'Hourly Rate (T&M)') tmRevenueINR += inrAmountBilled;
-      else if (billingType === 'Fixed RC' || billingType === 'Monthly Resource Cost (Fixed)') monthlyFixedRevenueINR += inrAmountBilled;
-      else if (billingType === 'Fixed PC' || billingType === 'Project Cost (Fixed)') projectFixedRevenueINR += inrAmountBilled;
-
-      return {
-        projectId: p.id, projectName: p.name, clientId: p.clientId, clientName: p.client.displayName || p.client.name,
-        billingType, currency, rateAmount, rateFormatted: `${currency.replace(/\s*\(.*\)/, '')} ${rateAmount.toLocaleString()}`,
-        budgetHours: p.budgetHours, loggedHours, nativeAmountBilled, exchangeRateToINR: rateToINR,
-        inrAmountBilled, status: isProjectActiveInFY ? p.status : 'Archived', effectiveStartDate: activeVersion?.effectiveStartDate || 'Initial',
-      };
-    });
-
-    return {
-      totalRevenueINR, tmRevenueINR, monthlyFixedRevenueINR, projectFixedRevenueINR,
-      totalHoursLogged, activeProjectsCount: activeProjectsInFYCount || (isCurrentFY ? projects.filter((p: any) => p.status === 'Active').length : 0),
-      exchangeRates, projects: projectSummaries, activeMonthYear: fyLabel,
-    };
+  static async getBillingSummary(
+    role: string,
+    fy?: string,
+    month?: string,
+    periodType?: string,
+    clientId?: string
+  ): Promise<BillingOverview> {
+    return BillingSummaryService.getSummary(role, fy, month, periodType, clientId);
   }
 
   static async getProjectRateVersions(projectId: string): Promise<RateVersionItem[]> {
@@ -210,7 +91,6 @@ export class BillingService {
     };
 
     const finalVersions = [newVersion, ...updatedOldVersions];
-
     await prisma.project.update({
       where: { id: projectId },
       data: { rateVersions: finalVersions as any },
@@ -275,4 +155,3 @@ export class BillingService {
     return updatedEntry;
   }
 }
-

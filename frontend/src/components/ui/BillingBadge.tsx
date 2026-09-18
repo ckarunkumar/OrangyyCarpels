@@ -8,7 +8,7 @@ export default function BillingBadge({ type, className = '' }: BillingBadgeProps
   const isTM = b === 'T&M' || b.includes('Hourly');
   const isFixedPC = b === 'Fixed PC' || b.includes('Project');
 
-  const label = isTM ? 'T&M' : isFixedPC ? 'Fixed PC' : 'Fixed RC';
+  const label = isTM ? 'T&M' : isFixedPC ? 'Project Cost (Fix)' : 'Resources Cost (Fix)';
   const color = isTM
     ? 'bg-blue-50 text-blue-700 border-blue-200'
     : isFixedPC

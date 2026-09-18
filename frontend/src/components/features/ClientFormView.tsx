@@ -4,7 +4,7 @@ import { Client } from './ClientDrawer';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
 const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 'AUD ($)', 'CAD ($)', 'AED (د.إ)', 'JPY (¥)', 'CHF (Fr.)'];
-const BILLING_TYPES = ['T&M', 'Fixed RC', 'Fixed PC'] as const;
+const BILLING_TYPES = ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)'] as const;
 const DUE_TIMES = ['15 days', '30 days', '45 days', '60 days', '90 days'] as const;
 
 type FormState = {
