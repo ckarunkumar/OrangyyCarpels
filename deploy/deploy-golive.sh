@@ -119,7 +119,7 @@ pm2 save
 echo -e "\n${BLUE}[7/8] Verifying Backend Health on port $BACKEND_PORT...${NC}"
 sleep 3
 
-HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$BACKEND_PORT/api/v1/health" || true)
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$BACKEND_PORT/api/health" || true)
 if [[ "$HEALTH_STATUS" != "200" && "$HEALTH_STATUS" != "401" ]]; then
   echo -e "${RED}❌ Backend Health check failed! (HTTP Status: $HEALTH_STATUS)${NC}"
   echo -e "${YELLOW}Rollback Instructions:${NC}"
