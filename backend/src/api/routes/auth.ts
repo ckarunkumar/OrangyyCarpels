@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { AuthService } from '../../services/authService';
+import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts } from '../../utils/security';
 
 const loginSchema = {
   body: {
@@ -47,14 +48,29 @@ const updateProfileSchema = {
 };
 
 const authRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
-  // POST login user
+  // POST login user with brute-force rate limiting
   fastify.post('/auth/login', { schema: loginSchema }, async (request, reply) => {
     const { email, password, rememberMe } = request.body as { email: string; password: string; rememberMe?: boolean };
+    const clientIp = request.ip || 'unknown-ip';
+    const rateLimitKey = `${clientIp}:${email.toLowerCase().trim()}`;
+
+    // 1. Check rate limit
+    const rateStatus = checkLoginRateLimit(rateLimitKey);
+    if (!rateStatus.allowed) {
+      return reply.status(429).send({
+        error: `Too many failed login attempts. Please try again in ${rateStatus.retryAfterSeconds || 60} seconds.`,
+      });
+    }
+
     const result = await AuthService.login(email, password);
 
     if (!result.success || !result.sessionId || !result.session) {
+      recordFailedLogin(rateLimitKey);
       return reply.status(401).send({ error: result.error || 'Authentication failed.' });
     }
+
+    // Reset rate limit on successful authentication
+    resetLoginAttempts(rateLimitKey);
 
     // Set HTTP-only session cookie (15 days if rememberMe or default 15 days session)
     const maxAgeSeconds = rememberMe !== false ? (3600 * 24 * 15) : (3600 * 24 * 7);

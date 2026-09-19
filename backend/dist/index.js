@@ -48,22 +48,53 @@ const notifications_1 = __importDefault(require("./api/routes/notifications"));
 const businessLines_1 = require("./api/routes/businessLines");
 const leaves_1 = __importDefault(require("./api/routes/leaves"));
 const authService_1 = require("./services/authService");
+const security_1 = require("./utils/security");
 dotenv.config();
+const isProduction = process.env.NODE_ENV === 'production';
 const fastify = (0, fastify_1.default)({
-    logger: true,
+    logger: isProduction
+        ? { level: 'info' }
+        : true,
+    disableRequestLogging: isProduction,
 });
 const start = async () => {
     try {
-        // Enable CORS for frontend
-        await fastify.register(cors_1.default, {
-            origin: true, // Will customize this in production
-            credentials: true,
+        // 1. HTTP Security Headers Hook
+        fastify.addHook('onRequest', async (request, reply) => {
+            (0, security_1.applySecurityHeaders)(request, reply);
         });
-        // Register cookie support for session management
+        // 2. Production-hardened CORS with Whitelist
+        await fastify.register(cors_1.default, {
+            origin: (origin, cb) => {
+                if ((0, security_1.isAllowedOrigin)(origin)) {
+                    cb(null, true);
+                }
+                else {
+                    cb(new Error(`CORS blocked for unauthorized origin: ${origin}`), false);
+                }
+            },
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With', 'Accept'],
+        });
+        // 3. Register cookie support with secret
         await fastify.register(cookie_1.default, {
             secret: process.env.COOKIE_SECRET || 'super-secret-cookie-decryption-key-minimum-32-chars-long',
         });
-        // Global Authentication Session Hook
+        // 4. Global Production Error Shielding
+        fastify.setErrorHandler((error, request, reply) => {
+            fastify.log.error(error);
+            const statusCode = error.statusCode || 500;
+            if (isProduction && statusCode === 500) {
+                return reply.status(500).send({
+                    error: 'An internal server error occurred. Please try again later.',
+                });
+            }
+            return reply.status(statusCode).send({
+                error: error.message || 'Request failed.',
+            });
+        });
+        // 5. Global Authentication Session Hook
         fastify.addHook('preHandler', async (request, reply) => {
             const url = request.url.split('?')[0]; // strip query parameters
             // Allow health check and auth login routes without session

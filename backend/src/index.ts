@@ -10,6 +10,7 @@ import notificationRoutes from './api/routes/notifications';
 import { businessLineRoutes } from './api/routes/businessLines';
 import leaveRoutes from './api/routes/leaves';
 import { AuthService, UserSession } from './services/authService';
+import { isAllowedOrigin, applySecurityHeaders } from './utils/security';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -19,24 +20,58 @@ declare module 'fastify' {
 
 dotenv.config();
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const fastify = Fastify({
-  logger: true,
+  logger: isProduction
+    ? { level: 'info' }
+    : true,
+  disableRequestLogging: isProduction,
 });
 
 const start = async () => {
   try {
-    // Enable CORS for frontend
-    await fastify.register(cors, {
-      origin: true, // Will customize this in production
-      credentials: true,
+    // 1. HTTP Security Headers Hook
+    fastify.addHook('onRequest', async (request, reply) => {
+      applySecurityHeaders(request, reply);
     });
 
-    // Register cookie support for session management
+    // 2. Production-hardened CORS with Whitelist
+    await fastify.register(cors, {
+      origin: (origin, cb) => {
+        if (isAllowedOrigin(origin)) {
+          cb(null, true);
+        } else {
+          cb(new Error(`CORS blocked for unauthorized origin: ${origin}`), false);
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With', 'Accept'],
+    });
+
+    // 3. Register cookie support with secret
     await fastify.register(cookie, {
       secret: process.env.COOKIE_SECRET || 'super-secret-cookie-decryption-key-minimum-32-chars-long',
     });
 
-    // Global Authentication Session Hook
+    // 4. Global Production Error Shielding
+    fastify.setErrorHandler((error, request, reply) => {
+      fastify.log.error(error);
+      const statusCode = error.statusCode || 500;
+
+      if (isProduction && statusCode === 500) {
+        return reply.status(500).send({
+          error: 'An internal server error occurred. Please try again later.',
+        });
+      }
+
+      return reply.status(statusCode).send({
+        error: error.message || 'Request failed.',
+      });
+    });
+
+    // 5. Global Authentication Session Hook
     fastify.addHook('preHandler', async (request, reply) => {
       const url = request.url.split('?')[0]; // strip query parameters
       

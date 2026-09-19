@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const authService_1 = require("../../services/authService");
+const security_1 = require("../../utils/security");
 const loginSchema = {
     body: {
         type: 'object',
@@ -43,13 +44,25 @@ const updateProfileSchema = {
     },
 };
 const authRoutes = async (fastify) => {
-    // POST login user
+    // POST login user with brute-force rate limiting
     fastify.post('/auth/login', { schema: loginSchema }, async (request, reply) => {
         const { email, password, rememberMe } = request.body;
+        const clientIp = request.ip || 'unknown-ip';
+        const rateLimitKey = `${clientIp}:${email.toLowerCase().trim()}`;
+        // 1. Check rate limit
+        const rateStatus = (0, security_1.checkLoginRateLimit)(rateLimitKey);
+        if (!rateStatus.allowed) {
+            return reply.status(429).send({
+                error: `Too many failed login attempts. Please try again in ${rateStatus.retryAfterSeconds || 60} seconds.`,
+            });
+        }
         const result = await authService_1.AuthService.login(email, password);
         if (!result.success || !result.sessionId || !result.session) {
+            (0, security_1.recordFailedLogin)(rateLimitKey);
             return reply.status(401).send({ error: result.error || 'Authentication failed.' });
         }
+        // Reset rate limit on successful authentication
+        (0, security_1.resetLoginAttempts)(rateLimitKey);
         // Set HTTP-only session cookie (15 days if rememberMe or default 15 days session)
         const maxAgeSeconds = rememberMe !== false ? (3600 * 24 * 15) : (3600 * 24 * 7);
         reply.setCookie('sessionId', result.sessionId, {
