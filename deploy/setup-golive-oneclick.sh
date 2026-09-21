@@ -43,7 +43,13 @@ fi
 
 # 2. Setup Production Database
 echo -e "${BLUE}[1/6] Setting Up Production Database (${DB_NAME})...${NC}"
-mariadb -u root << EOF || mysql -u root << EOF
+if command -v mariadb > /dev/null 2>&1; then
+  SQL_CLI="mariadb"
+else
+  SQL_CLI="mysql"
+fi
+
+$SQL_CLI -u root << EOF
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
 ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
@@ -81,8 +87,8 @@ ALLOWED_ORIGINS="https://${DOMAIN},https://fortest.orangyy.design"
 EOF
 
 npm install --no-audit
-npx prisma generate
-npx prisma db push --accept-data-loss
+./node_modules/.bin/prisma generate
+./node_modules/.bin/prisma db push --accept-data-loss
 npm run build
 echo -e "${GREEN}✔ Backend built and database synchronized.${NC}"
 
