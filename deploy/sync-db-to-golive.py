@@ -100,7 +100,7 @@ def main():
         if command -v mysqldump > /dev/null 2>&1; then
             mysqldump {remote_db} > /var/backups/orangyycarpels/backup_pre_sync_$(date +%Y%m%d_%H%M%S).sql 2>/dev/null || true
         fi
-        mysql -u root -p'{remote_db_pass}' {remote_db} < {remote_temp_sql} 2>/dev/null || mysql {remote_db} < {remote_temp_sql}
+        mysql -u carpels_user -p'{remote_db_pass}' {remote_db} < {remote_temp_sql} 2>/dev/null || mysql {remote_db} < {remote_temp_sql}
         rm -f {remote_temp_sql}
         """
         stdin, stdout, stderr = ssh.exec_command(remote_commands)

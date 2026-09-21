@@ -17,6 +17,7 @@ NC='\033[0m'
 TARGET_DIR="/var/www/orangyycarpels"
 REPO_URL="https://github.com/ckarunkumar/OrangyyCarpels.git"
 TARGET_BRANCH="GoLive"
+DB_USER="carpels_user"
 DB_PASS="Orangyy@Carpels2026!"
 DB_NAME="orangyycarpels"
 BACKEND_PORT="5001"
@@ -42,9 +43,13 @@ fi
 
 # 2. Setup Production Database
 echo -e "${BLUE}[1/6] Setting Up Production Database (${DB_NAME})...${NC}"
-mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" 2>/dev/null || true
-mysql -u root -e "CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED BY '${DB_PASS}';" 2>/dev/null || true
-mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;" 2>/dev/null || true
+mariadb -u root << EOF || mysql -u root << EOF
+CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+ALTER USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+EOF
 echo -e "${GREEN}✔ Database ready.${NC}"
 
 # 3. Clone or Update Repository
@@ -67,7 +72,7 @@ echo -e "${GREEN}✔ Codebase ready.${NC}"
 echo -e "\n${BLUE}[3/6] Configuring Backend Environment...${NC}"
 cd "$TARGET_DIR/backend"
 cat <<EOF > .env
-DATABASE_URL="mysql://root:${DB_PASS}@localhost:3306/${DB_NAME}"
+DATABASE_URL="mysql://${DB_USER}:${DB_PASS}@localhost:3306/${DB_NAME}"
 PORT=${BACKEND_PORT}
 HOST=0.0.0.0
 NODE_ENV=production
