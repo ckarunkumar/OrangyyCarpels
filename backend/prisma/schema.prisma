@@ -59,54 +59,95 @@ model Employee {
 
 
 model Client {
-  id                 String    @id
+  id                 String       @id
   name               String
-  legalName          String?   @default("")
-  displayName        String?   @default("")
-  contactPerson      String?   @default("")
-  email              String?   @default("") // Contact Email
-  phone              String?   @default("") // Contact Phone
-  accountsPerson     String?   @default("")
-  accountsEmail      String?   @default("")
-  accountsPhone      String?   @default("")
-  address            String?   @default("") // Office Address
-  country            String?   @default("India")
-  cinNumber          String?   @default("")
-  gstNumber          String?   @default("")
-  panNumber          String?   @default("")
-  msmeNumber         String?   @default("")
-  billingCurrency    String    @default("USD ($)")
-  defaultBillingType String    @default("T&M")
-  dueTime            String    @default("30 days") // 15 days, 30 days, 45 days, 60 days, 90 days
-  status             String    @default("Active") // Active, Inactive
+  legalName          String?      @default("")
+  displayName        String?      @default("")
+  contactPerson      String?      @default("")
+  email              String?      @default("") // Contact Email
+  phone              String?      @default("") // Contact Phone
+  accountsPerson     String?      @default("")
+  accountsEmail      String?      @default("")
+  accountsPhone      String?      @default("")
+  address            String?      @default("") // Office Address
+  country            String?      @default("India")
+  cinNumber          String?      @default("")
+  gstNumber          String?      @default("")
+  panNumber          String?      @default("")
+  msmeNumber         String?      @default("")
+  billingCurrency    String       @default("USD ($)")
+  defaultBillingType String       @default("T&M")
+  dueTime            String       @default("30 days") // 15 days, 30 days, 45 days, 60 days, 90 days
+  status             String       @default("Active") // Active, Inactive
   projects           Project[]
+  clientUsers        ClientUser[]
+}
+
+model ClientUser {
+  id          String              @id
+  name        String
+  username    String              @unique
+  email       String              @unique
+  phone       String              @default("")
+  password    String              @default("") // Hashed password
+  status      String              @default("Active") // Active, Inactive
+  clientId    String
+  client      Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+  
+  projects    ClientUserProject[]
+
+  @@index([clientId])
+  @@index([email])
+  @@index([username])
+}
+
+model ClientUserProject {
+  id           Int        @id @default(autoincrement())
+  clientUserId String
+  projectId    String
+  clientId     String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+
+  clientUser   ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([clientUserId, projectId])
+  @@index([clientUserId])
+  @@index([projectId])
+  @@index([clientId])
 }
 
 model Project {
-  id                String                 @id
-  name              String
-  billingType       String // T&M, Fixed RC, Fixed PC
-  rate              String
-  currency          String                 @default("USD ($)")
-  businessLine      String?                @default("")
-  service           String?                @default("")
-  startDate         String?                @default("")
-  endDate           String?                @default("")
-  budgetHours       Int                    @default(0)
-  budgetType        String                 @default("Monthly") // Monthly, Total Project
-  loggedHours       Int                    @default(0)
-  status            String // Active, Inactive
-  managerId         String?                @default("")
-  managerName       String?                @default("")
-  assignedEmployees String?                @default("")
-  clientId          String
-  client            Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id                      String                 @id
+  name                    String
+  billingType             String // T&M, Fixed RC, Fixed PC
+  rate                    String
+  currency                String                 @default("USD ($)")
+  businessLine            String?                @default("")
+  service                 String?                @default("")
+  startDate               String?                @default("")
+  endDate                 String?                @default("")
+  budgetHours             Int                    @default(0)
+  budgetType              String                 @default("Monthly") // Monthly, Total Project
+  loggedHours             Int                    @default(0)
+  status                  String // Active, Inactive
+  managerId               String?                @default("")
+  managerName             String?                @default("")
+  assignedEmployees       String?                @default("")
+  clientContactPersonId   String?                @default("")
+  clientContactPersonName String?                @default("")
+  clientId                String
+  client                  Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
   
   // Merged Monthly Budgets & Rate Versions
-  monthlyBudgets    Json?                  // Array of { monthYear: string, budgetHours: number, isLocked: boolean, updatedAt: string }
-  rateVersions      Json?                  // Array of { id: number, billingType: string, rateAmount: number, currency: string, effectiveStartDate: string, effectiveEndDate: string, notes: string, createdAt: string }
+  monthlyBudgets          Json?                  // Array of { monthYear: string, budgetHours: number, isLocked: boolean, updatedAt: string }
+  rateVersions            Json?                  // Array of { id: number, billingType: string, rateAmount: number, currency: string, effectiveStartDate: string, effectiveEndDate: string, notes: string, createdAt: string }
 
-  dailyEntries      DailyTimesheetEntry[]
+  dailyEntries            DailyTimesheetEntry[]
+  clientUsers             ClientUserProject[]
 }
 
 model BusinessLine {

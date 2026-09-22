@@ -9,10 +9,12 @@ import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';
 import ClientProjectsView from './ClientProjectsView';
 import ClientTableRow from './ClientTableRow';
+import ClientUsersListView from './ClientUsersListView';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
 export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<'clients' | 'client-users'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [activeClientForProjects, setActiveClientForProjects] = useState<Client | null>(null);
@@ -96,23 +98,13 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
 
   if (activeClientForProjects) {
     return (
-      <ClientProjectsView
-        client={activeClientForProjects}
-        activeRole={activeRole}
-        allClients={clients}
-        onBack={handleBackFromProjects}
-      />
+      <ClientProjectsView client={activeClientForProjects} activeRole={activeRole} allClients={clients} onBack={handleBackFromProjects} />
     );
   }
 
   if (viewMode === 'form') {
     return (
-      <ClientFormView
-        mode={formMode}
-        client={formMode === 'edit' ? targetClient : null}
-        onBack={() => setViewMode('list')}
-        onSaved={handleSaved}
-      />
+      <ClientFormView mode={formMode} client={formMode === 'edit' ? targetClient : null} onBack={() => setViewMode('list')} onSaved={handleSaved} />
     );
   }
 
@@ -129,46 +121,71 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
           </div>
         )}
 
-        <Breadcrumbs items={[{ label: 'Clientele' }]} />
-        <div className="flex justify-between items-center border-b border-studio-border pb-3">
-          <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">Clientele</h2><p className="text-[12px] text-studio-muted">Manage studio client accounts, contact details, billing currencies, and linked projects</p></div>
-          {isAdmin && (
-            <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer">
-              <Plus className="w-4 h-4" /> Add Client
-            </button>
-          )}
+        <Breadcrumbs items={[{ label: 'Client Management' }, { label: tab === 'clients' ? 'Clients' : 'Client Users' }]} />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Client Management</h2>
+            <p className="text-[12px] text-studio-muted">Manage studio client accounts, external client users, contact details, and linked projects</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex p-0.5 rounded-lg bg-studio-sidebar border border-studio-border">
+              <button
+                type="button"
+                onClick={() => setTab('clients')}
+                className={`px-3 py-1.5 text-[12px] rounded-md transition-colors cursor-pointer ${tab === 'clients' ? 'bg-white text-brand-orange shadow-2xs font-bold' : 'text-studio-muted hover:text-studio-text font-medium'}`}
+              >
+                Clients ({clients.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('client-users')}
+                className={`px-3 py-1.5 text-[12px] rounded-md transition-colors cursor-pointer ${tab === 'client-users' ? 'bg-white text-brand-orange shadow-2xs font-bold' : 'text-studio-muted hover:text-studio-text font-medium'}`}
+              >
+                Client Users
+              </button>
+            </div>
+            {tab === 'clients' && isAdmin && (
+              <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer shrink-0">
+                <Plus className="w-4 h-4" /> Add Client
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded text-[13px] font-semibold">{error}</div>}
 
-        <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-          <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-            <div className="col-span-2">Client ID</div>
-            <div className="col-span-3">Company Name</div>
-            <div className="col-span-2">Contact Details</div>
-            <div className="col-span-2">Billing Currency</div>
-            <div className="col-span-2">Projects</div>
-            <div className="col-span-1 text-right">Status</div>
-          </div>
+        {tab === 'client-users' ? (
+          <ClientUsersListView clients={clients} isAdmin={isAdmin} />
+        ) : (
+          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+            <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
+              <div className="col-span-2">Client ID</div>
+              <div className="col-span-3">Company Name</div>
+              <div className="col-span-2">Contact Details</div>
+              <div className="col-span-2">Billing Currency</div>
+              <div className="col-span-2">Projects</div>
+              <div className="col-span-1 text-right">Status</div>
+            </div>
 
-          <div className="divide-y divide-studio-border bg-white">
-            {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />) : clients.length === 0 ? (
-              <div className="text-center py-8 text-[12px] text-studio-muted">No clients registered.</div>
-            ) : (
-              clients.map((client) => (
-                <ClientTableRow
-                  key={client.id}
-                  client={client}
-                  isAdmin={isAdmin}
-                  onSelectRow={handleSelectClientProjects}
-                  onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
-                  onOpenProjectsDrawer={handleOpenProjectsDrawer}
-                  onOpenEdit={handleOpenEdit}
-                />
-              ))
-            )}
+            <div className="divide-y divide-studio-border bg-white">
+              {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />) : clients.length === 0 ? (
+                <div className="text-center py-8 text-[12px] text-studio-muted">No clients registered.</div>
+              ) : (
+                clients.map((client) => (
+                  <ClientTableRow
+                    key={client.id}
+                    client={client}
+                    isAdmin={isAdmin}
+                    onSelectRow={handleSelectClientProjects}
+                    onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
+                    onOpenProjectsDrawer={handleOpenProjectsDrawer}
+                    onOpenEdit={handleOpenEdit}
+                  />
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );

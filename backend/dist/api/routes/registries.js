@@ -102,8 +102,9 @@ const registryRoutes = async (fastify) => {
     fastify.get('/projects', { schema: registrySchema_1.getRegistrySchema }, async (request, reply) => {
         const role = request.user.role;
         const { clientId } = request.query;
+        const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
         try {
-            const projects = await registryService_1.RegistryService.getAllProjects(role, clientId);
+            const projects = await registryService_1.RegistryService.getAllProjects(role, targetClient, request.user?.userId);
             return projects;
         }
         catch (err) {
@@ -114,8 +115,9 @@ const registryRoutes = async (fastify) => {
     fastify.get('/clients/:clientId/projects', async (request, reply) => {
         const role = request.user.role;
         const { clientId } = request.params;
+        const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
         try {
-            const projects = await registryService_1.RegistryService.getAllProjects(role, clientId);
+            const projects = await registryService_1.RegistryService.getAllProjects(role, targetClient, request.user?.userId);
             return projects;
         }
         catch (err) {
@@ -134,10 +136,10 @@ const registryRoutes = async (fastify) => {
     });
     // POST create project under client
     fastify.post('/projects', { schema: registrySchema_1.createProjectSchema }, async (request, reply) => {
-        const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service, monthlyBudgets } = request.body;
+        const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service, monthlyBudgets, clientContactPersonId, clientContactPersonName } = request.body;
         const role = request.user.role;
         try {
-            const newProj = await registryService_1.RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets);
+            const newProj = await registryService_1.RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets, clientContactPersonId, clientContactPersonName);
             return newProj;
         }
         catch (err) {

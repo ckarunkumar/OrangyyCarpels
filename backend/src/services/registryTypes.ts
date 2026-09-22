@@ -19,6 +19,7 @@ export interface ProjectDetail {
   rate: string; businessLine?: string; service?: string; startDate?: string; endDate?: string;
   budgetHours: number; budgetType?: 'Monthly' | 'Total Project'; loggedHours: number; status: 'Active' | 'Inactive';
   managerId?: string; managerName?: string; assignedEmployees?: string[];
+  clientContactPersonId?: string; clientContactPersonName?: string;
   monthlyBudgets?: Array<{ monthYear: string; budgetHours: number; isLocked?: boolean }>;
 }
 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, UserCheck, X, ChevronDown } from 'lucide-react';
-import { Project, Client, Employee } from '../../types/registry';
+import { ArrowLeft } from 'lucide-react';
+import { Project, Client, Employee, ClientUser } from '../../types/registry';
 import { UserRole } from '../ui/Layout';
 import Breadcrumbs from '../ui/Breadcrumbs';
-import ProjectMonthlyBudgetAllocator, { computeMonthlyBreakdown } from './ProjectMonthlyBudgetAllocator';
-
-const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 'AUD ($)', 'CAD ($)', 'AED (د.إ)', 'JPY (¥)', 'CHF (Fr.)'];
+import { computeMonthlyBreakdown } from './ProjectMonthlyBudgetAllocator';
+import ProjectFormInfoSection from './ProjectFormInfoSection';
+import ProjectFormBLSection from './ProjectFormBLSection';
 
 interface ProjectFormViewProps {
   mode: 'add' | 'edit'; project: Project | null; clients: Client[]; employees?: Employee[];
@@ -16,6 +16,8 @@ interface ProjectFormViewProps {
 export default function ProjectFormView({ mode, project, clients, employees = [], activeRole, defaultClientId, clientContextName, onBack, onSaved }: ProjectFormViewProps) {
   const isSA = activeRole === 'Super Admin';
   const [projectId, setProjectId] = useState(''); const [name, setName] = useState(''); const [clientId, setClientId] = useState('');
+  const [clientUsers, setClientUsers] = useState<ClientUser[]>([]);
+  const [clientContactPersonId, setClientContactPersonId] = useState('');
   const [selectedBLs, setSelectedBLs] = useState<string[]>([]);
   const [blInventory, setBlInventory] = useState<Array<{ id: number; name: string; services: Array<{ id: number; name: string }> }>>([]);
   const [billingType, setBillingType] = useState<string>('T&M'); const [rateAmount, setRateAmount] = useState('50');
@@ -31,34 +33,38 @@ export default function ProjectFormView({ mode, project, clients, employees = []
   const normalizeBType = (bt?: string) => (!bt || bt === 'Hourly Rate (T&M)' || bt === 'T&M') ? 'T&M' : (bt?.includes('Monthly') || bt?.includes('RC') || bt?.includes('Resources')) ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
   useEffect(() => { fetch('/api/settings/business-lines').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setBlInventory(d); }).catch(() => {}); }, []);
 
+  const fetchClientUsers = (cId: string) => {
+    if (!cId) { setClientUsers([]); return; }
+    fetch(`/api/clients/${cId}/client-users`)
+      .then((r) => r.json())
+      .then((d) => { if (Array.isArray(d)) setClientUsers(d); })
+      .catch(() => setClientUsers([]));
+  };
+
   useEffect(() => {
     setError(null);
     if (mode === 'edit' && project) {
       setProjectId(project.id); setName(project.name); setClientId(project.clientId);
+      setClientContactPersonId(project.clientContactPersonId || '');
+      fetchClientUsers(project.clientId);
       setSelectedBLs(project.businessLine ? project.businessLine.split(',').map((s) => s.trim()).filter(Boolean) : []);
       setBillingType(normalizeBType(project.billingType));
       const parsed = parseFloat(project.rate.replace(/[^0-9.]/g, ''));
       setRateAmount(isNaN(parsed) ? '50' : String(parsed)); setCurrency(project.currency || project.clientCurrency || 'USD ($)');
       setStartDate(project.startDate || new Date().toISOString().split('T')[0]); setEndDate(project.endDate || ''); setBudgetHours(String(project.budgetHours || 100));
       setBudgetType(project.budgetType || 'Monthly');
-      if (Array.isArray(project.monthlyBudgets) && project.monthlyBudgets.length > 0) {
-        setAllocatedHoursList(project.monthlyBudgets.map((b) => Number(b.budgetHours) || 0));
-      } else {
-        setAllocatedHoursList([]);
-      }
+      setAllocatedHoursList(Array.isArray(project.monthlyBudgets) ? project.monthlyBudgets.map((b) => Number(b.budgetHours) || 0) : []);
       setStatus(project.status); setManagerId(project.managerId || ''); setAssignedEmployees(project.assignedEmployees || []);
     } else {
       const initC = (defaultClientId && clients.find((c) => c.id === defaultClientId)) || clients[0];
       const targetCId = defaultClientId || initC?.id || '';
-      setProjectId(''); setName(''); setClientId(targetCId); setSelectedBLs([]);
+      setProjectId(''); setName(''); setClientId(targetCId); setSelectedBLs([]); setClientContactPersonId('');
+      fetchClientUsers(targetCId);
       setBillingType(normalizeBType(initC?.defaultBillingType)); setRateAmount('50'); setCurrency(initC?.billingCurrency || 'USD ($)');
       setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setBudgetType('Monthly'); setAllocatedHoursList([]); setStatus('Active');
       const defaultPM = employees.find((e) => e.role === 'Project Manager' || e.role === 'Super Admin');
       setManagerId(defaultPM?.employeeId || ''); setAssignedEmployees([]);
-      fetch('/api/projects/next-id')
-        .then((res) => res.json())
-        .then((d) => { if (d.nextId) setProjectId(d.nextId); })
-        .catch(() => setProjectId('PC0001'));
+      fetch('/api/projects/next-id').then((res) => res.json()).then((d) => { if (d.nextId) setProjectId(d.nextId); }).catch(() => setProjectId('PC0001'));
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [mode, project, clients, employees, defaultClientId]);
@@ -68,19 +74,11 @@ export default function ProjectFormView({ mode, project, clients, employees = []
     const total = Number(newVal) || 0;
     if (budgetType === 'Total Project') {
       setAllocatedHoursList((prev) => {
-        let currentSum = 0;
-        const valid: number[] = [];
+        let currentSum = 0; const valid: number[] = [];
         for (const h of prev) {
-          if (currentSum + h <= total) {
-            valid.push(h);
-            currentSum += h;
-          } else if (total - currentSum > 0) {
-            valid.push(total - currentSum);
-            currentSum = total;
-            break;
-          } else {
-            break;
-          }
+          if (currentSum + h <= total) { valid.push(h); currentSum += h; }
+          else if (total - currentSum > 0) { valid.push(total - currentSum); currentSum = total; break; }
+          else break;
         }
         return valid;
       });
@@ -89,6 +87,8 @@ export default function ProjectFormView({ mode, project, clients, employees = []
 
   const handleClientChange = (newId: string) => {
     setClientId(newId);
+    setClientContactPersonId('');
+    fetchClientUsers(newId);
     if (mode === 'add') {
       const sel = clients.find((c) => c.id === newId);
       if (sel?.defaultBillingType) setBillingType(normalizeBType(sel.defaultBillingType));
@@ -112,23 +112,22 @@ export default function ProjectFormView({ mode, project, clients, employees = []
     if (isNaN(amount) || amount < 0) { setError('Please enter a valid rate amount.'); return; }
     let hours = isHourly ? Number(budgetHours) : 0;
     if (isHourly && (!hours || hours <= 0)) { setError('Budget hours must be positive.'); return; }
-
-    const monthlyBudgets = (isHourly && budgetType === 'Total Project')
-      ? computeMonthlyBreakdown(startDate, allocatedHoursList).map((m) => ({ monthYear: m.monthYear, budgetHours: m.hours }))
-      : undefined;
+    const monthlyBudgets = (isHourly && budgetType === 'Total Project') ? computeMonthlyBreakdown(startDate, allocatedHoursList).map((m) => ({ monthYear: m.monthYear, budgetHours: m.hours })) : undefined;
 
     setSaving(true); setError(null);
     try {
       const formattedRate = `${currency.replace(/\s*\(.*\)/, '')} ${amount.toLocaleString()}${isHourly ? '/hr' : billingType === 'Resources Cost (Fix)' ? '/mo' : ''}`;
       const selectedPM = employees.find((e) => e.employeeId === managerId);
+      const selectedCU = clientUsers.find((cu) => cu.id === clientContactPersonId);
       const url = mode === 'edit' ? `/api/projects/${project!.id}` : '/api/projects';
-      const mappedServices = availableServices.map((s) => s.name).join(', ');
       const body = JSON.stringify({
         ...(projectId.trim() && { id: projectId.trim().toUpperCase() }),
-        clientId, name: name.trim(), businessLine: selectedBLs.join(', '), service: mappedServices,
+        clientId, name: name.trim(), businessLine: selectedBLs.join(', '), service: availableServices.map((s) => s.name).join(', '),
         billingType, rate: formattedRate, startDate, endDate, budgetHours: hours, budgetType, status,
-        managerId, managerName: selectedPM?.fullName || '', assignedEmployees,
-        monthlyBudgets: monthlyBudgets || []
+        managerId, managerName: selectedPM?.fullName || '',
+        clientContactPersonId: clientContactPersonId || null,
+        clientContactPersonName: selectedCU?.name || '',
+        assignedEmployees, monthlyBudgets: monthlyBudgets || []
       });
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body });
       const data = await res.json();
@@ -136,10 +135,6 @@ export default function ProjectFormView({ mode, project, clients, employees = []
       onSaved(mode === 'edit' ? `Project ${name} updated successfully.` : `Project ${name} created successfully.`);
     } catch (err: any) { setError(err.message); } finally { setSaving(false); }
   };
-
-  const inputCls = "w-full px-3 py-2 border border-studio-border hover:border-studio-muted/60 rounded-md text-[12.5px] text-studio-text bg-white focus:outline-none focus:border-brand-orange transition-colors";
-  const labelCls = "block text-[11px] font-medium text-studio-muted mb-1";
-  const sectionTitleCls = "text-[13px] font-bold text-studio-text uppercase tracking-wider pb-1.5 border-b border-studio-border/70";
 
   return (
     <div className="w-full space-y-5 animate-in fade-in duration-200">
@@ -157,154 +152,19 @@ export default function ProjectFormView({ mode, project, clients, employees = []
       {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[12px] font-medium">{error}</div>}
 
       <form id="project-full-form" onSubmit={handleSubmit} className="bg-white border border-studio-border rounded-lg shadow-sm p-6 space-y-7">
-        {/* 1. Project Information */}
-        <div className="space-y-3">
-          <h3 className={sectionTitleCls}>1. Project Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-            <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Project ID *</label><input type="text" placeholder="PC0001" disabled={mode === 'edit'} value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputCls} font-mono uppercase font-semibold ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
-            <div>
-              <label className={labelCls}>Client * {defaultClientId && <span className="text-[10px] text-brand-orange font-semibold ml-1">(Current Client)</span>}</label>
-              <div className="relative">
-                <select value={clientId} disabled={!!defaultClientId} onChange={(e) => handleClientChange(e.target.value)} className={`${inputCls} appearance-none pr-8 ${defaultClientId ? 'bg-studio-sidebar/70 opacity-90 cursor-not-allowed' : ''}`}>
-                  {clients.map((c) => (<option key={c.id} value={c.id}>{c.displayName || c.name}</option>))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-            <div>
-              <label className={labelCls}>Status</label>
-              <div className="relative">
-                <select value={status} onChange={(e) => setStatus(e.target.value as any)} className={`${inputCls} appearance-none pr-8`}>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <div><label className={labelCls}>Project Name *</label><input ref={inputRef} type="text" placeholder="e.g. Design System V2" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} /></div>
-            {isSA ? (
-              <div>
-                <label className="flex items-center gap-1 text-[11px] font-bold text-studio-text mb-1"><UserCheck className="w-3.5 h-3.5 text-brand-orange" /> Assign PM</label>
-                <div className="relative">
-                  <select value={managerId} onChange={(e) => setManagerId(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
-                    <option value="">-- Select PM --</option>
-                    {pmEmployees.map((emp) => (<option key={emp.employeeId} value={emp.employeeId}>{emp.fullName}</option>))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
-            ) : <div />}
-            <div>
-              <label className={labelCls}>Billing Type</label>
-              <div className="relative">
-                <select value={billingType} onChange={(e) => setBillingType(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
-                  <option value="T&M">T&M</option>
-                  <option value="Resources Cost (Fix)">Resources Cost (Fix)</option>
-                  <option value="Project Cost (Fix)">Project Cost (Fix)</option>
-                </select>
-                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-
-            <div><label className={labelCls}>{getRateLabel()}</label><input type="number" placeholder="50" value={rateAmount} onChange={(e) => setRateAmount(e.target.value)} className={inputCls} /></div>
-            <div>
-              <label className={labelCls}>Currency</label>
-              <div className="relative">
-                <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
-                  {CURRENCIES.map((c) => (<option key={c} value={c}>{c}</option>))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-            </div>
-            <div><label className={labelCls}>Start Date *</label><input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} /></div>
-
-            <div><label className={labelCls}>End Date</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} /></div>
-            {isHourly && (
-              <>
-                <div>
-                  <label className={labelCls}>Budget Type</label>
-                  <div className="relative">
-                    <select value={budgetType} onChange={(e) => setBudgetType(e.target.value as any)} className={`${inputCls} appearance-none pr-8`}>
-                      <option value="Monthly">Monthly Budget</option>
-                      <option value="Total Project">Total Project Budget</option>
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelCls}>{budgetType === 'Total Project' ? 'Total Project Budget Hours *' : 'Monthly Budget Hours *'}</label>
-                  <input type="number" placeholder="100" value={budgetHours} onChange={(e) => handleBudgetHoursChange(e.target.value)} className={inputCls} />
-                </div>
-                {budgetType === 'Total Project' && (
-                  <ProjectMonthlyBudgetAllocator
-                    startDate={startDate}
-                    totalBudgetHours={Number(budgetHours) || 0}
-                    allocatedHoursList={allocatedHoursList}
-                    onChange={setAllocatedHoursList}
-                  />
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 2. BL & Resource */}
-        <div className="space-y-4">
-          <h3 className={sectionTitleCls}>2. BL & Resource</h3>
-          
-          {/* Line 1: Business Lines & Mapped Services */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-            <div>
-              <label className={labelCls}>Business Lines ({selectedBLs.length})</label>
-              <div className="relative">
-                <select value="" onChange={(e) => { if (e.target.value && !selectedBLs.includes(e.target.value)) setSelectedBLs((p) => [...p, e.target.value]); }} className={`${inputCls} appearance-none pr-8`}>
-                  <option value="">+ Select Business Line...</option>
-                  {blInventory.filter((bl) => !selectedBLs.includes(bl.name)).map((bl) => (<option key={bl.id} value={bl.name}>{bl.name}</option>))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-              </div>
-              {selectedBLs.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1.5 max-h-16 overflow-y-auto">
-                  {selectedBLs.map((bl) => (<span key={bl} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-medium bg-orange-50 text-brand-orange border border-orange-200"><span>{bl}</span><button type="button" onClick={() => setSelectedBLs((p) => p.filter((x) => x !== bl))} className="hover:text-red-600 cursor-pointer"><X className="w-2.5 h-2.5" /></button></span>))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className={labelCls}>Mapped Services ({availableServices.length})</label>
-              <div className="p-2 border border-studio-border/70 rounded-md bg-studio-sidebar/30 min-h-[38px] max-h-24 overflow-y-auto flex flex-wrap gap-1">
-                {availableServices.length > 0 ? (
-                  availableServices.map((svc) => (<span key={svc.id} className="inline-flex items-center px-2.5 py-0.5 rounded text-[10.5px] font-medium bg-blue-50 text-blue-700 border border-blue-200">{svc.name}</span>))
-                ) : (<span className="text-[11.5px] text-studio-muted italic p-0.5">Select Business Line to auto-map services</span>)}
-              </div>
-            </div>
-          </div>
-
-          {/* Line 2: Select Team Member & Assigned Members */}
-          <div className="space-y-3 pt-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-              <div>
-                <label className={labelCls}>Select Team Member ({assignedEmployees.length} assigned)</label>
-                <div className="relative">
-                  <select value="" onChange={(e) => addEmployee(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
-                    <option value="">+ Select Employee to Assign...</option>
-                    {unassigned.map((emp) => (<option key={emp.id} value={emp.employeeId || String(emp.id)}>{emp.fullName} ({emp.designation})</option>))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
-            </div>
-            {assignedEmployees.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 p-3 bg-studio-sidebar/40 border border-studio-border rounded-lg">
-                {assignedEmployees.map((empCode) => {
-                  const emp = staffEmployees.find((e) => (e.employeeId || String(e.id)) === empCode);
-                  return (<span key={empCode} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11.5px] font-medium bg-orange-50 text-brand-orange border border-brand-orange/30 shadow-2xs"><span>{emp ? emp.fullName : empCode}</span><button type="button" onClick={() => removeEmployee(empCode)} className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-brand-orange/20 cursor-pointer"><X className="w-3 h-3" /></button></span>);
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+        <ProjectFormInfoSection
+          mode={mode} projectId={projectId} setProjectId={setProjectId} name={name} setName={setName} clientId={clientId} handleClientChange={handleClientChange}
+          clients={clients} defaultClientId={defaultClientId} status={status} setStatus={setStatus} isSA={isSA} managerId={managerId} setManagerId={setManagerId} pmEmployees={pmEmployees}
+          clientUsers={clientUsers} clientContactPersonId={clientContactPersonId} setClientContactPersonId={setClientContactPersonId}
+          billingType={billingType} setBillingType={setBillingType} rateAmount={rateAmount} setRateAmount={setRateAmount} getRateLabel={getRateLabel}
+          currency={currency} setCurrency={setCurrency} startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}
+          isHourly={isHourly} budgetType={budgetType} setBudgetType={setBudgetType} budgetHours={budgetHours} handleBudgetHoursChange={handleBudgetHoursChange}
+          allocatedHoursList={allocatedHoursList} setAllocatedHoursList={setAllocatedHoursList} inputRef={inputRef}
+        />
+        <ProjectFormBLSection
+          selectedBLs={selectedBLs} setSelectedBLs={setSelectedBLs} blInventory={blInventory} availableServices={availableServices}
+          assignedEmployees={assignedEmployees} addEmployee={addEmployee} removeEmployee={removeEmployee} unassigned={unassigned} staffEmployees={staffEmployees}
+        />
       </form>
     </div>
   );

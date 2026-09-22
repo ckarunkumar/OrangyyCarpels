@@ -5,7 +5,7 @@ import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Set
 import UserProfileDrawer from './UserProfileDrawer';
 import NotificationDrawer, { NotificationItem } from './NotificationDrawer';
 
-export type UserRole = 'Super Admin' | 'Project Manager' | 'Employee';
+export type UserRole = 'Super Admin' | 'Project Manager' | 'Employee' | 'Client';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const navItems = [
-    { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Super Admin', 'Project Manager', 'Employee'] },
+    { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Super Admin', 'Project Manager', 'Employee', 'Client'] },
     { label: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Team', path: '/employees', icon: Users, roles: ['Super Admin', 'Project Manager'] },
     { label: 'Clientele', path: '/clients', icon: Building2, roles: ['Super Admin', 'Project Manager'] },

@@ -3,10 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectService = void 0;
 const prisma_1 = require("../lib/prisma");
 class ProjectService {
-    static async getAllProjects(role, clientId) {
+    static async getAllProjects(role, clientId, userId) {
         if (role === 'Employee')
             throw new Error('Access Denied: Employees cannot view all projects.');
-        const where = clientId ? { clientId } : {};
+        let where = clientId ? { clientId } : {};
+        if (role === 'Client') {
+            if (!userId || !clientId)
+                throw new Error('Access Denied: Unauthenticated client user.');
+            where = {
+                clientId,
+                OR: [
+                    { clientContactPersonId: userId },
+                    { clientUsers: { some: { clientUserId: userId } } },
+                ],
+            };
+        }
         const projects = await prisma_1.prisma.project.findMany({ where, include: { client: true } });
         return projects.map((p) => ({
             id: p.id, name: p.name, clientId: p.clientId, clientName: p.client.name,
@@ -18,6 +29,8 @@ class ProjectService {
             status: p.status,
             managerId: p.managerId || '', managerName: p.managerName || '',
             assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            clientContactPersonId: p.clientContactPersonId || '',
+            clientContactPersonName: p.clientContactPersonName || '',
             monthlyBudgets: Array.isArray(p.monthlyBudgets) ? p.monthlyBudgets : [],
         }));
     }
@@ -32,40 +45,44 @@ class ProjectService {
                     maxNum = num;
             }
         }
-        const nextNum = maxNum + 1;
-        return `PC${String(nextNum).padStart(4, '0')}`;
+        return `PC${String(maxNum + 1).padStart(4, '0')}`;
     }
-    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets) {
+    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets, clientContactPersonId, clientContactPersonName) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can create projects.');
         const client = await prisma_1.prisma.client.findUnique({ where: { id: clientId } });
         if (!client)
             throw new Error(`Client with ID ${clientId} not found.`);
-        let targetProjectId = id?.trim().toUpperCase();
-        if (!targetProjectId) {
-            targetProjectId = await ProjectService.getNextProjectId();
-        }
-        const cleanName = name.trim();
+        const targetProjectId = (id?.trim().toUpperCase()) || (await ProjectService.getNextProjectId());
         if (await prisma_1.prisma.project.findUnique({ where: { id: targetProjectId } })) {
-            throw new Error(`Project ID "${targetProjectId}" already exists. Please enter a unique ID.`);
+            throw new Error(`Project ID "${targetProjectId}" already exists.`);
+        }
+        let contactPersonName = clientContactPersonName || '';
+        if (clientContactPersonId) {
+            const cu = await prisma_1.prisma.clientUser.findUnique({ where: { id: clientContactPersonId } });
+            if (!cu || cu.clientId !== clientId)
+                throw new Error(`Selected contact user does not belong to Client "${clientId}".`);
+            contactPersonName = cu.name;
         }
         const totalHours = Number(budgetHours) || 0;
-        if (budgetType === 'Total Project' && Array.isArray(monthlyBudgets)) {
-            const sumAllocated = monthlyBudgets.reduce((acc, b) => acc + (Number(b.budgetHours) || 0), 0);
-            if (sumAllocated > totalHours) {
-                throw new Error(`The sum of monthly allocations (${sumAllocated}h) cannot exceed the Total Project Budget Hours (${totalHours}h).`);
-            }
-        }
         const assignedStr = Array.isArray(assignedEmployees) ? assignedEmployees.join(', ') : '';
         const proj = await prisma_1.prisma.project.create({
             data: {
-                id: targetProjectId, clientId, name: cleanName, billingType, rate,
+                id: targetProjectId, clientId, name: name.trim(), billingType, rate,
                 budgetHours: totalHours, budgetType: budgetType || 'Monthly', startDate: startDate || '', endDate: endDate || '',
                 status: 'Active', managerId: managerId || '', managerName: managerName || '',
                 assignedEmployees: assignedStr, businessLine: businessLine || '', service: service || '',
+                clientContactPersonId: clientContactPersonId || '', clientContactPersonName: contactPersonName,
                 monthlyBudgets: Array.isArray(monthlyBudgets) ? monthlyBudgets : undefined,
             },
         });
+        if (clientContactPersonId) {
+            await prisma_1.prisma.clientUserProject.upsert({
+                where: { clientUserId_projectId: { clientUserId: clientContactPersonId, projectId: targetProjectId } },
+                update: { clientId },
+                create: { clientUserId: clientContactPersonId, projectId: targetProjectId, clientId },
+            });
+        }
         return {
             id: proj.id, name: proj.name, clientId: proj.clientId, clientName: client.name,
             clientCurrency: client.billingCurrency, billingType: proj.billingType,
@@ -75,6 +92,7 @@ class ProjectService {
             status: proj.status,
             managerId: proj.managerId || '', managerName: proj.managerName || '',
             assignedEmployees: proj.assignedEmployees ? proj.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            clientContactPersonId: proj.clientContactPersonId || '', clientContactPersonName: proj.clientContactPersonName || '',
             monthlyBudgets: Array.isArray(proj.monthlyBudgets) ? proj.monthlyBudgets : [],
         };
     }
@@ -84,29 +102,13 @@ class ProjectService {
         const existing = await prisma_1.prisma.project.findUnique({ where: { id }, include: { client: true } });
         if (!existing)
             throw new Error(`Project with ID ${id} not found.`);
-        let rateVersionsList = Array.isArray(existing.rateVersions) ? [...existing.rateVersions] : [];
-        if (data.rate && data.rate !== existing.rate) {
-            const amount = parseFloat(data.rate.replace(/[^0-9.]/g, '')) || 0;
-            const newVersion = {
-                id: Date.now(),
-                projectId: id,
-                billingType: data.billingType || existing.billingType,
-                rateAmount: amount,
-                currency: existing.client.billingCurrency || 'USD ($)',
-                effectiveStartDate: data.rateEffectiveDate || new Date().toISOString().slice(0, 10),
-                effectiveEndDate: '',
-                notes: data.rateChangeReason || 'Rate update from project edit',
-                createdAt: new Date().toISOString(),
-            };
-            rateVersionsList = [newVersion, ...rateVersionsList];
-        }
-        const bType = data.budgetType !== undefined ? data.budgetType : existing.budgetType;
-        const bHours = data.budgetHours !== undefined ? Number(data.budgetHours) : existing.budgetHours;
-        if (bType === 'Total Project' && Array.isArray(data.monthlyBudgets)) {
-            const sumAllocated = data.monthlyBudgets.reduce((acc, b) => acc + (Number(b.budgetHours) || 0), 0);
-            if (sumAllocated > bHours) {
-                throw new Error(`The sum of monthly allocations (${sumAllocated}h) cannot exceed the Total Project Budget Hours (${bHours}h).`);
-            }
+        let contactPersonName = data.clientContactPersonName !== undefined ? data.clientContactPersonName : existing.clientContactPersonName;
+        const targetClientId = data.clientId || existing.clientId;
+        if (data.clientContactPersonId) {
+            const cu = await prisma_1.prisma.clientUser.findUnique({ where: { id: data.clientContactPersonId } });
+            if (!cu || cu.clientId !== targetClientId)
+                throw new Error(`Selected contact user does not belong to Client "${targetClientId}".`);
+            contactPersonName = cu.name;
         }
         const assignedStr = Array.isArray(data.assignedEmployees) ? data.assignedEmployees.join(', ') : data.assignedEmployees;
         const updated = await prisma_1.prisma.project.update({
@@ -126,11 +128,18 @@ class ProjectService {
                 ...(data.managerId !== undefined && { managerId: data.managerId }),
                 ...(data.managerName !== undefined && { managerName: data.managerName }),
                 ...(assignedStr !== undefined && { assignedEmployees: assignedStr }),
+                ...(data.clientContactPersonId !== undefined && { clientContactPersonId: data.clientContactPersonId, clientContactPersonName: contactPersonName }),
                 ...(data.monthlyBudgets !== undefined && { monthlyBudgets: Array.isArray(data.monthlyBudgets) ? data.monthlyBudgets : undefined }),
-                ...(rateVersionsList.length > 0 && { rateVersions: rateVersionsList }),
             },
             include: { client: true },
         });
+        if (data.clientContactPersonId) {
+            await prisma_1.prisma.clientUserProject.upsert({
+                where: { clientUserId_projectId: { clientUserId: data.clientContactPersonId, projectId: id } },
+                update: { clientId: targetClientId },
+                create: { clientUserId: data.clientContactPersonId, projectId: id, clientId: targetClientId },
+            });
+        }
         return {
             id: updated.id, name: updated.name, clientId: updated.clientId, clientName: updated.client.name,
             clientCurrency: updated.client.billingCurrency, billingType: updated.billingType,
@@ -140,24 +149,19 @@ class ProjectService {
             status: updated.status,
             managerId: updated.managerId || '', managerName: updated.managerName || '',
             assignedEmployees: updated.assignedEmployees ? updated.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            clientContactPersonId: updated.clientContactPersonId || '', clientContactPersonName: updated.clientContactPersonName || '',
             monthlyBudgets: Array.isArray(updated.monthlyBudgets) ? updated.monthlyBudgets : [],
         };
     }
     static async getRateHistory(role, projectId) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can view rate histories.');
-        if (projectId) {
-            const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId }, select: { rateVersions: true, id: true } });
-            if (!proj || !Array.isArray(proj.rateVersions))
-                return [];
-            return proj.rateVersions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        }
-        const projects = await prisma_1.prisma.project.findMany({ select: { rateVersions: true, id: true } });
+        const where = projectId ? { id: projectId } : {};
+        const projects = await prisma_1.prisma.project.findMany({ where, select: { rateVersions: true, id: true } });
         const allRecords = [];
         for (const p of projects) {
-            if (Array.isArray(p.rateVersions)) {
+            if (Array.isArray(p.rateVersions))
                 allRecords.push(...p.rateVersions);
-            }
         }
         return allRecords.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }

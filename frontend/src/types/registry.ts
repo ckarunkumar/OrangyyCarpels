@@ -81,5 +81,33 @@ export interface Project {
   managerId?: string;
   managerName?: string;
   assignedEmployees?: string[];
+  clientContactPersonId?: string;
+  clientContactPersonName?: string;
   monthlyBudgets?: Array<{ monthYear: string; budgetHours: number; isLocked?: boolean }>;
+}
+
+export interface ClientUser {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone?: string;
+  status: 'Active' | 'Inactive';
+  clientId: string;
+  client?: {
+    id: string;
+    name: string;
+    displayName?: string;
+  };
+  projects?: Array<{
+    id: number;
+    projectId: string;
+    project: {
+      id: string;
+      name: string;
+      status: string;
+    };
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
 }

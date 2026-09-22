@@ -11,6 +11,7 @@ import { businessLineRoutes } from './api/routes/businessLines';
 import leaveRoutes from './api/routes/leaves';
 import systemLogRoutes from './api/routes/systemLogs';
 import settingsRoutes from './api/routes/settings';
+import clientUserRoutes from './api/routes/clientUsers';
 import { AuthService, UserSession } from './services/authService';
 import { isAllowedOrigin, applySecurityHeaders } from './utils/security';
 
@@ -110,6 +111,7 @@ const start = async () => {
     await fastify.register(leaveRoutes, { prefix: '/api' });
     await fastify.register(systemLogRoutes, { prefix: '/api' });
     await fastify.register(settingsRoutes, { prefix: '/api' });
+    await fastify.register(clientUserRoutes, { prefix: '/api' });
     await fastify.register(businessLineRoutes);
 
     const port = Number(process.env.PORT) || 5001;

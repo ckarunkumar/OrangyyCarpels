@@ -104,6 +104,10 @@ export default function ProjectDetailDrawer({ open, project, isAdmin, onClose, o
               <span className="font-semibold text-studio-text mt-0.5 block">{project.managerName || project.managerId || 'Unassigned'}</span>
             </div>
             <div>
+              <span className="text-studio-muted block text-[10px] uppercase font-bold tracking-wider">Client Contact Person</span>
+              <span className="font-semibold text-studio-text mt-0.5 block">{project.clientContactPersonName || 'Unassigned'}</span>
+            </div>
+            <div className="col-span-2">
               <span className="text-studio-muted block text-[10px] uppercase font-bold tracking-wider">Assigned Team</span>
               <span className="font-medium text-studio-text mt-0.5 block">{project.assignedEmployees && project.assignedEmployees.length > 0 ? `${project.assignedEmployees.length} members assigned` : 'All team eligible'}</span>
             </div>
