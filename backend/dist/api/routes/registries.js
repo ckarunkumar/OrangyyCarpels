@@ -98,11 +98,24 @@ const registryRoutes = async (fastify) => {
             return reply.status(status).send({ error: err.message });
         }
     });
-    // GET all projects list
+    // GET projects list (optionally filtered by clientId)
     fastify.get('/projects', { schema: registrySchema_1.getRegistrySchema }, async (request, reply) => {
         const role = request.user.role;
+        const { clientId } = request.query;
         try {
-            const projects = await registryService_1.RegistryService.getAllProjects(role);
+            const projects = await registryService_1.RegistryService.getAllProjects(role, clientId);
+            return projects;
+        }
+        catch (err) {
+            return reply.status(403).send({ error: err.message });
+        }
+    });
+    // GET projects for specific client
+    fastify.get('/clients/:clientId/projects', async (request, reply) => {
+        const role = request.user.role;
+        const { clientId } = request.params;
+        try {
+            const projects = await registryService_1.RegistryService.getAllProjects(role, clientId);
             return projects;
         }
         catch (err) {

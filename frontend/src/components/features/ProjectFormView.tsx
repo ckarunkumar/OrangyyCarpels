@@ -9,10 +9,11 @@ const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 
 
 interface ProjectFormViewProps {
   mode: 'add' | 'edit'; project: Project | null; clients: Client[]; employees?: Employee[];
-  activeRole?: UserRole; onBack: () => void; onSaved: (msg?: string) => void;
+  activeRole?: UserRole; defaultClientId?: string; clientContextName?: string;
+  onBack: () => void; onSaved: (msg?: string) => void;
 }
 
-export default function ProjectFormView({ mode, project, clients, employees = [], activeRole, onBack, onSaved }: ProjectFormViewProps) {
+export default function ProjectFormView({ mode, project, clients, employees = [], activeRole, defaultClientId, clientContextName, onBack, onSaved }: ProjectFormViewProps) {
   const isSA = activeRole === 'Super Admin';
   const [projectId, setProjectId] = useState(''); const [name, setName] = useState(''); const [clientId, setClientId] = useState('');
   const [selectedBLs, setSelectedBLs] = useState<string[]>([]);
@@ -47,8 +48,9 @@ export default function ProjectFormView({ mode, project, clients, employees = []
       }
       setStatus(project.status); setManagerId(project.managerId || ''); setAssignedEmployees(project.assignedEmployees || []);
     } else {
-      const initC = clients[0];
-      setProjectId(''); setName(''); setClientId(initC?.id || ''); setSelectedBLs([]);
+      const initC = (defaultClientId && clients.find((c) => c.id === defaultClientId)) || clients[0];
+      const targetCId = defaultClientId || initC?.id || '';
+      setProjectId(''); setName(''); setClientId(targetCId); setSelectedBLs([]);
       setBillingType(normalizeBType(initC?.defaultBillingType)); setRateAmount('50'); setCurrency(initC?.billingCurrency || 'USD ($)');
       setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setBudgetType('Monthly'); setAllocatedHoursList([]); setStatus('Active');
       const defaultPM = employees.find((e) => e.role === 'Project Manager' || e.role === 'Super Admin');
@@ -59,7 +61,7 @@ export default function ProjectFormView({ mode, project, clients, employees = []
         .catch(() => setProjectId('PC0001'));
     }
     setTimeout(() => inputRef.current?.focus(), 100);
-  }, [mode, project, clients, employees]);
+  }, [mode, project, clients, employees, defaultClientId]);
 
   const handleBudgetHoursChange = (newVal: string) => {
     setBudgetHours(newVal);
@@ -141,7 +143,7 @@ export default function ProjectFormView({ mode, project, clients, employees = []
 
   return (
     <div className="w-full space-y-5 animate-in fade-in duration-200">
-      <Breadcrumbs items={[{ label: 'Project Registry', onClick: onBack }, { label: mode === 'edit' ? `Edit Project (${project?.name || ''})` : 'New Project' }]} />
+      <Breadcrumbs items={[{ label: 'Clientele', onClick: onBack }, ...(clientContextName ? [{ label: clientContextName, onClick: onBack }, { label: 'Projects', onClick: onBack }] : []), { label: mode === 'edit' ? `Edit Project (${project?.name || ''})` : 'New Project' }]} />
       <div className="flex items-center justify-between border-b border-studio-border pb-3">
         <div className="flex items-center gap-3">
           <button type="button" onClick={onBack} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back"><ArrowLeft className="w-4 h-4" /></button>
@@ -161,9 +163,9 @@ export default function ProjectFormView({ mode, project, clients, employees = []
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
             <div><label className="block text-[11px] font-bold text-brand-orange mb-1">Project ID *</label><input type="text" placeholder="PC0001" disabled={mode === 'edit'} value={projectId} onChange={(e) => setProjectId(e.target.value)} className={`${inputCls} font-mono uppercase font-semibold ${mode === 'edit' ? 'bg-studio-sidebar opacity-75' : ''}`} /></div>
             <div>
-              <label className={labelCls}>Client *</label>
+              <label className={labelCls}>Client * {defaultClientId && <span className="text-[10px] text-brand-orange font-semibold ml-1">(Current Client)</span>}</label>
               <div className="relative">
-                <select value={clientId} onChange={(e) => handleClientChange(e.target.value)} className={`${inputCls} appearance-none pr-8`}>
+                <select value={clientId} disabled={!!defaultClientId} onChange={(e) => handleClientChange(e.target.value)} className={`${inputCls} appearance-none pr-8 ${defaultClientId ? 'bg-studio-sidebar/70 opacity-90 cursor-not-allowed' : ''}`}>
                   {clients.map((c) => (<option key={c.id} value={c.id}>{c.displayName || c.name}</option>))}
                 </select>
                 <ChevronDown className="w-4 h-4 text-studio-muted pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2" />

@@ -2,9 +2,10 @@ import { prisma } from '../lib/prisma';
 import { ProjectWithClient, RateVersionRecord } from './registryTypes';
 
 export class ProjectService {
-  static async getAllProjects(role: string): Promise<ProjectWithClient[]> {
+  static async getAllProjects(role: string, clientId?: string): Promise<ProjectWithClient[]> {
     if (role === 'Employee') throw new Error('Access Denied: Employees cannot view all projects.');
-    const projects = await prisma.project.findMany({ include: { client: true } });
+    const where = clientId ? { clientId } : {};
+    const projects = await prisma.project.findMany({ where, include: { client: true } });
     return projects.map((p) => ({
       id: p.id, name: p.name, clientId: p.clientId, clientName: p.client.name,
       clientCurrency: p.client.billingCurrency, billingType: p.billingType as any,

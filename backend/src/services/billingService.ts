@@ -8,6 +8,8 @@ import {
   MonthlyBudgetItem,
 } from './billingTypes';
 
+import { FxRateService } from './fxRateService';
+
 export * from './billingTypes';
 
 export class BillingService {
@@ -17,33 +19,11 @@ export class BillingService {
   }
 
   static async getExchangeRates(): Promise<ExchangeRateInfo[]> {
-    const monthYear = this.getCurrentMonthYear();
-    const rates = await prisma.exchangeRate.findMany({ where: { monthYear } });
-    return rates.length === 0 ? this.syncLiveExchangeRates() : rates;
+    return FxRateService.getCurrentRates('INR') as any;
   }
 
   static async syncLiveExchangeRates(): Promise<ExchangeRateInfo[]> {
-    const monthYear = this.getCurrentMonthYear();
-    let liveUsdRates: Record<string, number> = {};
-    try {
-      const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(6000) });
-      if (res.ok) liveUsdRates = ((await res.json()) as any).rates || {};
-    } catch { /* Fallback to defaults */ }
-
-    const usdToInr = liveUsdRates['INR'] || DEFAULT_RATES['USD'];
-    const updatedRates: ExchangeRateInfo[] = [];
-
-    for (const curr of Object.keys(DEFAULT_RATES)) {
-      const rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : DEFAULT_RATES[curr] || 1.0);
-      const existing = await prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear } });
-      const record = await prisma.exchangeRate.upsert({
-        where: { id: existing?.id || 0 },
-        update: { rateToINR, fetchedAt: new Date(), source: liveUsdRates['INR'] ? 'open.er-api.com' : 'studio-default' },
-        create: { currency: curr, rateToINR, monthYear, source: liveUsdRates['INR'] ? 'open.er-api.com' : 'studio-default' },
-      });
-      updatedRates.push(record);
-    }
-    return updatedRates;
+    return FxRateService.syncLiveExchangeRates('INR') as any;
   }
 
   static async getBillingSummary(

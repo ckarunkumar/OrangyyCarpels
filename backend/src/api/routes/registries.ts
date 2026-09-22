@@ -106,11 +106,24 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     }
   });
 
-  // GET all projects list
+  // GET projects list (optionally filtered by clientId)
   fastify.get('/projects', { schema: getRegistrySchema }, async (request, reply) => {
     const role = request.user!.role;
+    const { clientId } = request.query as { clientId?: string };
     try {
-      const projects = await RegistryService.getAllProjects(role);
+      const projects = await RegistryService.getAllProjects(role, clientId);
+      return projects;
+    } catch (err: any) {
+      return reply.status(403).send({ error: err.message });
+    }
+  });
+
+  // GET projects for specific client
+  fastify.get('/clients/:clientId/projects', async (request, reply) => {
+    const role = request.user!.role;
+    const { clientId } = request.params as { clientId: string };
+    try {
+      const projects = await RegistryService.getAllProjects(role, clientId);
       return projects;
     } catch (err: any) {
       return reply.status(403).send({ error: err.message });

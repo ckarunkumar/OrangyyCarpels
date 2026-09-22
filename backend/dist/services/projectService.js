@@ -3,10 +3,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectService = void 0;
 const prisma_1 = require("../lib/prisma");
 class ProjectService {
-    static async getAllProjects(role) {
+    static async getAllProjects(role, clientId) {
         if (role === 'Employee')
             throw new Error('Access Denied: Employees cannot view all projects.');
-        const projects = await prisma_1.prisma.project.findMany({ include: { client: true } });
+        const where = clientId ? { clientId } : {};
+        const projects = await prisma_1.prisma.project.findMany({ where, include: { client: true } });
         return projects.map((p) => ({
             id: p.id, name: p.name, clientId: p.clientId, clientName: p.client.name,
             clientCurrency: p.client.billingCurrency, billingType: p.billingType,

@@ -48,6 +48,7 @@ const notifications_1 = __importDefault(require("./api/routes/notifications"));
 const businessLines_1 = require("./api/routes/businessLines");
 const leaves_1 = __importDefault(require("./api/routes/leaves"));
 const systemLogs_1 = __importDefault(require("./api/routes/systemLogs"));
+const settings_1 = __importDefault(require("./api/routes/settings"));
 const authService_1 = require("./services/authService");
 const security_1 = require("./utils/security");
 dotenv.config();
@@ -125,6 +126,7 @@ const start = async () => {
         await fastify.register(notifications_1.default, { prefix: '/api' });
         await fastify.register(leaves_1.default, { prefix: '/api' });
         await fastify.register(systemLogs_1.default, { prefix: '/api' });
+        await fastify.register(settings_1.default, { prefix: '/api' });
         await fastify.register(businessLines_1.businessLineRoutes);
         const port = Number(process.env.PORT) || 5001;
         const host = process.env.HOST || '0.0.0.0';

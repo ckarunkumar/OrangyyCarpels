@@ -125,6 +125,39 @@ model Service {
   status         String        @default("Active")
 }
 
+model StudioSetting {
+  id                  String   @id @default("default")
+  studioName          String   @default("Orangyy Design Studio")
+  legalName           String   @default("Orangyy Design Private Limited")
+  contactEmail        String   @default("admin@orangy.design")
+  studioDomain        String   @default("orangy.design")
+  standardCapacity    String   @default("40")
+  timezone            String   @default("Asia/Kolkata (IST +5:30)")
+  approvalWorkflow    String   @default("Two-Step (PM -> Super Admin Lock)")
+  defaultCurrency     String   @default("USD ($)")
+  defaultPaymentTerms String   @default("30 days")
+  defaultBillingType  String   @default("T&M")
+  updatedAt           DateTime @default(now()) @updatedAt
+}
+
+model MonthlyExchangeRate {
+  id              Int      @id @default(autoincrement())
+  sourceCurrency  String   // e.g. USD, EUR, GBP, AED, SGD, CAD, JPY, CHF
+  targetCurrency  String   @default("INR") // e.g. INR
+  rate            Float    // Exchange rate value
+  month           Int      // 1 - 12
+  year            Int      // e.g. 2026
+  effectivePeriod String   // e.g. "Sep 2026" or "2026-09"
+  syncedAt        DateTime @default(now())
+  source          String   @default("open.er-api.com")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  @@unique([sourceCurrency, targetCurrency, year, month])
+  @@index([sourceCurrency, targetCurrency])
+  @@index([year, month])
+}
+
 model ExchangeRate {
   id        Int      @id @default(autoincrement())
   currency  String   // e.g. USD, EUR, GBP, AED, SGD, CAD, JPY, CHF, INR

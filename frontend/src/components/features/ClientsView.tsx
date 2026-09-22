@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { UserRole } from '../ui/Layout';
-import { Plus, Building2, Globe, Pencil, Mail, Phone, CheckCircle2 } from 'lucide-react';
+import { Plus, CheckCircle2 } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
 import { Client } from '../../types/registry';
 import ClientDetailDrawer from './ClientDetailDrawer';
 import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';
+import ClientProjectsView from './ClientProjectsView';
+import ClientTableRow from './ClientTableRow';
 import Breadcrumbs from '../ui/Breadcrumbs';
 
 export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [activeClientForProjects, setActiveClientForProjects] = useState<Client | null>(null);
   const [projectsClient, setProjectsClient] = useState<Client | null>(null);
   const [projectsFilter, setProjectsFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -28,12 +33,31 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
         if (!res.ok) throw new Error('Failed to fetch clients list');
         return res.json();
       })
-      .then((data) => { setClients(data || []); setError(null); })
+      .then((data) => {
+        const clientList = data || [];
+        setClients(clientList);
+        setError(null);
+        const clientId = searchParams.get('clientId');
+        if (clientId) {
+          const match = clientList.find((c: Client) => c.id === clientId);
+          if (match) setActiveClientForProjects(match);
+        }
+      })
       .catch((err) => { setError(err.message); setClients([]); })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchClients(); }, [activeRole]);
+
+  useEffect(() => {
+    const clientId = searchParams.get('clientId');
+    if (clientId && clients.length > 0) {
+      const match = clients.find((c) => c.id === clientId);
+      if (match) setActiveClientForProjects(match);
+    } else if (!clientId) {
+      setActiveClientForProjects(null);
+    }
+  }, [searchParams, clients]);
 
   const isAdmin = activeRole === 'Super Admin';
 
@@ -46,8 +70,19 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     setTargetClient(null); setFormMode('add'); setViewMode('form');
   };
 
-  const handleOpenProjects = (client: Client, filter: 'Active' | 'Inactive') => {
+  const handleOpenProjectsDrawer = (client: Client, filter: 'Active' | 'Inactive') => {
     setProjectsFilter(filter); setProjectsClient(client);
+  };
+
+  const handleSelectClientProjects = (client: Client) => {
+    setActiveClientForProjects(client);
+    setSearchParams({ clientId: client.id });
+  };
+
+  const handleBackFromProjects = () => {
+    setActiveClientForProjects(null);
+    setSearchParams({});
+    fetchClients();
   };
 
   const handleSaved = (msg?: string) => {
@@ -58,6 +93,17 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     }
     fetchClients();
   };
+
+  if (activeClientForProjects) {
+    return (
+      <ClientProjectsView
+        client={activeClientForProjects}
+        activeRole={activeRole}
+        allClients={clients}
+        onBack={handleBackFromProjects}
+      />
+    );
+  }
 
   if (viewMode === 'form') {
     return (
@@ -109,50 +155,17 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
             {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />) : clients.length === 0 ? (
               <div className="text-center py-8 text-[12px] text-studio-muted">No clients registered.</div>
             ) : (
-              clients.map((client) => {
-                const activeCount = client.projects?.filter((p) => p.status === 'Active').length || 0;
-                const inactiveCount = client.projects?.filter((p) => p.status === 'Inactive').length || 0;
-
-                return (
-                  <div key={client.id} onClick={() => { setSelectedClient(client); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
-                    <div className="col-span-2"><span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{client.id}</span></div>
-                    <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0"><Building2 className="w-3.5 h-3.5" /></div>
-                      <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">{client.name}</p>
-                    </div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-2">
-                      {client.email ? (
-                        <span className="flex items-center gap-1 truncate" title={client.email}><Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.email}</span></span>
-                      ) : client.phone ? (
-                        <span className="flex items-center gap-1 truncate" title={client.phone}><Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.phone}</span></span>
-                      ) : (
-                        <span className="text-studio-muted/60 italic text-[11px]">No contact details</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.billingCurrency}</span></div>
-                    
-                    <div className="col-span-2 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Active'); }} title={`Active Projects: ${activeCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[12px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
-                        <span>{activeCount}</span>
-                      </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Inactive'); }} title={`Inactive Projects: ${inactiveCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[12px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
-                        <span>{inactiveCount}</span>
-                      </button>
-                    </div>
-
-                    <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
-                      {isAdmin && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEdit(client); }} title="Edit Client" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{client.status}</span>
-                    </div>
-                  </div>
-                );
-              })
+              clients.map((client) => (
+                <ClientTableRow
+                  key={client.id}
+                  client={client}
+                  isAdmin={isAdmin}
+                  onSelectRow={handleSelectClientProjects}
+                  onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
+                  onOpenProjectsDrawer={handleOpenProjectsDrawer}
+                  onOpenEdit={handleOpenEdit}
+                />
+              ))
             )}
           </div>
         </div>

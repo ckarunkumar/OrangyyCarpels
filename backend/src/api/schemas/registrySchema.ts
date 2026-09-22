@@ -1,7 +1,9 @@
 export const getRegistrySchema = {
   querystring: {
     type: 'object',
-    properties: {},
+    properties: {
+      clientId: { type: 'string' },
+    },
   },
 };
 

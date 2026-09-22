@@ -4,7 +4,9 @@ exports.updateProjectSchema = exports.createProjectSchema = exports.updateClient
 exports.getRegistrySchema = {
     querystring: {
         type: 'object',
-        properties: {},
+        properties: {
+            clientId: { type: 'string' },
+        },
     },
 };
 exports.createEmployeeSchema = {

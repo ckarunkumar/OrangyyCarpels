@@ -7,7 +7,6 @@ import DashboardView from './components/features/DashboardView';
 import TimesheetsView from './components/features/TimesheetsView';
 import EmployeesView from './components/features/EmployeesView';
 import ClientsView from './components/features/ClientsView';
-import ProjectsView from './components/features/ProjectsView';
 import ReportsView from './components/features/ReportsView';
 import LeavesView from './components/features/LeavesView';
 import GeneralSettingsView from './components/features/GeneralSettingsView';
@@ -99,14 +98,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <ProjectsView activeRole={role} />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/projects" element={<Navigate to="/clients" replace />} />
             <Route
               path="/reports"
               element={
@@ -118,6 +110,8 @@ function AppContent() {
             <Route path="/leaves" element={<LeavesView activeRole={role} />} />
             <Route path="/settings" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/studio" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/configurations" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/config" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/services" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/leaves" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/logs" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
