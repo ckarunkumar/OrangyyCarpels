@@ -49,6 +49,13 @@ export interface Employee {
   linkedInUrl?: string;
   aadhaarNumber?: string;
   panNumber?: string;
+  bankName?: string;
+  branchName?: string;
+  ifscCode?: string;
+  accountNumber?: string;
+  accountHolderName?: string;
+  accountType?: string;
+  upiId?: string;
   joiningDate?: string;
   relievingDate?: string;
   status: 'Active' | 'Inactive';

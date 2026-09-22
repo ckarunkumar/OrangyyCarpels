@@ -2,22 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, Trash2, Eye, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/registry';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import EmployeeFormBankSection from './EmployeeFormBankSection';
 
 type FormState = {
-  employeeId: string; fullName: string; dob: string; designation: string; department: string;
-  email: string; password?: string; personalEmail: string; phone: string; secondaryPhone: string;
-  permanentAddress: string; gender: string; guardianName: string; motherName: string; bloodGroup: string;
-  linkedInUrl: string; aadhaarNumber: string; panNumber: string; joiningDate: string; relievingDate: string;
-  status: 'Active' | 'Inactive'; role: 'Super Admin' | 'Project Manager' | 'Employee'; avatar: string | null;
+  employeeId: string; fullName: string; dob: string; designation: string; department: string; email: string; password?: string;
+  personalEmail: string; phone: string; secondaryPhone: string; permanentAddress: string; gender: string; guardianName: string;
+  motherName: string; bloodGroup: string; linkedInUrl: string; aadhaarNumber: string; panNumber: string; bankName: string;
+  branchName: string; ifscCode: string; accountNumber: string; accountHolderName: string; accountType: string; upiId: string;
+  joiningDate: string; relievingDate: string; status: 'Active' | 'Inactive'; role: 'Super Admin' | 'Project Manager' | 'Employee';
+  avatar: string | null;
 };
 
 const EMPTY_FORM: FormState = {
   employeeId: '', fullName: '', dob: '', designation: '', department: '', email: '', password: '', personalEmail: '',
   phone: '', secondaryPhone: '', permanentAddress: '', gender: 'Not Specified', guardianName: '', motherName: '', bloodGroup: '',
-  linkedInUrl: '', aadhaarNumber: '', panNumber: '', joiningDate: '', relievingDate: '', status: 'Active', role: 'Employee', avatar: null,
+  linkedInUrl: '', aadhaarNumber: '', panNumber: '', bankName: '', branchName: '', ifscCode: '', accountNumber: '',
+  accountHolderName: '', accountType: 'Savings', upiId: '', joiningDate: '', relievingDate: '', status: 'Active', role: 'Employee', avatar: null,
 };
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'A2B Positive (A2B+)'];
 const GENDERS = ['Male', 'Female', 'Not Specified'];
 
 interface EmployeeFormViewProps {
@@ -42,9 +45,11 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
         permanentAddress: employee.permanentAddress || '', gender: employee.gender || 'Not Specified',
         guardianName: employee.guardianName || '', motherName: employee.motherName || '', bloodGroup: employee.bloodGroup || '',
         linkedInUrl: employee.linkedInUrl || '', aadhaarNumber: employee.aadhaarNumber || '',
-        panNumber: employee.panNumber || '', joiningDate: employee.joiningDate || '',
-        relievingDate: employee.relievingDate || '', status: employee.status, role: employee.role,
-        avatar: employee.avatar || null,
+        panNumber: employee.panNumber || '', bankName: employee.bankName || '', branchName: employee.branchName || '',
+        ifscCode: employee.ifscCode || '', accountNumber: employee.accountNumber || '',
+        accountHolderName: employee.accountHolderName || '', accountType: employee.accountType || 'Savings',
+        upiId: employee.upiId || '', joiningDate: employee.joiningDate || '',
+        relievingDate: employee.relievingDate || '', status: employee.status, role: employee.role, avatar: employee.avatar || null,
       });
     } else {
       setForm(EMPTY_FORM);
@@ -92,7 +97,7 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
     setSaving(true); setServerError(null);
     try {
       const url = mode === 'edit' ? `/api/employees/${employee!.employeeId}` : '/api/employees';
-      const payload: any = { ...form, employeeId: form.employeeId.trim().toUpperCase(), panNumber: form.panNumber.trim().toUpperCase() };
+      const payload: any = { ...form, employeeId: form.employeeId.trim().toUpperCase(), panNumber: form.panNumber.trim().toUpperCase(), ifscCode: form.ifscCode.trim().toUpperCase() };
       if (!payload.password) delete payload.password;
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
@@ -184,6 +189,8 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
             </div>
           </div>
         </div>
+
+        <EmployeeFormBankSection form={form} set={set} inputCls={inputCls} labelCls={labelCls} />
       </form>
     </div>
   );

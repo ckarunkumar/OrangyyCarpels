@@ -35,6 +35,15 @@ model Employee {
   location               String   @default("Delhi, India")
   avatar                 String?  @db.LongText
 
+  // Bank & Payout Details
+  bankName               String?  @default("")
+  branchName             String?  @default("")
+  ifscCode               String?  @default("")
+  accountNumber          String?  @default("")
+  accountHolderName      String?  @default("")
+  accountType            String?  @default("Savings") // Savings, Current
+  upiId                  String?  @default("")
+
   // Merged Education & Experience
   education              Json?    // Array of { degree, school, year }
   experience             Json?    // Array of { company, role, period }

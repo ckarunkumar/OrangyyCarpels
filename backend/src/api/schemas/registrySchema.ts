@@ -1,42 +1,49 @@
 export const getRegistrySchema = {
   querystring: {
     type: 'object',
-    properties: {
-      clientId: { type: 'string' },
-    },
+    properties: { clientId: { type: 'string' } },
   },
+};
+
+const employeeProps = {
+  employeeId: { type: 'string' },
+  fullName: { type: 'string', minLength: 1 },
+  dob: { type: 'string' },
+  designation: { type: 'string' },
+  department: { type: 'string' },
+  email: { type: 'string', format: 'email' },
+  personalEmail: { type: 'string' },
+  phone: { type: 'string', minLength: 5 },
+  secondaryPhone: { type: 'string' },
+  permanentAddress: { type: 'string' },
+  guardianName: { type: 'string' },
+  motherName: { type: 'string' },
+  bloodGroup: { type: 'string' },
+  linkedInUrl: { type: 'string' },
+  aadhaarNumber: { type: 'string' },
+  panNumber: { type: 'string' },
+  costRate: { type: 'string' },
+  capacity: { type: 'string' },
+  joiningDate: { type: 'string' },
+  relievingDate: { type: 'string' },
+  status: { type: 'string', enum: ['Active', 'Inactive'] },
+  role: { type: 'string', enum: ['Super Admin', 'Project Manager', 'Employee'] },
+  avatar: { type: ['string', 'null'] },
+  password: { type: 'string' },
+  bankName: { type: 'string' },
+  branchName: { type: 'string' },
+  ifscCode: { type: 'string' },
+  accountNumber: { type: 'string' },
+  accountHolderName: { type: 'string' },
+  accountType: { type: 'string' },
+  upiId: { type: 'string' },
 };
 
 export const createEmployeeSchema = {
   body: {
     type: 'object',
     required: ['fullName', 'email', 'phone'],
-    properties: {
-      employeeId: { type: 'string' },
-      fullName: { type: 'string', minLength: 1 },
-      dob: { type: 'string' },
-      designation: { type: 'string' },
-      department: { type: 'string' },
-      email: { type: 'string', format: 'email' },
-      personalEmail: { type: 'string' },
-      phone: { type: 'string', minLength: 5 },
-      secondaryPhone: { type: 'string' },
-      permanentAddress: { type: 'string' },
-      guardianName: { type: 'string' },
-      motherName: { type: 'string' },
-      bloodGroup: { type: 'string' },
-      linkedInUrl: { type: 'string' },
-      aadhaarNumber: { type: 'string' },
-      panNumber: { type: 'string' },
-      costRate: { type: 'string' },
-      capacity: { type: 'string' },
-      joiningDate: { type: 'string' },
-      relievingDate: { type: 'string' },
-      status: { type: 'string', enum: ['Active', 'Inactive'] },
-      role: { type: 'string', enum: ['Super Admin', 'Project Manager', 'Employee'] },
-      avatar: { type: ['string', 'null'] },
-      password: { type: 'string' },
-    },
+    properties: employeeProps,
   },
 };
 
@@ -44,38 +51,11 @@ export const updateEmployeeSchema = {
   params: {
     type: 'object',
     required: ['id'],
-    properties: {
-      id: { type: 'string' },
-    },
+    properties: { id: { type: 'string' } },
   },
   body: {
     type: 'object',
-    properties: {
-      employeeId: { type: 'string' },
-      fullName: { type: 'string', minLength: 1 },
-      dob: { type: 'string' },
-      designation: { type: 'string' },
-      department: { type: 'string' },
-      email: { type: 'string', format: 'email' },
-      password: { type: 'string' },
-      personalEmail: { type: 'string' },
-      phone: { type: 'string' },
-      secondaryPhone: { type: 'string' },
-      permanentAddress: { type: 'string' },
-      guardianName: { type: 'string' },
-      motherName: { type: 'string' },
-      bloodGroup: { type: 'string' },
-      linkedInUrl: { type: 'string' },
-      aadhaarNumber: { type: 'string' },
-      panNumber: { type: 'string' },
-      costRate: { type: 'string' },
-      capacity: { type: 'string' },
-      joiningDate: { type: 'string' },
-      relievingDate: { type: 'string' },
-      status: { type: 'string', enum: ['Active', 'Inactive'] },
-      role: { type: 'string', enum: ['Super Admin', 'Project Manager', 'Employee'] },
-      avatar: { type: ['string', 'null'] },
-    },
+    properties: employeeProps,
   },
 };
 
@@ -112,9 +92,7 @@ export const updateClientSchema = {
   params: {
     type: 'object',
     required: ['id'],
-    properties: {
-      id: { type: 'string' },
-    },
+    properties: { id: { type: 'string' } },
   },
   body: {
     type: 'object',
@@ -145,12 +123,12 @@ export const updateClientSchema = {
 export const createProjectSchema = {
   body: {
     type: 'object',
-    required: ['clientId', 'name', 'billingType', 'rate'],
+    required: ['clientId', 'name', 'billingType', 'rate', 'startDate'],
     properties: {
       id: { type: 'string' },
       clientId: { type: 'string', minLength: 1 },
       name: { type: 'string', minLength: 1 },
-      billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
+      billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Project Cost (Fixed)'] },
       rate: { type: 'string', minLength: 1 },
       businessLine: { type: 'string' },
       service: { type: 'string' },
@@ -158,10 +136,24 @@ export const createProjectSchema = {
       endDate: { type: 'string' },
       budgetHours: { type: 'number', minimum: 0 },
       budgetType: { type: 'string', enum: ['Monthly', 'Total Project'] },
+      status: { type: 'string', enum: ['Active', 'Inactive'] },
       managerId: { type: 'string' },
       managerName: { type: 'string' },
-      assignedEmployees: { type: ['string', 'array'] },
-      monthlyBudgets: { type: ['array', 'null'] },
+      clientContactPersonId: { type: ['string', 'null'] },
+      clientContactPersonName: { type: 'string' },
+      assignedEmployees: { type: 'array', items: { type: 'string' } },
+      monthlyBudgets: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['monthYear', 'budgetHours'],
+          properties: {
+            monthYear: { type: 'string' },
+            budgetHours: { type: 'number', minimum: 0 },
+            isLocked: { type: 'boolean' },
+          },
+        },
+      },
     },
   },
 };
@@ -170,16 +162,14 @@ export const updateProjectSchema = {
   params: {
     type: 'object',
     required: ['id'],
-    properties: {
-      id: { type: 'string' },
-    },
+    properties: { id: { type: 'string' } },
   },
   body: {
     type: 'object',
     properties: {
       name: { type: 'string', minLength: 1 },
-      billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Monthly Res Cost (Fixed)', 'Project Cost (Fixed)'] },
-      rate: { type: 'string' },
+      billingType: { type: 'string', enum: ['T&M', 'Resources Cost (Fix)', 'Project Cost (Fix)', 'Fixed RC', 'Fixed PC', 'Hourly Rate (T&M)', 'Monthly Resource Cost (Fixed)', 'Project Cost (Fixed)'] },
+      rate: { type: 'string', minLength: 1 },
       businessLine: { type: 'string' },
       service: { type: 'string' },
       startDate: { type: 'string' },
@@ -187,11 +177,23 @@ export const updateProjectSchema = {
       budgetHours: { type: 'number', minimum: 0 },
       budgetType: { type: 'string', enum: ['Monthly', 'Total Project'] },
       status: { type: 'string', enum: ['Active', 'Inactive'] },
-      clientId: { type: 'string' },
       managerId: { type: 'string' },
       managerName: { type: 'string' },
-      assignedEmployees: { type: ['string', 'array'] },
-      monthlyBudgets: { type: ['array', 'null'] },
+      clientContactPersonId: { type: ['string', 'null'] },
+      clientContactPersonName: { type: 'string' },
+      assignedEmployees: { type: 'array', items: { type: 'string' } },
+      monthlyBudgets: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['monthYear', 'budgetHours'],
+          properties: {
+            monthYear: { type: 'string' },
+            budgetHours: { type: 'number', minimum: 0 },
+            isLocked: { type: 'boolean' },
+          },
+        },
+      },
     },
   },
 };

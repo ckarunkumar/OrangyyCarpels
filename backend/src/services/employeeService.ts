@@ -24,21 +24,17 @@ export class EmployeeService {
       });
 
       return {
-        id: emp.employeeId, employeeId: emp.employeeId,
-        fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
-        department: emp.department, email: emp.email, personalEmail: emp.personalEmail || '',
-        phone: emp.phone, secondaryPhone: emp.secondaryPhone || '', permanentAddress: emp.permanentAddress || '',
-        gender: emp.gender || 'Not Specified',
-        guardianName: emp.guardianName || '', motherName: emp.motherName || '', bloodGroup: emp.bloodGroup || '',
-        linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '', panNumber: emp.panNumber || '',
-        costRate: role === 'Super Admin' ? emp.costRate : 'RESTRICTED', capacity: emp.capacity,
-        joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
-        status: isRelieved ? 'Inactive' : (emp.status as 'Active' | 'Inactive'),
-        role: emp.role as EmployeeProfile['role'], location: emp.location, avatar: emp.avatar,
+        id: emp.employeeId, employeeId: emp.employeeId, fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
+        department: emp.department, email: emp.email, personalEmail: emp.personalEmail || '', phone: emp.phone, secondaryPhone: emp.secondaryPhone || '',
+        permanentAddress: emp.permanentAddress || '', gender: emp.gender || 'Not Specified', guardianName: emp.guardianName || '', motherName: emp.motherName || '',
+        bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '', panNumber: emp.panNumber || '',
+        bankName: emp.bankName || '', branchName: emp.branchName || '', ifscCode: emp.ifscCode || '', accountNumber: emp.accountNumber || '',
+        accountHolderName: emp.accountHolderName || '', accountType: emp.accountType || 'Savings', upiId: emp.upiId || '',
+        costRate: role === 'Super Admin' ? emp.costRate : 'RESTRICTED', capacity: emp.capacity, joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
+        status: isRelieved ? 'Inactive' : (emp.status as 'Active' | 'Inactive'), role: emp.role as EmployeeProfile['role'], location: emp.location, avatar: emp.avatar,
         education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
         experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
-        assignedProjectsCount: assignedProjs.length,
-        assignedProjects: assignedProjs.map((p) => ({ id: p.id, name: p.name, status: p.status })),
+        assignedProjectsCount: assignedProjs.length, assignedProjects: assignedProjs.map((p) => ({ id: p.id, name: p.name, status: p.status })),
       };
     });
   }
@@ -48,28 +44,17 @@ export class EmployeeService {
     let maxNum = 0;
     for (const emp of employees) {
       const match = emp.employeeId.match(/^ODE(\d+)$/i);
-      if (match) {
-        const num = parseInt(match[1], 10);
-        if (num > maxNum) maxNum = num;
-      }
+      if (match) { const num = parseInt(match[1], 10); if (num > maxNum) maxNum = num; }
     }
-    const nextNum = maxNum + 1;
-    return `ODE${String(nextNum).padStart(4, '0')}`;
+    return `ODE${String(maxNum + 1).padStart(4, '0')}`;
   }
 
   static async createEmployee(role: string, data: Omit<EmployeeProfile, 'id'>): Promise<EmployeeProfile> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can create employee profiles.');
-    let targetEmpId = data.employeeId?.trim();
-    if (!targetEmpId) {
-      targetEmpId = await EmployeeService.getNextEmployeeId();
-    }
+    const targetEmpId = data.employeeId?.trim() || await EmployeeService.getNextEmployeeId();
     const cleanEmail = data.email.trim().toLowerCase();
-    if (await prisma.employee.findUnique({ where: { employeeId: targetEmpId } })) {
-      throw new Error(`Emp ID "${targetEmpId}" already exists. Please enter a unique Emp ID.`);
-    }
-    if (await prisma.employee.findUnique({ where: { email: cleanEmail } })) {
-      throw new Error(`Email address "${cleanEmail}" is already registered to another employee.`);
-    }
+    if (await prisma.employee.findUnique({ where: { employeeId: targetEmpId } })) throw new Error(`Emp ID "${targetEmpId}" already exists.`);
+    if (await prisma.employee.findUnique({ where: { email: cleanEmail } })) throw new Error(`Email "${cleanEmail}" is already registered.`);
 
     let finalHashedPassword = '';
     if (data.password && data.password.trim()) {
@@ -85,32 +70,29 @@ export class EmployeeService {
     const isRelieved = Boolean(relievingDate && relievingDate <= todayStr);
     const emp = await prisma.employee.create({
       data: {
-        employeeId: targetEmpId, fullName: data.fullName.trim(), dob: data.dob?.trim() || '',
-        designation: data.designation?.trim() || 'Team Member', department: data.department?.trim() || 'General',
-        email: cleanEmail, password: finalHashedPassword, personalEmail: data.personalEmail?.trim() || '', phone: data.phone.trim(),
-        secondaryPhone: data.secondaryPhone?.trim() || '', permanentAddress: data.permanentAddress?.trim() || '',
-        gender: data.gender || 'Not Specified',
-        guardianName: data.guardianName?.trim() || '', motherName: data.motherName?.trim() || '',
-        bloodGroup: data.bloodGroup?.trim() || '', linkedInUrl: data.linkedInUrl?.trim() || '',
-        aadhaarNumber: data.aadhaarNumber?.trim() || '', panNumber: data.panNumber?.trim() || '',
-        costRate: data.costRate || '₹0/hr', capacity: data.capacity || '40 hrs/week',
-        joiningDate: data.joiningDate?.trim() || '', relievingDate,
-        status: isRelieved ? 'Inactive' : (data.status || 'Active'), role: data.role || 'Employee',
-        location: data.location || 'Remote', avatar: data.avatar || null,
-        education: (data.education as any) || [],
-        experience: (data.experience as any) || [],
+        employeeId: targetEmpId, fullName: data.fullName.trim(), dob: data.dob?.trim() || '', designation: data.designation?.trim() || 'Team Member',
+        department: data.department?.trim() || 'General', email: cleanEmail, password: finalHashedPassword, personalEmail: data.personalEmail?.trim() || '',
+        phone: data.phone.trim(), secondaryPhone: data.secondaryPhone?.trim() || '', permanentAddress: data.permanentAddress?.trim() || '',
+        gender: data.gender || 'Not Specified', guardianName: data.guardianName?.trim() || '', motherName: data.motherName?.trim() || '',
+        bloodGroup: data.bloodGroup?.trim() || '', linkedInUrl: data.linkedInUrl?.trim() || '', aadhaarNumber: data.aadhaarNumber?.trim() || '',
+        panNumber: data.panNumber?.trim() || '', bankName: data.bankName?.trim() || '', branchName: data.branchName?.trim() || '',
+        ifscCode: data.ifscCode?.trim().toUpperCase() || '', accountNumber: data.accountNumber?.trim() || '',
+        accountHolderName: data.accountHolderName?.trim() || '', accountType: data.accountType || 'Savings', upiId: data.upiId?.trim() || '',
+        costRate: data.costRate || '₹0/hr', capacity: data.capacity || '40 hrs/week', joiningDate: data.joiningDate?.trim() || '', relievingDate,
+        status: isRelieved ? 'Inactive' : (data.status || 'Active'), role: data.role || 'Employee', location: data.location || 'Remote',
+        avatar: data.avatar || null, education: (data.education as any) || [], experience: (data.experience as any) || [],
       },
     });
     const edu = Array.isArray(emp.education) ? (emp.education as any[]) : [];
     const exp = Array.isArray(emp.experience) ? (emp.experience as any[]) : [];
     return {
       ...emp, id: emp.employeeId, dob: emp.dob || '', personalEmail: emp.personalEmail || '', secondaryPhone: emp.secondaryPhone || '',
-      permanentAddress: emp.permanentAddress || '', gender: emp.gender || 'Not Specified',
-      guardianName: emp.guardianName || '', motherName: emp.motherName || '',
-      bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '',
-      panNumber: emp.panNumber || '', joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '',
-      status: emp.status as 'Active' | 'Inactive', role: emp.role as EmployeeProfile['role'],
-      education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+      permanentAddress: emp.permanentAddress || '', gender: emp.gender || 'Not Specified', guardianName: emp.guardianName || '', motherName: emp.motherName || '',
+      bloodGroup: emp.bloodGroup || '', linkedInUrl: emp.linkedInUrl || '', aadhaarNumber: emp.aadhaarNumber || '', panNumber: emp.panNumber || '',
+      bankName: emp.bankName || '', branchName: emp.branchName || '', ifscCode: emp.ifscCode || '', accountNumber: emp.accountNumber || '',
+      accountHolderName: emp.accountHolderName || '', accountType: emp.accountType || 'Savings', upiId: emp.upiId || '',
+      joiningDate: emp.joiningDate || '', relievingDate: emp.relievingDate || '', status: emp.status as 'Active' | 'Inactive',
+      role: emp.role as EmployeeProfile['role'], education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
       experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
     };
   }
@@ -156,6 +138,13 @@ export class EmployeeService {
         ...(data.linkedInUrl !== undefined && { linkedInUrl: data.linkedInUrl.trim() }),
         ...(data.aadhaarNumber !== undefined && { aadhaarNumber: data.aadhaarNumber.trim() }),
         ...(data.panNumber !== undefined && { panNumber: data.panNumber.trim() }),
+        ...(data.bankName !== undefined && { bankName: data.bankName.trim() }),
+        ...(data.branchName !== undefined && { branchName: data.branchName.trim() }),
+        ...(data.ifscCode !== undefined && { ifscCode: data.ifscCode.trim().toUpperCase() }),
+        ...(data.accountNumber !== undefined && { accountNumber: data.accountNumber.trim() }),
+        ...(data.accountHolderName !== undefined && { accountHolderName: data.accountHolderName.trim() }),
+        ...(data.accountType !== undefined && { accountType: data.accountType }),
+        ...(data.upiId !== undefined && { upiId: data.upiId.trim() }),
         ...(data.costRate !== undefined && { costRate: data.costRate }),
         ...(data.capacity && { capacity: data.capacity }),
         ...(data.joiningDate !== undefined && { joiningDate: data.joiningDate.trim() }),
@@ -172,12 +161,12 @@ export class EmployeeService {
     const exp = Array.isArray(updated.experience) ? (updated.experience as any[]) : [];
     return {
       ...updated, id: updated.employeeId, dob: updated.dob || '', personalEmail: updated.personalEmail || '', secondaryPhone: updated.secondaryPhone || '',
-      permanentAddress: updated.permanentAddress || '', gender: updated.gender || 'Not Specified',
-      guardianName: updated.guardianName || '', motherName: updated.motherName || '',
-      bloodGroup: updated.bloodGroup || '', linkedInUrl: updated.linkedInUrl || '', aadhaarNumber: updated.aadhaarNumber || '',
-      panNumber: updated.panNumber || '', joiningDate: updated.joiningDate || '', relievingDate: updated.relievingDate || '',
-      status: updated.status as 'Active' | 'Inactive', role: updated.role as EmployeeProfile['role'],
-      education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
+      permanentAddress: updated.permanentAddress || '', gender: updated.gender || 'Not Specified', guardianName: updated.guardianName || '', motherName: updated.motherName || '',
+      bloodGroup: updated.bloodGroup || '', linkedInUrl: updated.linkedInUrl || '', aadhaarNumber: updated.aadhaarNumber || '', panNumber: updated.panNumber || '',
+      bankName: updated.bankName || '', branchName: updated.branchName || '', ifscCode: updated.ifscCode || '', accountNumber: updated.accountNumber || '',
+      accountHolderName: updated.accountHolderName || '', accountType: updated.accountType || 'Savings', upiId: updated.upiId || '',
+      joiningDate: updated.joiningDate || '', relievingDate: updated.relievingDate || '', status: updated.status as 'Active' | 'Inactive',
+      role: updated.role as EmployeeProfile['role'], education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
       experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
     };
   }
