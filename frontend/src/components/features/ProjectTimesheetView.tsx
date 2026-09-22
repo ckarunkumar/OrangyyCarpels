@@ -31,23 +31,16 @@ export default function ProjectTimesheetView({
   const [saveMsg, setSaveMsg] = useState('');
   const [pendingAction, setPendingAction] = useState<TimesheetActionType | null>(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [monthlyAllocatedBudget, setMonthlyAllocatedBudget] = useState<number>(project.budgetHours || 0);
+  const [isMonthUnallocated, setIsMonthUnallocated] = useState<boolean>(false);
+  const [isBackendBudgetExhausted, setIsBackendBudgetExhausted] = useState<boolean>(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
   const totalHours = entries.reduce((s, e) => s + (Number(e.hours) || 0), 0);
   const myTotalHours = entries.filter((e) => e.isOwner !== false).reduce((s, e) => s + (Number(e.hours) || 0), 0);
   const isHourly = project.billingType === 'T&M' || project.billingType === 'Hourly Rate (T&M)';
 
-  let allocatedMonthlyBudget = project.budgetHours || 0;
-  if (project.budgetType === 'Total Project' && project.startDate && project.endDate && allocatedMonthlyBudget > 0) {
-    const [sY, sM] = project.startDate.split('-').map(Number);
-    const [eY, eM] = project.endDate.split('-').map(Number);
-    if (sY && sM && eY && eM) {
-      const count = (eY - sY) * 12 + (eM - sM) + 1;
-      if (count > 0) allocatedMonthlyBudget = Math.round(allocatedMonthlyBudget / count);
-    }
-  }
-
-  const isBudgetExhausted = isHourly && allocatedMonthlyBudget > 0 && totalHours >= allocatedMonthlyBudget;
+  const isBudgetExhausted = isBackendBudgetExhausted || (isHourly && monthlyAllocatedBudget > 0 && totalHours >= monthlyAllocatedBudget);
 
   const baseIsLocked = isEmp
     ? (myStatus === 'Approved' || myStatus === 'PM_Approved' || myStatus === 'Submitted')
@@ -55,7 +48,7 @@ export default function ProjectTimesheetView({
     ? (status === 'Approved' || status === 'PM_Approved')
     : (status === 'Approved');
 
-  const isLocked = baseIsLocked || isBudgetExhausted;
+  const isLocked = isMonthUnallocated || baseIsLocked || isBudgetExhausted;
 
   const fetchEntries = () => {
     setLoading(true);
@@ -72,6 +65,11 @@ export default function ProjectTimesheetView({
         setPendingResources(data.pendingResources || []);
         setCounts({ total: data.totalAssigned || 1, submitted: data.submittedCount || 0 });
         if (data.services) setProjectServices(data.services.split(',').map((s: string) => s.trim()).filter(Boolean));
+        if (data.monthlyAllocatedHours !== undefined) {
+          setMonthlyAllocatedBudget(Number(data.monthlyAllocatedHours) || 0);
+        }
+        setIsMonthUnallocated(!!data.isMonthUnallocated);
+        setIsBackendBudgetExhausted(!!data.isBudgetExhausted);
         setFetchError(null);
       })
       .catch((err) => { setFetchError(err.message); setEntries([]); })
@@ -232,13 +230,13 @@ export default function ProjectTimesheetView({
 
           <div className="flex items-center gap-2.5 flex-wrap">
             {/* Progress indicator */}
-            {isHourly && (allocatedMonthlyBudget > 0 || project.budgetHours > 0) && (
+            {isHourly && (monthlyAllocatedBudget > 0) && (
               <div className="hidden lg:flex items-center gap-2 text-[11px] font-mono text-studio-muted mr-1">
-                <span>{totalHours}/{allocatedMonthlyBudget || project.budgetHours}h</span>
+                <span>{totalHours}/{monthlyAllocatedBudget}h</span>
                 <div className="w-20 h-1.5 bg-studio-sidebar rounded-full overflow-hidden border border-studio-border">
-                  <div className="h-full bg-brand-orange transition-all duration-300" style={{ width: `${Math.min(100, Math.round((totalHours / (allocatedMonthlyBudget || project.budgetHours || 1)) * 100))}%` }} />
+                  <div className="h-full bg-brand-orange transition-all duration-300" style={{ width: `${Math.min(100, Math.round((totalHours / monthlyAllocatedBudget) * 100))}%` }} />
                 </div>
-                <span className="font-bold text-brand-orange">{Math.min(100, Math.round((totalHours / (allocatedMonthlyBudget || project.budgetHours || 1)) * 100))}%</span>
+                <span className="font-bold text-brand-orange">{Math.min(100, Math.round((totalHours / monthlyAllocatedBudget) * 100))}%</span>
               </div>
             )}
 
@@ -366,13 +364,25 @@ export default function ProjectTimesheetView({
           </div>
         )}
 
+        {/* Unallocated Month Lock Alert Banner */}
+        {isMonthUnallocated && (
+          <div className="px-3.5 py-2 bg-slate-100 border border-slate-300 rounded-lg flex items-center justify-between text-[11.5px] text-slate-800 shadow-2xs animate-in fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-slate-600 shrink-0" />
+              <span>
+                <strong>No Budget Allocated for {currentMonth}:</strong> Timesheet logging and editing are disabled for this month because no budget hours have been allocated in Project Registry.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Budget Lock Alert Banner */}
-        {isBudgetExhausted && (
+        {isBudgetExhausted && !isMonthUnallocated && (
           <div className="px-3.5 py-2 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between text-[11.5px] text-amber-900 shadow-2xs animate-in fade-in shrink-0">
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-amber-700 shrink-0" />
               <span>
-                <strong>Monthly Budget Exhausted ({totalHours}/{allocatedMonthlyBudget}h — 100% burned):</strong> This month's timesheet is locked to prevent further logging. To unlock, extend the project's budget hours in Project Registry.
+                <strong>Monthly Budget Exhausted ({totalHours}/{monthlyAllocatedBudget}h — 100% burned):</strong> This month's timesheet is locked to prevent further logging. To unlock, extend the project's budget hours in Project Registry.
               </span>
             </div>
           </div>
@@ -401,10 +411,14 @@ export default function ProjectTimesheetView({
           <div className="bg-studio-sidebar border-t border-studio-border px-5 py-2.5 flex justify-between items-center text-[12px] shadow-xs shrink-0">
             <div className="flex items-center gap-2">
               {isLocked ? (
-                <span className="text-green-800 bg-green-50 border border-green-200 px-2.5 py-1 rounded-md font-semibold flex items-center gap-1.5 text-[11px]">
-                  <Lock className="w-3.5 h-3.5 text-green-700" />
+                <span className={`px-2.5 py-1 rounded-md font-semibold flex items-center gap-1.5 text-[11px] border ${isMonthUnallocated ? 'bg-slate-100 border-slate-300 text-slate-700' : 'bg-green-50 border-green-200 text-green-800'}`}>
+                  <Lock className={`w-3.5 h-3.5 ${isMonthUnallocated ? 'text-slate-600' : 'text-green-700'}`} />
                   Locked for edits ({
-                    isEmp
+                    isMonthUnallocated
+                      ? 'No Budget Allocated'
+                      : isBudgetExhausted
+                      ? 'Monthly Budget Exhausted'
+                      : isEmp
                       ? (status === 'Approved' ? 'Locked' : (myStatus === 'PM_Approved' || status === 'PM_Approved') ? 'PM Approved' : 'Submitted')
                       : isPM
                       ? (status === 'Approved' ? 'Locked' : 'PM Approved')

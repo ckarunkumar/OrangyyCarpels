@@ -5,20 +5,24 @@ import Breadcrumbs from '../ui/Breadcrumbs';
 import StudioPreferencesForm from './StudioPreferencesForm';
 import BusinessLineManager from './BusinessLineManager';
 import LeaveSettingsView from './LeaveSettingsView';
+import SystemLogsView from './SystemLogsView';
 
 export default function GeneralSettingsView() {
   const location = useLocation();
   const isServices = location.pathname === '/settings/services' || location.pathname === '/settings/bl-sl';
   const isLeaves = location.pathname === '/settings/leaves';
+  const isLogs = location.pathname === '/settings/logs';
   const [triggerAddBL, setTriggerAddBL] = useState(false);
 
   const getTitle = () => {
+    if (isLogs) return 'System Logs';
     if (isLeaves) return 'Leave & Holiday Settings';
     if (isServices) return 'Services';
     return 'Studio Settings';
   };
 
   const getSubtitle = () => {
+    if (isLogs) return 'Track user login activity, authentication events, client IP addresses, OS, and browser details';
     if (isLeaves) return 'Configure annual leave policies, monthly accrual rates, and publish the holiday calendar';
     if (isServices) return 'Configure Business Lines (BL) and Services inventory for project mapping';
     return 'Manage studio operational standards, default currency, and billing preferences';
@@ -29,7 +33,7 @@ export default function GeneralSettingsView() {
       <Breadcrumbs
         items={[
           { label: 'General Settings' },
-          { label: isLeaves ? 'Leaves' : isServices ? 'Services' : 'Studio' },
+          { label: isLogs ? 'Logs' : isLeaves ? 'Leaves' : isServices ? 'Services' : 'Studio' },
         ]}
       />
 
@@ -45,7 +49,7 @@ export default function GeneralSettingsView() {
         </div>
 
         {/* Top Right Action Button for Module Heading */}
-        {!isServices && !isLeaves && (
+        {!isServices && !isLeaves && !isLogs && (
           <button
             type="submit"
             form="studio-preferences-form"
@@ -67,7 +71,9 @@ export default function GeneralSettingsView() {
 
       {/* Page Content */}
       <div className="pt-1 w-full">
-        {isLeaves ? (
+        {isLogs ? (
+          <SystemLogsView />
+        ) : isLeaves ? (
           <LeaveSettingsView />
         ) : isServices ? (
           <BusinessLineManager addingBL={triggerAddBL} onAddingBLChange={setTriggerAddBL} />

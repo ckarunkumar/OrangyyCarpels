@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Clock, Users, Building2, FolderKanban, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Building2, FolderKanban, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText } from 'lucide-react';
 import UserProfileDrawer from './UserProfileDrawer';
 import NotificationDrawer, { NotificationItem } from './NotificationDrawer';
 
@@ -167,6 +167,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <Link to="/settings/studio" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings' || location.pathname === '/settings/studio' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><Building2 className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Studio</span></Link>
                     <Link to="/settings/services" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings/services' || location.pathname === '/settings/bl-sl' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><Layers className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Services</span></Link>
                     <Link to="/settings/leaves" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings/leaves' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><CalendarCheck className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Leaves</span></Link>
+                    <Link to="/settings/logs" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings/logs' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><FileText className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Logs</span></Link>
                   </div>
                 </div>
               </div>

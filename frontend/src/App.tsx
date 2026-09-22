@@ -120,6 +120,7 @@ function AppContent() {
             <Route path="/settings/studio" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/services" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/leaves" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/logs" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/bl-sl" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/billing" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

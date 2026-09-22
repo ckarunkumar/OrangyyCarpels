@@ -17,6 +17,7 @@ class ProjectService {
             status: p.status,
             managerId: p.managerId || '', managerName: p.managerName || '',
             assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            monthlyBudgets: Array.isArray(p.monthlyBudgets) ? p.monthlyBudgets : [],
         }));
     }
     static async getNextProjectId() {
@@ -33,7 +34,7 @@ class ProjectService {
         const nextNum = maxNum + 1;
         return `PC${String(nextNum).padStart(4, '0')}`;
     }
-    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType) {
+    static async createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets) {
         if (role !== 'Super Admin')
             throw new Error('Access Denied: Only Super Admins can create projects.');
         const client = await prisma_1.prisma.client.findUnique({ where: { id: clientId } });
@@ -47,25 +48,33 @@ class ProjectService {
         if (await prisma_1.prisma.project.findUnique({ where: { id: targetProjectId } })) {
             throw new Error(`Project ID "${targetProjectId}" already exists. Please enter a unique ID.`);
         }
+        const totalHours = Number(budgetHours) || 0;
+        if (budgetType === 'Total Project' && Array.isArray(monthlyBudgets)) {
+            const sumAllocated = monthlyBudgets.reduce((acc, b) => acc + (Number(b.budgetHours) || 0), 0);
+            if (sumAllocated > totalHours) {
+                throw new Error(`The sum of monthly allocations (${sumAllocated}h) cannot exceed the Total Project Budget Hours (${totalHours}h).`);
+            }
+        }
         const assignedStr = Array.isArray(assignedEmployees) ? assignedEmployees.join(', ') : '';
         const proj = await prisma_1.prisma.project.create({
             data: {
                 id: targetProjectId, clientId, name: cleanName, billingType, rate,
-                budgetHours: budgetHours || 0, budgetType: budgetType || 'Monthly', startDate: startDate || '', endDate: endDate || '',
+                budgetHours: totalHours, budgetType: budgetType || 'Monthly', startDate: startDate || '', endDate: endDate || '',
                 status: 'Active', managerId: managerId || '', managerName: managerName || '',
                 assignedEmployees: assignedStr, businessLine: businessLine || '', service: service || '',
+                monthlyBudgets: Array.isArray(monthlyBudgets) ? monthlyBudgets : undefined,
             },
-            include: { client: true },
         });
         return {
-            id: proj.id, name: proj.name, clientId: proj.clientId, clientName: proj.client.name,
-            clientCurrency: proj.client.billingCurrency, billingType: proj.billingType,
+            id: proj.id, name: proj.name, clientId: proj.clientId, clientName: client.name,
+            clientCurrency: client.billingCurrency, billingType: proj.billingType,
             rate: proj.rate, businessLine: proj.businessLine || '', service: proj.service || '',
             startDate: proj.startDate || '', endDate: proj.endDate || '',
             budgetHours: proj.budgetHours || 0, budgetType: (proj.budgetType || 'Monthly'), loggedHours: proj.loggedHours || 0,
             status: proj.status,
             managerId: proj.managerId || '', managerName: proj.managerName || '',
             assignedEmployees: proj.assignedEmployees ? proj.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            monthlyBudgets: Array.isArray(proj.monthlyBudgets) ? proj.monthlyBudgets : [],
         };
     }
     static async updateProject(role, id, data) {
@@ -90,6 +99,14 @@ class ProjectService {
             };
             rateVersionsList = [newVersion, ...rateVersionsList];
         }
+        const bType = data.budgetType !== undefined ? data.budgetType : existing.budgetType;
+        const bHours = data.budgetHours !== undefined ? Number(data.budgetHours) : existing.budgetHours;
+        if (bType === 'Total Project' && Array.isArray(data.monthlyBudgets)) {
+            const sumAllocated = data.monthlyBudgets.reduce((acc, b) => acc + (Number(b.budgetHours) || 0), 0);
+            if (sumAllocated > bHours) {
+                throw new Error(`The sum of monthly allocations (${sumAllocated}h) cannot exceed the Total Project Budget Hours (${bHours}h).`);
+            }
+        }
         const assignedStr = Array.isArray(data.assignedEmployees) ? data.assignedEmployees.join(', ') : data.assignedEmployees;
         const updated = await prisma_1.prisma.project.update({
             where: { id },
@@ -108,6 +125,7 @@ class ProjectService {
                 ...(data.managerId !== undefined && { managerId: data.managerId }),
                 ...(data.managerName !== undefined && { managerName: data.managerName }),
                 ...(assignedStr !== undefined && { assignedEmployees: assignedStr }),
+                ...(data.monthlyBudgets !== undefined && { monthlyBudgets: Array.isArray(data.monthlyBudgets) ? data.monthlyBudgets : undefined }),
                 ...(rateVersionsList.length > 0 && { rateVersions: rateVersionsList }),
             },
             include: { client: true },
@@ -121,6 +139,7 @@ class ProjectService {
             status: updated.status,
             managerId: updated.managerId || '', managerName: updated.managerName || '',
             assignedEmployees: updated.assignedEmployees ? updated.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+            monthlyBudgets: Array.isArray(updated.monthlyBudgets) ? updated.monthlyBudgets : [],
         };
     }
     static async getRateHistory(role, projectId) {

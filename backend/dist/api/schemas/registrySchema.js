@@ -157,6 +157,7 @@ exports.createProjectSchema = {
             managerId: { type: 'string' },
             managerName: { type: 'string' },
             assignedEmployees: { type: ['string', 'array'] },
+            monthlyBudgets: { type: ['array', 'null'] },
         },
     },
 };
@@ -185,6 +186,7 @@ exports.updateProjectSchema = {
             managerId: { type: 'string' },
             managerName: { type: 'string' },
             assignedEmployees: { type: ['string', 'array'] },
+            monthlyBudgets: { type: ['array', 'null'] },
         },
     },
 };

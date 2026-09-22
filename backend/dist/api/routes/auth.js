@@ -1,46 +1,33 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const authService_1 = require("../../services/authService");
+const systemLogService_1 = require("../../services/systemLogService");
 const security_1 = require("../../utils/security");
 const loginSchema = {
     body: {
         type: 'object',
         required: ['email', 'password'],
-        properties: {
-            email: { type: 'string', format: 'email' },
-            password: { type: 'string', minLength: 1 },
-            rememberMe: { type: 'boolean' },
-        },
+        properties: { email: { type: 'string', format: 'email' }, password: { type: 'string', minLength: 1 }, rememberMe: { type: 'boolean' } },
     },
 };
 const changePasswordSchema = {
     body: {
         type: 'object',
         required: ['currentPassword', 'newPassword'],
-        properties: {
-            currentPassword: { type: 'string' },
-            newPassword: { type: 'string', minLength: 9 },
-        },
+        properties: { currentPassword: { type: 'string' }, newPassword: { type: 'string', minLength: 9 } },
     },
 };
 const resetPasswordSchema = {
     body: {
         type: 'object',
         required: ['employeeId', 'newPassword'],
-        properties: {
-            employeeId: { type: 'string' },
-            newPassword: { type: 'string', minLength: 9 },
-        },
+        properties: { employeeId: { type: 'string' }, newPassword: { type: 'string', minLength: 9 } },
     },
 };
 const updateProfileSchema = {
     body: {
         type: 'object',
-        properties: {
-            phone: { type: 'string' },
-            location: { type: 'string' },
-            avatar: { type: ['string', 'null'] },
-        },
+        properties: { phone: { type: 'string' }, location: { type: 'string' }, avatar: { type: ['string', 'null'] } },
     },
 };
 const authRoutes = async (fastify) => {
@@ -63,6 +50,18 @@ const authRoutes = async (fastify) => {
         }
         // Reset rate limit on successful authentication
         (0, security_1.resetLoginAttempts)(rateLimitKey);
+        // Extract real client IP and User-Agent
+        const realIp = systemLogService_1.SystemLogService.extractClientIp(request.headers, request.ip);
+        const userAgent = request.headers['user-agent'] || '';
+        // Record system login log asynchronously
+        systemLogService_1.SystemLogService.recordLogin({
+            employeeId: result.session.employeeId,
+            fullName: result.session.fullName,
+            email: result.session.email,
+            role: result.session.role,
+            ipAddress: realIp,
+            userAgent,
+        });
         // Set HTTP-only session cookie (15 days if rememberMe or default 15 days session)
         const maxAgeSeconds = rememberMe !== false ? (3600 * 24 * 15) : (3600 * 24 * 7);
         reply.setCookie('sessionId', result.sessionId, {

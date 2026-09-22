@@ -24,6 +24,7 @@ class ClientService {
                 status: p.status,
                 managerId: p.managerId || '', managerName: p.managerName || '',
                 assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+                monthlyBudgets: Array.isArray(p.monthlyBudgets) ? p.monthlyBudgets : [],
             })),
         }));
     }
@@ -131,6 +132,7 @@ class ClientService {
                 status: p.status,
                 managerId: p.managerId || '', managerName: p.managerName || '',
                 assignedEmployees: p.assignedEmployees ? p.assignedEmployees.split(',').map((s) => s.trim()).filter(Boolean) : [],
+                monthlyBudgets: Array.isArray(p.monthlyBudgets) ? p.monthlyBudgets : [],
             })),
         };
     }

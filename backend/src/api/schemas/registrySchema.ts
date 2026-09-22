@@ -159,6 +159,7 @@ export const createProjectSchema = {
       managerId: { type: 'string' },
       managerName: { type: 'string' },
       assignedEmployees: { type: ['string', 'array'] },
+      monthlyBudgets: { type: ['array', 'null'] },
     },
   },
 };
@@ -188,6 +189,7 @@ export const updateProjectSchema = {
       managerId: { type: 'string' },
       managerName: { type: 'string' },
       assignedEmployees: { type: ['string', 'array'] },
+      monthlyBudgets: { type: ['array', 'null'] },
     },
   },
 };

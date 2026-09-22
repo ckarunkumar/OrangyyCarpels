@@ -9,6 +9,7 @@ import billingRoutes from './api/routes/billing';
 import notificationRoutes from './api/routes/notifications';
 import { businessLineRoutes } from './api/routes/businessLines';
 import leaveRoutes from './api/routes/leaves';
+import systemLogRoutes from './api/routes/systemLogs';
 import { AuthService, UserSession } from './services/authService';
 import { isAllowedOrigin, applySecurityHeaders } from './utils/security';
 
@@ -106,6 +107,7 @@ const start = async () => {
     await fastify.register(billingRoutes, { prefix: '/api' });
     await fastify.register(notificationRoutes, { prefix: '/api' });
     await fastify.register(leaveRoutes, { prefix: '/api' });
+    await fastify.register(systemLogRoutes, { prefix: '/api' });
     await fastify.register(businessLineRoutes);
 
     const port = Number(process.env.PORT) || 5001;

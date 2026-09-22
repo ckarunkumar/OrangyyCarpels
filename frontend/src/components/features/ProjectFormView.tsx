@@ -3,6 +3,7 @@ import { ArrowLeft, UserCheck, X, ChevronDown } from 'lucide-react';
 import { Project, Client, Employee } from '../../types/registry';
 import { UserRole } from '../ui/Layout';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import ProjectMonthlyBudgetAllocator, { computeMonthlyBreakdown } from './ProjectMonthlyBudgetAllocator';
 
 const CURRENCIES = ['USD ($)', 'INR (₹)', 'EUR (€)', 'GBP (£)', 'SGD ($)', 'AUD ($)', 'CAD ($)', 'AED (د.إ)', 'JPY (¥)', 'CHF (Fr.)'];
 
@@ -20,6 +21,7 @@ export default function ProjectFormView({ mode, project, clients, employees = []
   const [currency, setCurrency] = useState('USD ($)'); const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(''); const [budgetHours, setBudgetHours] = useState('100');
   const [budgetType, setBudgetType] = useState<'Monthly' | 'Total Project'>('Monthly');
+  const [allocatedHoursList, setAllocatedHoursList] = useState<number[]>([]);
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
   const [managerId, setManagerId] = useState(''); const [assignedEmployees, setAssignedEmployees] = useState<string[]>([]);
   const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null);
@@ -38,12 +40,17 @@ export default function ProjectFormView({ mode, project, clients, employees = []
       setRateAmount(isNaN(parsed) ? '50' : String(parsed)); setCurrency(project.currency || project.clientCurrency || 'USD ($)');
       setStartDate(project.startDate || new Date().toISOString().split('T')[0]); setEndDate(project.endDate || ''); setBudgetHours(String(project.budgetHours || 100));
       setBudgetType(project.budgetType || 'Monthly');
+      if (Array.isArray(project.monthlyBudgets) && project.monthlyBudgets.length > 0) {
+        setAllocatedHoursList(project.monthlyBudgets.map((b) => Number(b.budgetHours) || 0));
+      } else {
+        setAllocatedHoursList([]);
+      }
       setStatus(project.status); setManagerId(project.managerId || ''); setAssignedEmployees(project.assignedEmployees || []);
     } else {
       const initC = clients[0];
       setProjectId(''); setName(''); setClientId(initC?.id || ''); setSelectedBLs([]);
       setBillingType(normalizeBType(initC?.defaultBillingType)); setRateAmount('50'); setCurrency(initC?.billingCurrency || 'USD ($)');
-      setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setBudgetType('Monthly'); setStatus('Active');
+      setStartDate(new Date().toISOString().split('T')[0]); setEndDate(''); setBudgetHours('100'); setBudgetType('Monthly'); setAllocatedHoursList([]); setStatus('Active');
       const defaultPM = employees.find((e) => e.role === 'Project Manager' || e.role === 'Super Admin');
       setManagerId(defaultPM?.employeeId || ''); setAssignedEmployees([]);
       fetch('/api/projects/next-id')
@@ -53,6 +60,30 @@ export default function ProjectFormView({ mode, project, clients, employees = []
     }
     setTimeout(() => inputRef.current?.focus(), 100);
   }, [mode, project, clients, employees]);
+
+  const handleBudgetHoursChange = (newVal: string) => {
+    setBudgetHours(newVal);
+    const total = Number(newVal) || 0;
+    if (budgetType === 'Total Project') {
+      setAllocatedHoursList((prev) => {
+        let currentSum = 0;
+        const valid: number[] = [];
+        for (const h of prev) {
+          if (currentSum + h <= total) {
+            valid.push(h);
+            currentSum += h;
+          } else if (total - currentSum > 0) {
+            valid.push(total - currentSum);
+            currentSum = total;
+            break;
+          } else {
+            break;
+          }
+        }
+        return valid;
+      });
+    }
+  };
 
   const handleClientChange = (newId: string) => {
     setClientId(newId);
@@ -72,19 +103,6 @@ export default function ProjectFormView({ mode, project, clients, employees = []
   const unassigned = staffEmployees.filter((e) => !assignedEmployees.includes(e.employeeId || String(e.id)));
   const availableServices = (selectedBLs.length > 0 ? blInventory.filter((b) => selectedBLs.includes(b.name)) : []).flatMap((b) => b.services);
 
-  const calculateMonthBreakdown = () => {
-    if (budgetType !== 'Total Project') return null;
-    const hours = Number(budgetHours);
-    if (isNaN(hours) || hours <= 0 || !startDate || !endDate) return null;
-    const [sY, sM] = startDate.split('-').map(Number);
-    const [eY, eM] = endDate.split('-').map(Number);
-    if (!sY || !sM || !eY || !eM) return null;
-    const count = (eY - sY) * 12 + (eM - sM) + 1;
-    if (count <= 0) return null;
-    const perMonth = Math.round(hours / count);
-    return `${hours} hrs ÷ ${count} mo = ~${perMonth} hrs/mo`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !clientId) { setError('Project name and Client are required.'); return; }
@@ -92,6 +110,11 @@ export default function ProjectFormView({ mode, project, clients, employees = []
     if (isNaN(amount) || amount < 0) { setError('Please enter a valid rate amount.'); return; }
     let hours = isHourly ? Number(budgetHours) : 0;
     if (isHourly && (!hours || hours <= 0)) { setError('Budget hours must be positive.'); return; }
+
+    const monthlyBudgets = (isHourly && budgetType === 'Total Project')
+      ? computeMonthlyBreakdown(startDate, allocatedHoursList).map((m) => ({ monthYear: m.monthYear, budgetHours: m.hours }))
+      : undefined;
+
     setSaving(true); setError(null);
     try {
       const formattedRate = `${currency.replace(/\s*\(.*\)/, '')} ${amount.toLocaleString()}${isHourly ? '/hr' : billingType === 'Resources Cost (Fix)' ? '/mo' : ''}`;
@@ -102,7 +125,8 @@ export default function ProjectFormView({ mode, project, clients, employees = []
         ...(projectId.trim() && { id: projectId.trim().toUpperCase() }),
         clientId, name: name.trim(), businessLine: selectedBLs.join(', '), service: mappedServices,
         billingType, rate: formattedRate, startDate, endDate, budgetHours: hours, budgetType, status,
-        managerId, managerName: selectedPM?.fullName || '', assignedEmployees
+        managerId, managerName: selectedPM?.fullName || '', assignedEmployees,
+        monthlyBudgets: monthlyBudgets || []
       });
       const res = await fetch(url, { method: mode === 'edit' ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body });
       const data = await res.json();
@@ -207,14 +231,17 @@ export default function ProjectFormView({ mode, project, clients, employees = []
                   </div>
                 </div>
                 <div>
-                  <label className={labelCls}>{budgetType === 'Total Project' ? 'Total Budget Hours *' : 'Monthly Budget Hours *'}</label>
-                  <input type="number" placeholder="100" value={budgetHours} onChange={(e) => setBudgetHours(e.target.value)} className={inputCls} />
-                  {calculateMonthBreakdown() && (
-                    <span className="text-[10.5px] font-medium text-brand-orange bg-orange-50 px-2.5 py-0.5 rounded border border-orange-200 mt-1.5 inline-block">
-                      {calculateMonthBreakdown()}
-                    </span>
-                  )}
+                  <label className={labelCls}>{budgetType === 'Total Project' ? 'Total Project Budget Hours *' : 'Monthly Budget Hours *'}</label>
+                  <input type="number" placeholder="100" value={budgetHours} onChange={(e) => handleBudgetHoursChange(e.target.value)} className={inputCls} />
                 </div>
+                {budgetType === 'Total Project' && (
+                  <ProjectMonthlyBudgetAllocator
+                    startDate={startDate}
+                    totalBudgetHours={Number(budgetHours) || 0}
+                    allocatedHoursList={allocatedHoursList}
+                    onChange={setAllocatedHoursList}
+                  />
+                )}
               </>
             )}
           </div>

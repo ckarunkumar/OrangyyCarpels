@@ -214,3 +214,28 @@ model LeaveRequest {
   updatedAt       DateTime @default(now()) @updatedAt
 }
 
+model LoginLog {
+  id          Int      @id @default(autoincrement())
+  employeeId  String?  @default("")
+  fullName    String
+  email       String
+  role        String?  @default("Employee")
+  ipAddress   String
+  city        String?  @default("")
+  region      String?  @default("")
+  country     String?  @default("")
+  latitude    Float?
+  longitude   Float?
+  os          String?  @default("Unknown OS")
+  browser     String?  @default("Unknown Browser")
+  deviceType  String?  @default("Desktop / Web")
+  networkInfo String?  @default("")
+  userAgent   String?  @db.Text
+  loginAt     DateTime @default(now())
+
+  @@index([loginAt])
+  @@index([email])
+  @@index([ipAddress])
+  @@index([employeeId])
+}
+

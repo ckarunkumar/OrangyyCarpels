@@ -81,4 +81,5 @@ export interface Project {
   managerId?: string;
   managerName?: string;
   assignedEmployees?: string[];
+  monthlyBudgets?: Array<{ monthYear: string; budgetHours: number; isLocked?: boolean }>;
 }
