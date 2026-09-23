@@ -71,5 +71,17 @@ async function clientUserRoutes(fastify) {
             return reply.status(status).send({ error: err.message });
         }
     });
+    // DELETE client user
+    fastify.delete('/client-users/:id', async (request, reply) => {
+        try {
+            const role = request.user?.role || 'Employee';
+            const result = await clientUserService_1.ClientUserService.deleteClientUser(role, request.params.id);
+            return reply.send(result);
+        }
+        catch (err) {
+            const status = err.message.includes('Access Denied') ? 403 : err.message.includes('not found') ? 404 : 400;
+            return reply.status(status).send({ error: err.message });
+        }
+    });
 }
 exports.default = clientUserRoutes;

@@ -3,12 +3,11 @@ import { hashPassword, validatePasswordPolicy } from '../utils/passwordUtils';
 
 export interface CreateClientUserInput {
   name: string;
-  username: string;
   email: string;
   phone?: string;
   password?: string;
   clientId: string;
-  status?: 'Active' | 'Inactive';
+  status?: 'Active' | 'Can Login' | 'Cannot Login';
   projectIds?: string[];
 }
 
@@ -44,7 +43,7 @@ export class ClientUserService {
 
   static async getClientUsersByClient(clientId: string) {
     return prisma.clientUser.findMany({
-      where: { clientId, status: 'Active' },
+      where: { clientId, status: { in: ['Active', 'Can Login'] } },
       select: { id: true, name: true, email: true, username: true, status: true, clientId: true },
       orderBy: { name: 'asc' },
     });
@@ -65,28 +64,27 @@ export class ClientUserService {
       throw new Error('Access Denied: Only Admins and Project Managers can create client users.');
     }
     const cleanEmail = data.email.toLowerCase().trim();
-    const cleanUsername = data.username.toLowerCase().trim();
 
-    const [existingEmail, existingUsername, clientExists] = await Promise.all([
-      prisma.clientUser.findUnique({ where: { email: cleanEmail } }),
-      prisma.clientUser.findUnique({ where: { username: cleanUsername } }),
+    const [existingEmail, clientExists] = await Promise.all([
+      prisma.clientUser.findFirst({
+        where: { OR: [{ email: cleanEmail }, { username: cleanEmail }] },
+      }),
       prisma.client.findUnique({ where: { id: data.clientId } }),
     ]);
 
     if (!clientExists) throw new Error(`Client ID "${data.clientId}" not found.`);
     if (existingEmail) throw new Error(`Email "${cleanEmail}" is already registered.`);
-    if (existingUsername) throw new Error(`Username "${cleanUsername}" is already taken.`);
 
     const rawPassword = data.password?.trim() || 'Client@123';
     const policy = validatePasswordPolicy(rawPassword);
     if (!policy.isValid) throw new Error(policy.error || 'Password does not meet requirements.');
 
     const id = await this.getNextId();
-    const clientUser = await prisma.clientUser.create({
+    await prisma.clientUser.create({
       data: {
         id,
         name: data.name.trim(),
-        username: cleanUsername,
+        username: cleanEmail,
         email: cleanEmail,
         phone: data.phone?.trim() || '',
         password: hashPassword(rawPassword),
@@ -114,18 +112,25 @@ export class ClientUserService {
     if (data.phone !== undefined) updateData.phone = data.phone.trim();
     if (data.status) updateData.status = data.status;
 
-    if (data.email) {
-      const cleanEmail = data.email.toLowerCase().trim();
-      const dup = await prisma.clientUser.findUnique({ where: { email: cleanEmail } });
-      if (dup && dup.id !== id) throw new Error(`Email "${cleanEmail}" is already registered.`);
-      updateData.email = cleanEmail;
+    let targetClientId = existing.clientId;
+    if (data.clientId && data.clientId !== existing.clientId) {
+      const client = await prisma.client.findUnique({ where: { id: data.clientId } });
+      if (!client) throw new Error(`Client ID "${data.clientId}" not found.`);
+      updateData.clientId = data.clientId;
+      targetClientId = data.clientId;
     }
 
-    if (data.username) {
-      const cleanUsername = data.username.toLowerCase().trim();
-      const dup = await prisma.clientUser.findUnique({ where: { username: cleanUsername } });
-      if (dup && dup.id !== id) throw new Error(`Username "${cleanUsername}" is already taken.`);
-      updateData.username = cleanUsername;
+    if (data.email) {
+      const cleanEmail = data.email.toLowerCase().trim();
+      const dup = await prisma.clientUser.findFirst({
+        where: {
+          id: { not: id },
+          OR: [{ email: cleanEmail }, { username: cleanEmail }],
+        },
+      });
+      if (dup) throw new Error(`Email "${cleanEmail}" is already registered.`);
+      updateData.email = cleanEmail;
+      updateData.username = cleanEmail;
     }
 
     if (data.password && data.password.trim()) {
@@ -137,14 +142,28 @@ export class ClientUserService {
     await prisma.clientUser.update({ where: { id }, data: updateData });
 
     if (Array.isArray(data.projectIds)) {
-      await this.assignProjects(id, existing.clientId, data.projectIds);
+      await this.assignProjects(id, targetClientId, data.projectIds);
     }
 
     return this.getClientUserById(id);
   }
 
+  static async deleteClientUser(role: string, id: string) {
+    if (role !== 'Super Admin' && role !== 'Project Manager') {
+      throw new Error('Access Denied: Only Admins and Project Managers can delete client users.');
+    }
+    const existing = await prisma.clientUser.findUnique({ where: { id } });
+    if (!existing) throw new Error(`Client User "${id}" not found.`);
+
+    await prisma.$transaction([
+      prisma.clientUserProject.deleteMany({ where: { clientUserId: id } }),
+      prisma.clientUser.delete({ where: { id } }),
+    ]);
+
+    return { success: true, message: `Client User ${id} deleted successfully.` };
+  }
+
   static async assignProjects(clientUserId: string, clientId: string, projectIds: string[]) {
-    // 1. Verify all projects belong to this client
     const clientProjects = await prisma.project.findMany({
       where: { id: { in: projectIds } },
       select: { id: true, clientId: true },
@@ -155,7 +174,6 @@ export class ClientUserService {
       throw new Error(`Project "${invalid.id}" does not belong to Client "${clientId}". Cross-client assignment is prohibited.`);
     }
 
-    // 2. Clear old assignments and insert new
     await prisma.clientUserProject.deleteMany({ where: { clientUserId } });
     if (projectIds.length > 0) {
       await prisma.clientUserProject.createMany({

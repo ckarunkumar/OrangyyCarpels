@@ -67,8 +67,8 @@ export class AuthService {
     });
 
     if (clientUser) {
-      if (clientUser.status === 'Inactive') {
-        return { success: false, error: 'Account is inactive. Please contact your administrator.' };
+      if (clientUser.status === 'Cannot Login' || clientUser.status === 'Inactive') {
+        return { success: false, error: 'Account is disabled from logging in. Please contact your administrator.' };
       }
       if (!verifyPassword(password, clientUser.password)) {
         return { success: false, error: 'Invalid email or password.' };
@@ -124,7 +124,7 @@ export class AuthService {
       include: { client: true },
     });
     if (clientUser) {
-      if (clientUser.status === 'Inactive') return null;
+      if (clientUser.status === 'Cannot Login' || clientUser.status === 'Inactive') return null;
       return {
         id: clientUser.id,
         userId: clientUser.id,

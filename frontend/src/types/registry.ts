@@ -96,10 +96,10 @@ export interface Project {
 export interface ClientUser {
   id: string;
   name: string;
-  username: string;
+  username?: string;
   email: string;
   phone?: string;
-  status: 'Active' | 'Inactive';
+  status: 'Active' | 'Can Login' | 'Cannot Login' | 'Inactive';
   clientId: string;
   client?: {
     id: string;
