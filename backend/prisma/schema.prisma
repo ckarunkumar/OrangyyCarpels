@@ -190,18 +190,41 @@ model StudioSetting {
   updatedAt           DateTime @default(now()) @updatedAt
 }
 
+model ExchangeRateObservation {
+  id             Int      @id @default(autoincrement())
+  sourceCurrency String   // e.g. USD, EUR, GBP, AED, SGD, CAD, JPY, CHF
+  targetCurrency String   @default("INR") // e.g. INR
+  rate           Float    // Observation rate value
+  year           Int      // e.g. 2026
+  month          Int      // 1 - 12
+  day            Int      // 1, 15, or month-end (28, 29, 30, 31)
+  slot           String   // '1st', '15th', 'Month-End'
+  effectiveDate  String   // e.g. "2026-09-01", "2026-09-15", "2026-09-30"
+  source         String   @default("open.er-api.com")
+  fetchedAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @default(now()) @updatedAt
+
+  @@unique([sourceCurrency, targetCurrency, year, month, slot])
+  @@index([sourceCurrency, targetCurrency])
+  @@index([year, month])
+  @@index([effectiveDate])
+}
+
 model MonthlyExchangeRate {
-  id              Int      @id @default(autoincrement())
-  sourceCurrency  String   // e.g. USD, EUR, GBP, AED, SGD, CAD, JPY, CHF
-  targetCurrency  String   @default("INR") // e.g. INR
-  rate            Float    // Exchange rate value
-  month           Int      // 1 - 12
-  year            Int      // e.g. 2026
-  effectivePeriod String   // e.g. "Sep 2026" or "2026-09"
-  syncedAt        DateTime @default(now())
-  source          String   @default("open.er-api.com")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @default(now()) @updatedAt
+  id                Int      @id @default(autoincrement())
+  sourceCurrency    String   // e.g. USD, EUR, GBP, AED, SGD, CAD, JPY, CHF
+  targetCurrency    String   @default("INR") // e.g. INR
+  rate              Float    // Calculated Monthly Average Rate
+  month             Int      // 1 - 12
+  year              Int      // e.g. 2026
+  effectivePeriod   String   // e.g. "Sep 2026" or "2026-09"
+  observationsCount Int      @default(1) // 1, 2, or 3
+  calculationStatus String   @default("In Progress") // "Finalized (3/3 observations)", "In Progress (1/3 observations)"
+  syncedAt          DateTime @default(now())
+  source            String   @default("open.er-api.com")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
 
   @@unique([sourceCurrency, targetCurrency, year, month])
   @@index([sourceCurrency, targetCurrency])

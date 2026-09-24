@@ -6,29 +6,47 @@ const billingCalculator_1 = require("./billingCalculator");
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'AED', 'SGD', 'CAD', 'JPY', 'CHF', 'INR'];
 class FxRateService {
-    static getCurrentPeriod() {
-        const d = new Date();
+    static getLastDayOfMonth(year, month) {
+        return new Date(year, month, 0).getDate();
+    }
+    static getPeriodInfo(d = new Date()) {
         const year = d.getFullYear();
         const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const lastDay = this.getLastDayOfMonth(year, month);
         const monthName = MONTH_NAMES[month - 1];
-        return { year, month, effectivePeriod: `${monthName} ${year}`, monthYearKey: `${year}-${String(month).padStart(2, '0')}` };
+        const effectivePeriod = `${monthName} ${year}`;
+        const monthYearKey = `${year}-${String(month).padStart(2, '0')}`;
+        let slot = '1st';
+        let scheduledDay = 1;
+        if (day >= lastDay) {
+            slot = 'Month-End';
+            scheduledDay = lastDay;
+        }
+        else if (day >= 15) {
+            slot = '15th';
+            scheduledDay = 15;
+        }
+        return { year, month, day, lastDay, effectivePeriod, monthYearKey, slot, scheduledDay };
     }
-    static async syncLiveExchangeRates(targetCurrency = 'INR') {
-        const { year, month, effectivePeriod, monthYearKey } = this.getCurrentPeriod();
-        let liveRates = {};
-        let source = 'open.er-api.com';
+    static async fetchLiveRates() {
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(6000) });
             if (res.ok) {
-                const data = await res.json();
-                liveRates = data.rates || {};
+                const data = (await res.json());
+                return { liveRates: data.rates || {}, source: 'open.er-api.com' };
             }
         }
         catch {
-            source = 'fallback-cached';
+            // Fallback on network or API failure
         }
+        return { liveRates: {}, source: 'fallback-cached' };
+    }
+    static async syncObservationForDate(targetCurrency = 'INR', date = new Date()) {
+        const { year, month, lastDay, effectivePeriod, monthYearKey, slot, scheduledDay } = this.getPeriodInfo(date);
+        const effectiveDate = `${year}-${String(month).padStart(2, '0')}-${String(scheduledDay).padStart(2, '0')}`;
+        const { liveRates, source } = await this.fetchLiveRates();
         const usdToTarget = targetCurrency === 'USD' ? 1.0 : (liveRates[targetCurrency] || billingCalculator_1.DEFAULT_RATES['USD'] || 87.5);
-        const results = [];
         for (const curr of SUPPORTED_CURRENCIES) {
             let calculatedRate = 1.0;
             if (curr === targetCurrency) {
@@ -39,101 +57,108 @@ class FxRateService {
             }
             else {
                 const usdToCurr = liveRates[curr];
-                if (usdToCurr && usdToCurr > 0) {
-                    calculatedRate = parseFloat((usdToTarget / usdToCurr).toFixed(4));
-                }
-                else {
-                    calculatedRate = billingCalculator_1.DEFAULT_RATES[curr] || 1.0;
-                }
+                calculatedRate = usdToCurr && usdToCurr > 0 ? parseFloat((usdToTarget / usdToCurr).toFixed(4)) : (billingCalculator_1.DEFAULT_RATES[curr] || 1.0);
             }
-            // 1. Upsert into MonthlyExchangeRate (Snapshot for current month/year)
-            const record = await prisma_1.prisma.monthlyExchangeRate.upsert({
+            await prisma_1.prisma.exchangeRateObservation.upsert({
                 where: {
-                    sourceCurrency_targetCurrency_year_month: {
+                    sourceCurrency_targetCurrency_year_month_slot: {
                         sourceCurrency: curr,
                         targetCurrency,
                         year,
                         month,
+                        slot,
                     },
                 },
-                update: {
-                    rate: calculatedRate,
-                    effectivePeriod,
-                    syncedAt: new Date(),
-                    source,
-                },
-                create: {
-                    sourceCurrency: curr,
-                    targetCurrency,
-                    rate: calculatedRate,
-                    year,
-                    month,
-                    effectivePeriod,
-                    syncedAt: new Date(),
-                    source,
-                },
+                update: { rate: calculatedRate, effectiveDate, day: scheduledDay, source, fetchedAt: new Date() },
+                create: { sourceCurrency: curr, targetCurrency, rate: calculatedRate, year, month, day: scheduledDay, slot, effectiveDate, source, fetchedAt: new Date() },
             });
-            // 2. Also keep legacy ExchangeRate updated for backward compatibility
-            if (targetCurrency === 'INR') {
-                const existingLegacy = await prisma_1.prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear: monthYearKey } });
-                await prisma_1.prisma.exchangeRate.upsert({
-                    where: { id: existingLegacy?.id || 0 },
-                    update: { rateToINR: calculatedRate, fetchedAt: new Date(), source },
-                    create: { currency: curr, rateToINR: calculatedRate, monthYear: monthYearKey, source },
-                });
-            }
-            results.push(record);
+            await this.recalculateMonthlyAverage(curr, targetCurrency, year, month, effectivePeriod, monthYearKey);
         }
-        return results;
+    }
+    static async recalculateMonthlyAverage(curr, targetCurrency, year, month, effectivePeriod, monthYearKey) {
+        const observations = await prisma_1.prisma.exchangeRateObservation.findMany({
+            where: { sourceCurrency: curr, targetCurrency, year, month },
+            orderBy: { day: 'asc' },
+        });
+        const count = observations.length;
+        const avgRate = count > 0 ? parseFloat((observations.reduce((acc, o) => acc + o.rate, 0) / count).toFixed(4)) : (billingCalculator_1.DEFAULT_RATES[curr] || 1.0);
+        const status = count >= 3 ? 'Finalized (3/3 observations)' : `In Progress (${count}/3 observations)`;
+        const lastSource = observations[observations.length - 1]?.source || 'open.er-api.com';
+        await prisma_1.prisma.monthlyExchangeRate.upsert({
+            where: { sourceCurrency_targetCurrency_year_month: { sourceCurrency: curr, targetCurrency, year, month } },
+            update: { rate: avgRate, observationsCount: count, calculationStatus: status, effectivePeriod, syncedAt: new Date(), source: lastSource },
+            create: { sourceCurrency: curr, targetCurrency, rate: avgRate, year, month, effectivePeriod, observationsCount: count, calculationStatus: status, syncedAt: new Date(), source: lastSource },
+        });
+        if (targetCurrency === 'INR') {
+            const existing = await prisma_1.prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear: monthYearKey } });
+            await prisma_1.prisma.exchangeRate.upsert({
+                where: { id: existing?.id || 0 },
+                update: { rateToINR: avgRate, fetchedAt: new Date(), source: lastSource },
+                create: { currency: curr, rateToINR: avgRate, monthYear: monthYearKey, source: lastSource },
+            });
+        }
+    }
+    static async autoCheckAndSyncScheduledRates(targetCurrency = 'INR') {
+        const now = new Date();
+        const { year, month, day, lastDay } = this.getPeriodInfo(now);
+        const slotsToEnsure = [];
+        if (day >= 1)
+            slotsToEnsure.push({ slot: '1st', checkDay: 1, simDate: new Date(year, month - 1, 1, 10, 0, 0) });
+        if (day >= 15)
+            slotsToEnsure.push({ slot: '15th', checkDay: 15, simDate: new Date(year, month - 1, 15, 10, 0, 0) });
+        if (day >= lastDay)
+            slotsToEnsure.push({ slot: 'Month-End', checkDay: lastDay, simDate: new Date(year, month - 1, lastDay, 10, 0, 0) });
+        for (const item of slotsToEnsure) {
+            const existing = await prisma_1.prisma.exchangeRateObservation.findFirst({
+                where: { targetCurrency, year, month, slot: item.slot },
+            });
+            if (!existing) {
+                await this.syncObservationForDate(targetCurrency, item.simDate);
+            }
+        }
+    }
+    static async syncLiveExchangeRates(targetCurrency = 'INR') {
+        await this.syncObservationForDate(targetCurrency, new Date());
+        return this.getCurrentRates(targetCurrency);
     }
     static async getMonthlyRate(sourceCurrency, targetCurrency = 'INR', year, month) {
         const cleanSource = sourceCurrency.replace(/[^A-Za-z]/g, '').toUpperCase() || 'USD';
         const cleanTarget = targetCurrency.replace(/[^A-Za-z]/g, '').toUpperCase() || 'INR';
         if (cleanSource === cleanTarget)
             return 1.0;
-        // 1. Query exact month/year record
         const exact = await prisma_1.prisma.monthlyExchangeRate.findUnique({
-            where: {
-                sourceCurrency_targetCurrency_year_month: {
-                    sourceCurrency: cleanSource,
-                    targetCurrency: cleanTarget,
-                    year,
-                    month,
-                },
-            },
+            where: { sourceCurrency_targetCurrency_year_month: { sourceCurrency: cleanSource, targetCurrency: cleanTarget, year, month } },
         });
         if (exact)
             return exact.rate;
-        // 2. Query closest previous monthly snapshot
         const closest = await prisma_1.prisma.monthlyExchangeRate.findFirst({
-            where: {
-                sourceCurrency: cleanSource,
-                targetCurrency: cleanTarget,
-                OR: [
-                    { year: { lt: year } },
-                    { year, month: { lte: month } },
-                ],
-            },
+            where: { sourceCurrency: cleanSource, targetCurrency: cleanTarget, OR: [{ year: { lt: year } }, { year, month: { lte: month } }] },
             orderBy: [{ year: 'desc' }, { month: 'desc' }],
         });
         if (closest)
             return closest.rate;
-        // 3. Fallback to default
         return billingCalculator_1.DEFAULT_RATES[cleanSource] || 1.0;
     }
     static async getCurrentRates(targetCurrency = 'INR') {
-        const { year, month } = this.getCurrentPeriod();
+        const { year, month } = this.getPeriodInfo();
         const rates = await prisma_1.prisma.monthlyExchangeRate.findMany({
             where: { targetCurrency, year, month },
             orderBy: { sourceCurrency: 'asc' },
         });
-        return rates.length > 0 ? rates : this.syncLiveExchangeRates(targetCurrency);
+        if (rates.length > 0)
+            return rates;
+        await this.syncLiveExchangeRates(targetCurrency);
+        return prisma_1.prisma.monthlyExchangeRate.findMany({ where: { targetCurrency, year, month }, orderBy: { sourceCurrency: 'asc' } });
     }
     static async getRateHistory(targetCurrency = 'INR') {
-        return prisma_1.prisma.monthlyExchangeRate.findMany({
-            where: { targetCurrency },
-            orderBy: [{ year: 'desc' }, { month: 'desc' }, { sourceCurrency: 'asc' }],
-        });
+        const [monthlyRates, observations] = await Promise.all([
+            prisma_1.prisma.monthlyExchangeRate.findMany({ where: { targetCurrency }, orderBy: [{ year: 'desc' }, { month: 'desc' }, { sourceCurrency: 'asc' }] }),
+            prisma_1.prisma.exchangeRateObservation.findMany({ where: { targetCurrency }, orderBy: [{ year: 'desc' }, { month: 'desc' }, { day: 'asc' }] }),
+        ]);
+        return monthlyRates.map((mr) => ({
+            ...mr,
+            observations: observations.filter((o) => o.sourceCurrency === mr.sourceCurrency && o.year === mr.year && o.month === mr.month),
+        }));
     }
 }
 exports.FxRateService = FxRateService;

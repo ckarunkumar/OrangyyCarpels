@@ -145,8 +145,8 @@ export default function ProjectFormView({ mode, project, clients, employees = []
           <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">{mode === 'edit' ? `Edit Project (${project?.name})` : 'New Project'}</h2></div>
         </div>
         <div className="flex items-center gap-2.5">
-          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border rounded-md text-[12px] font-semibold text-studio-text hover:bg-studio-sidebar cursor-pointer">Cancel</button>
-          <button type="submit" form="project-full-form" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-md text-[12px] font-semibold hover:bg-opacity-95 shadow-sm disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Project'}</button>
+          <button type="button" onClick={onBack} className="h-8.5 px-4 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-studio-sidebar transition-colors cursor-pointer shadow-2xs">Cancel</button>
+          <button type="submit" form="project-full-form" disabled={saving} className="h-8.5 px-5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs disabled:opacity-50 transition-all cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Project'}</button>
         </div>
       </div>
       {error && <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-[12px] font-medium">{error}</div>}
@@ -165,6 +165,10 @@ export default function ProjectFormView({ mode, project, clients, employees = []
           selectedBLs={selectedBLs} setSelectedBLs={setSelectedBLs} blInventory={blInventory} availableServices={availableServices}
           assignedEmployees={assignedEmployees} addEmployee={addEmployee} removeEmployee={removeEmployee} unassigned={unassigned} staffEmployees={staffEmployees}
         />
+        <div className="flex items-center justify-end gap-3 pt-5 border-t border-studio-border">
+          <button type="button" onClick={onBack} className="h-8.5 px-4 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-studio-sidebar transition-colors cursor-pointer shadow-2xs">Cancel</button>
+          <button type="submit" disabled={saving} className="h-8.5 px-5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs disabled:opacity-50 transition-all cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Project'}</button>
+        </div>
       </form>
     </div>
   );

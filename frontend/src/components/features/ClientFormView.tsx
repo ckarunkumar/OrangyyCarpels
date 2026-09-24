@@ -108,8 +108,8 @@ export default function ClientFormView({ mode, client, onBack, onSaved }: Client
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border rounded-md text-[12px] font-semibold text-studio-text hover:bg-studio-sidebar transition-colors cursor-pointer">Cancel</button>
-          <button type="submit" form="client-full-form" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-md text-[12px] font-semibold hover:bg-opacity-95 shadow-sm transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Client'}</button>
+          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-semibold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" form="client-full-form" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Client'}</button>
         </div>
       </div>
 
@@ -161,6 +161,12 @@ export default function ClientFormView({ mode, client, onBack, onSaved }: Client
             <div><label className={labelCls}>Due Time</label><select value={form.dueTime} onChange={set('dueTime')} className={inputCls}>{DUE_TIMES.map((d) => (<option key={d} value={d}>{d}</option>))}</select></div>
             <div><label className={labelCls}>Status</label><select value={form.status} onChange={set('status')} className={inputCls}><option value="Active">Active</option><option value="Inactive">Inactive</option></select></div>
           </div>
+        </div>
+
+        {/* Bottom Actions Bar */}
+        <div className="pt-4 border-t border-studio-border/80 flex items-center justify-end gap-3">
+          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-semibold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Client'}</button>
         </div>
       </form>
     </div>

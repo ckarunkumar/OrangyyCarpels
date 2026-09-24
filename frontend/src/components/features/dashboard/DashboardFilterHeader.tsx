@@ -1,5 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { formatMonthShort } from '../../../utils/dateUtils';
+import UsdRateIndicator from './UsdRateIndicator';
 
 interface DashboardFilterHeaderProps {
   title: string;
@@ -58,8 +59,10 @@ export default function DashboardFilterHeader({
           </p>
         </div>
 
-        {/* Filter Dropdowns: Year first (left), Month second (right) */}
+        {/* Filter & Currency Rate Controls */}
         <div className="flex items-center gap-2.5 self-end sm:self-center">
+          {/* USD Exchange Rate Indicator */}
+          <UsdRateIndicator />
           {/* 1. Year Filter (Left side) */}
           <div className="relative">
             <select

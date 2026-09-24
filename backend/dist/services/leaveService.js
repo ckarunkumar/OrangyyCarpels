@@ -50,19 +50,27 @@ class LeaveService {
         });
     }
     static async getLeaveRequests(user, scope = 'mine') {
-        const where = scope === 'mine' ? { employeeId: user.employeeId } : user.role === 'Employee' ? { id: -1 } : { employeeId: { not: user.employeeId } };
-        return prisma_1.prisma.leaveRequest.findMany({ where, orderBy: { appliedAt: 'desc' } });
+        if (scope === 'approvals') {
+            if (user.role === 'Employee')
+                return [];
+            return prisma_1.prisma.leaveRequest.findMany({
+                where: { employeeId: { not: user.employeeId }, status: { not: 'Cancelled' } },
+                orderBy: { appliedAt: 'desc' },
+            });
+        }
+        return prisma_1.prisma.leaveRequest.findMany({ where: { employeeId: user.employeeId }, orderBy: { appliedAt: 'desc' } });
     }
     static async updateLeave(user, id, data) {
         const existing = await prisma_1.prisma.leaveRequest.findUnique({ where: { id } });
         if (!existing)
             throw new Error('Leave request not found');
-        if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase())
+        const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+        const eEmp = (existing.employeeId || '').toLowerCase().trim();
+        if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp)
             throw new Error('Unauthorized');
         const isHalfDay = !!data.isHalfDay;
         const daysCount = isHalfDay ? 0.5 : 1.0;
         const targetStatus = user.role === 'Project Manager' ? 'Pending_SA' : 'Pending_PM';
-        // If it was Approved, revert previous balance before putting it back into Pending
         if (existing.status === 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
         return prisma_1.prisma.leaveRequest.update({
@@ -79,17 +87,21 @@ class LeaveService {
         const existing = await prisma_1.prisma.leaveRequest.findUnique({ where: { id } });
         if (!existing)
             throw new Error('Leave request not found');
-        if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase())
+        const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+        const eEmp = (existing.employeeId || '').toLowerCase().trim();
+        if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp)
             throw new Error('Unauthorized');
         if (existing.status === 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
-        return prisma_1.prisma.leaveRequest.update({ where: { id }, data: { status: 'Cancelled' } });
+        return prisma_1.prisma.leaveRequest.update({ where: { id }, data: { status: 'Cancelled', pmApproval: 'Cancelled', saApproval: 'Cancelled' } });
     }
     static async deleteLeave(user, id) {
         const existing = await prisma_1.prisma.leaveRequest.findUnique({ where: { id } });
         if (!existing)
             throw new Error('Leave request not found');
-        if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase())
+        const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+        const eEmp = (existing.employeeId || '').toLowerCase().trim();
+        if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp)
             throw new Error('Unauthorized');
         if (existing.status === 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');

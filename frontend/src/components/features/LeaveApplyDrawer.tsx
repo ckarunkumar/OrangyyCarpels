@@ -138,9 +138,9 @@ export default function LeaveApplyDrawer({ open, onClose, onApplied, balanceData
               <textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Provide reason or context for this request..." className="w-full px-2.5 py-1.5 border border-studio-border rounded text-studio-text focus:outline-none focus:border-brand-orange resize-none" required />
             </div>
           </form>
-          <div className="p-3.5 border-t border-studio-border flex justify-end gap-2 bg-studio-sidebar/40">
-            <button type="button" onClick={onClose} className="px-3.5 py-1.5 border border-studio-border rounded text-[11.5px] font-medium text-studio-muted hover:bg-white cursor-pointer">Cancel</button>
-            <button type="submit" onClick={handleSubmit} disabled={submitting} className="px-3.5 py-1.5 bg-brand-orange text-white rounded text-[11.5px] font-semibold hover:bg-opacity-90 shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"><Send className="w-3.5 h-3.5" /> {submitting ? 'Submitting...' : applyMode === 'compoff' ? 'Submit Claim' : 'Submit Application'}</button>
+          <div className="p-4 px-5 border-t border-studio-border flex justify-end gap-2.5 bg-studio-sidebar/40">
+            <button type="button" onClick={onClose} className="h-8.5 px-4 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-white shadow-2xs transition-colors cursor-pointer">Cancel</button>
+            <button type="submit" onClick={handleSubmit} disabled={submitting} className="h-8.5 px-4 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"><Send className="w-3.5 h-3.5" /> {submitting ? 'Submitting...' : applyMode === 'compoff' ? 'Submit Claim' : 'Submit Application'}</button>
           </div>
         </div>
       </div>

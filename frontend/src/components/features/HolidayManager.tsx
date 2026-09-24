@@ -112,9 +112,9 @@ export default function HolidayManager({ selectedYear, showAdd, setShowAdd, publ
               </select>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setShowAdd(false)} className="px-3 py-1 border border-studio-border rounded text-[11px] font-medium text-studio-muted hover:bg-studio-sidebar cursor-pointer">Cancel</button>
-            <button type="submit" className="px-3.5 py-1 bg-brand-orange text-white rounded text-[11px] font-semibold hover:bg-opacity-90 cursor-pointer shadow-sm">Save Holiday</button>
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button type="button" onClick={() => setShowAdd(false)} className="h-8 px-3.5 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+            <button type="submit" className="h-8 px-4 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 cursor-pointer shadow-2xs transition-all">Save Holiday</button>
           </div>
         </form>
       )}

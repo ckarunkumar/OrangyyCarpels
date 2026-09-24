@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserRole } from '../ui/Layout';
-import { Plus, Search, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Plus, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { SkeletonRow } from '../ui/Skeleton';
 import { Project, Client, Employee } from '../../types/registry';
 import ProjectDetailDrawer from './ProjectDetailDrawer';
@@ -8,6 +8,7 @@ import MonthlyBudgetDrawer from './MonthlyBudgetDrawer';
 import ProjectFormView from './ProjectFormView';
 import ClientProjectsRow from './ClientProjectsRow';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import { useSearch } from '../../context/SearchContext';
 
 interface ClientProjectsViewProps {
   client: Client;
@@ -17,9 +18,9 @@ interface ClientProjectsViewProps {
 }
 
 export default function ClientProjectsView({ client, activeRole, allClients, onBack }: ClientProjectsViewProps) {
+  const { searchQuery, setSearchPlaceholder } = useSearch();
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [budgetProject, setBudgetProject] = useState<Project | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -29,6 +30,12 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [targetProject, setTargetProject] = useState<Project | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  const clientName = client.displayName || client.name;
+
+  useEffect(() => {
+    setSearchPlaceholder(`Search ${clientName} projects (code, name, manager, service)...`);
+  }, [clientName, setSearchPlaceholder]);
 
   const fetchClientProjects = () => {
     setLoading(true);
@@ -48,7 +55,6 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
   useEffect(() => { fetchClientProjects(); }, [client.id]);
 
   const isAdmin = activeRole === 'Super Admin' || activeRole === 'Project Manager';
-  const clientName = client.displayName || client.name;
 
   const handleOpenEdit = (proj: Project) => {
     setSelectedProject(null); setDetailOpen(false);
@@ -119,13 +125,9 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 text-studio-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder={`Search ${clientName} projects...`} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-8 pr-3 py-1.5 border border-studio-border rounded text-[12px] text-studio-text bg-white focus:outline-none focus:border-brand-orange transition-colors" />
-            </div>
             {isAdmin && (
-              <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
-                <Plus className="w-3.5 h-3.5" /> Add Project
+              <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
+                <Plus className="w-4 h-4" /> Add Project
               </button>
             )}
           </div>
@@ -150,7 +152,6 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
             ) : filteredProjects.length === 0 ? (
               <div className="text-center py-10 space-y-1.5 text-studio-muted">
                 <p className="text-[13px] font-semibold text-studio-text">{searchQuery ? `No projects matching "${searchQuery}"` : `No projects registered for ${clientName}`}</p>
-                {searchQuery && (<button onClick={() => setSearchQuery('')} className="text-[11px] text-brand-orange hover:underline cursor-pointer">Clear search filter</button>)}
               </div>
             ) : (
               filteredProjects.map((proj) => (

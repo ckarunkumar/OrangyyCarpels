@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText, SlidersHorizontal } from 'lucide-react';
 import UserProfileDrawer from './UserProfileDrawer';
 import NotificationDrawer, { NotificationItem } from './NotificationDrawer';
+import GlobalSearchBar from './GlobalSearchBar';
 
 export type UserRole = 'Super Admin' | 'Project Manager' | 'Employee' | 'Client';
 
@@ -74,9 +75,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           >
             <img src="/logo.svg" alt="Orangyy Carpels" className="w-7 h-7 object-contain hover:scale-105 transition-transform" />
           </button>
-          <Link to="/" className="font-semibold text-[14px] tracking-tight text-studio-text pl-4 hover:text-brand-orange transition-colors">
+          <Link to="/" className="font-semibold text-[14px] tracking-tight text-studio-text pl-4 hover:text-brand-orange transition-colors shrink-0">
             Orangyy Carpels
           </Link>
+          <GlobalSearchBar />
         </div>
 
         {/* Right Top Header Actions */}

@@ -51,6 +51,7 @@ const systemLogs_1 = __importDefault(require("./api/routes/systemLogs"));
 const settings_1 = __importDefault(require("./api/routes/settings"));
 const clientUsers_1 = __importDefault(require("./api/routes/clientUsers"));
 const authService_1 = require("./services/authService");
+const fxScheduler_1 = require("./services/fxScheduler");
 const security_1 = require("./utils/security");
 dotenv.config();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -134,6 +135,8 @@ const start = async () => {
         const host = process.env.HOST || '0.0.0.0';
         await fastify.listen({ port, host });
         console.log(`Backend server listening on http://localhost:${port}`);
+        // Start automated FX rate synchronization scheduler
+        fxScheduler_1.FxScheduler.start();
     }
     catch (err) {
         fastify.log.error(err);

@@ -80,14 +80,14 @@ export default function MonthlyBudgetDrawer({
           </div>
 
           {isAdmin && !showAdd && (
-            <button onClick={() => setShowAdd(true)} className="w-full py-2 bg-orange-50 border border-brand-orange/40 text-brand-orange rounded text-[12px] font-semibold flex items-center justify-center gap-1.5 hover:bg-orange-100 transition-colors">
+            <button onClick={() => setShowAdd(true)} className="w-full h-8.5 bg-orange-50 border border-brand-orange/40 text-brand-orange rounded-lg text-[12px] font-bold flex items-center justify-center gap-1.5 hover:bg-orange-100 transition-colors shadow-2xs cursor-pointer">
               <Plus className="w-3.5 h-3.5" /> Update / Set Month Budget Hours
             </button>
           )}
 
           {showAdd && (
             <form onSubmit={handleSave} className="p-4 border border-brand-orange/30 rounded-lg bg-orange-50/30 space-y-3">
-              <div className="flex justify-between items-center"><span className="text-[12px] font-bold text-studio-text">Set Monthly Budget</span><button type="button" onClick={() => setShowAdd(false)} className="text-[11px] text-studio-muted hover:text-studio-text">Cancel</button></div>
+              <div className="flex justify-between items-center"><span className="text-[12px] font-bold text-studio-text">Set Monthly Budget</span><button type="button" onClick={() => setShowAdd(false)} className="text-[12px] font-bold text-studio-muted hover:text-studio-text cursor-pointer">Cancel</button></div>
               {error && <div className="text-[11px] text-red-600 bg-red-50 p-2 rounded">{error}</div>}
               <div>
                 <label className="text-[10px] font-bold text-studio-muted uppercase block mb-1">Month / Year</label>
@@ -97,7 +97,7 @@ export default function MonthlyBudgetDrawer({
                 <label className="text-[10px] font-bold text-studio-muted uppercase block mb-1">Budget Hours</label>
                 <input type="number" placeholder="120" value={budgetHours} onChange={(e) => setBudgetHours(e.target.value)} className="w-full px-2.5 py-1.5 text-[12px] border border-studio-border rounded bg-white" />
               </div>
-              <button type="submit" disabled={saving} className="w-full py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 disabled:opacity-50">{saving ? 'Saving...' : 'Save Month Budget'}</button>
+              <button type="submit" disabled={saving} className="w-full h-8.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : 'Save Month Budget'}</button>
             </form>
           )}
 

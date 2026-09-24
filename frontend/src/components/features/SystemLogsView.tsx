@@ -1,25 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import SystemLogsMapModal from './SystemLogsMapModal';
 import SystemLogsRow, { LoginLogItem } from './SystemLogsRow';
+import { useSearch } from '../../context/SearchContext';
 
 export default function SystemLogsView() {
+  const { searchQuery, setSearchPlaceholder } = useSearch();
   const [logs, setLogs] = useState<LoginLogItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [selectedMapLog, setSelectedMapLog] = useState<LoginLogItem | null>(null);
 
-  const fetchLogs = useCallback(async (targetPage = 1, searchQuery = '') => {
+  useEffect(() => {
+    setSearchPlaceholder('Search system logs (user, email, IP, city, OS, device)...');
+  }, [setSearchPlaceholder]);
+
+  const fetchLogs = useCallback(async (targetPage = 1, query = '') => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: targetPage.toString(),
         limit: '25',
-        ...(searchQuery ? { search: searchQuery } : {}),
+        ...(query ? { search: query } : {}),
       });
       const res = await fetch(`/api/logs/logins?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch logs');
@@ -36,14 +40,8 @@ export default function SystemLogsView() {
   }, []);
 
   useEffect(() => {
-    fetchLogs(page, search);
-  }, [page, search, fetchLogs]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
-  };
+    fetchLogs(page, searchQuery);
+  }, [page, searchQuery, fetchLogs]);
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
@@ -65,30 +63,24 @@ export default function SystemLogsView() {
         }
       />
 
-      {/* Top Search and Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-studio-border shadow-xs">
-        <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-studio-muted" />
-          <input
-            type="text"
-            placeholder="Search by user, email, IP, city, country, OS, or browser..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-[12px] bg-studio-bg border border-studio-border rounded-lg text-studio-text focus:outline-none focus:border-brand-orange/50 transition-all"
-          />
-        </form>
+      {/* Top Controls */}
+      <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-studio-border shadow-xs">
+        <div>
+          <h3 className="text-[14px] font-bold text-studio-text">System Activity Logs</h3>
+          <p className="text-[11.5px] text-studio-muted">Live audit trail of user logins and sessions</p>
+        </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => fetchLogs(page, search)}
+            onClick={() => fetchLogs(page, searchQuery)}
             disabled={loading}
             className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-studio-text hover:bg-studio-hover border border-studio-border rounded-lg transition-colors cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-studio-muted ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <span className="text-[11.5px] text-studio-muted px-2 py-1 bg-studio-bg rounded-lg border border-studio-border">
+          <span className="text-[11.5px] text-studio-muted px-2.5 py-1 bg-studio-bg rounded-lg border border-studio-border">
             Total: <strong className="text-studio-text font-bold">{total}</strong> records
           </span>
         </div>

@@ -145,8 +145,8 @@ export default function QuickTimeDrawer({ open, project, onClose, onSaved }: Qui
         </form>
 
         <div className="shrink-0 px-6 py-3.5 border-t border-studio-border flex items-center justify-end gap-2 bg-studio-sidebar/50">
-          <button type="button" onClick={onClose} className="px-4 py-1.5 text-[12px] font-medium text-studio-muted hover:text-studio-text transition-colors">Cancel</button>
-          <button type="submit" form="quick-time-form" disabled={saving} className="px-4 py-1.5 text-[12px] font-semibold text-white bg-brand-orange rounded hover:bg-opacity-90 shadow-sm transition-colors disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : 'Save'}</button>
+          <button type="button" onClick={onClose} className="flex items-center gap-1.5 px-3.5 py-1.5 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-bold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" form="quick-time-form" disabled={saving} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : 'Save'}</button>
         </div>
       </div>
     </>

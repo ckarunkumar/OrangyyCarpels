@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SearchProvider } from './context/SearchContext';
 import Layout from './components/ui/Layout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import LoginView from './components/features/LoginView';
@@ -77,8 +78,9 @@ function AppContent() {
 
   return (
     <Router>
-      <Layout>
-        <ErrorBoundary>
+      <SearchProvider>
+        <Layout>
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<DashboardView activeRole={role} />} />
             <Route path="/timesheets" element={<TimesheetsView activeRole={role} />} />
@@ -121,6 +123,7 @@ function AppContent() {
           </Routes>
         </ErrorBoundary>
       </Layout>
+      </SearchProvider>
     </Router>
   );
 }

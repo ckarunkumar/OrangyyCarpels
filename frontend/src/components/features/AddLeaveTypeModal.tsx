@@ -93,9 +93,9 @@ export default function AddLeaveTypeModal({ open, selectedYear, onClose, onCreat
         <label className="flex items-center gap-2 text-[11.5px] text-studio-text font-medium cursor-pointer">
           <input type="checkbox" checked={allowHalfDay} onChange={(e) => setAllowHalfDay(e.target.checked)} className="rounded text-brand-orange focus:ring-brand-orange" /> Allow Half-Day (0.5 Days)
         </label>
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className="px-3 py-1 border border-studio-border rounded text-[11px] font-medium text-studio-muted hover:bg-studio-sidebar cursor-pointer">Cancel</button>
-          <button type="submit" disabled={submitting} className="px-3.5 py-1 bg-brand-orange text-white rounded text-[11px] font-semibold hover:bg-opacity-90 cursor-pointer shadow-sm disabled:opacity-50">
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onClose} className="h-8 px-3.5 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" disabled={submitting} className="h-8 px-4 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 cursor-pointer shadow-2xs disabled:opacity-50 transition-all">
             {submitting ? 'Creating...' : 'Create'}
           </button>
         </div>

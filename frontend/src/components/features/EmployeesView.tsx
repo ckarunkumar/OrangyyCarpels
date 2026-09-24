@@ -6,8 +6,10 @@ import { Employee } from '../../types/registry';
 import EmployeeDetailDrawer from './EmployeeDetailDrawer';
 import EmployeeFormView from './EmployeeFormView';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import { useSearch } from '../../context/SearchContext';
 
 export default function EmployeesView({ activeRole }: { activeRole: UserRole }) {
+  const { searchQuery, setSearchPlaceholder } = useSearch();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -17,6 +19,10 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [targetEmployee, setTargetEmployee] = useState<Employee | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSearchPlaceholder('Search team members (name, Emp ID, email, role)...');
+  }, [setSearchPlaceholder]);
 
   const fetchEmployees = () => {
     setLoading(true);
@@ -52,6 +58,19 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
     fetchEmployees();
   };
 
+  const filteredEmployees = employees.filter((emp) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      emp.employeeId.toLowerCase().includes(q) ||
+      emp.fullName.toLowerCase().includes(q) ||
+      (emp.email && emp.email.toLowerCase().includes(q)) ||
+      (emp.phone && emp.phone.toLowerCase().includes(q)) ||
+      (emp.role && emp.role.toLowerCase().includes(q)) ||
+      (emp.designation && emp.designation.toLowerCase().includes(q))
+    );
+  });
+
   if (viewMode === 'form') {
     return (
       <EmployeeFormView
@@ -79,7 +98,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
         <div className="flex justify-between items-center border-b border-studio-border pb-3">
           <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">Team</h2><p className="text-[12px] text-studio-muted">Manage studio team members, contact details, and assigned projects</p></div>
           {isAdmin && (
-            <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer">
+            <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer shrink-0">
               <Plus className="w-4 h-4" /> Add Team Member
             </button>
           )}
@@ -102,10 +121,10 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
             <div className="divide-y divide-studio-border bg-white">
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
-              ) : employees.length === 0 ? (
-                <div className="text-center py-8 text-[12px] text-studio-muted">No employees registered.</div>
+              ) : filteredEmployees.length === 0 ? (
+                <div className="text-center py-8 text-[12px] text-studio-muted">{searchQuery ? `No team members matching "${searchQuery}"` : 'No employees registered.'}</div>
               ) : (
-                employees.map((emp) => (
+                filteredEmployees.map((emp) => (
                   <div key={emp.employeeId} onClick={() => { setSelectedEmployee(emp); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
                     <div className="col-span-1 min-w-0 flex items-center">
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">{emp.employeeId}</span>

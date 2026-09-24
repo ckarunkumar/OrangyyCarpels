@@ -9,19 +9,16 @@ type FormState = {
   personalEmail: string; phone: string; secondaryPhone: string; permanentAddress: string; gender: string; guardianName: string;
   motherName: string; bloodGroup: string; linkedInUrl: string; aadhaarNumber: string; panNumber: string; bankName: string;
   branchName: string; ifscCode: string; accountNumber: string; accountHolderName: string; accountType: string; upiId: string;
-  joiningDate: string; relievingDate: string; status: 'Active' | 'Inactive'; role: 'Super Admin' | 'Project Manager' | 'Employee';
-  avatar: string | null;
+  joiningDate: string; relievingDate: string; status: 'Active' | 'Inactive'; role: 'Super Admin' | 'Project Manager' | 'Employee'; avatar: string | null;
 };
 
 const EMPTY_FORM: FormState = {
-  employeeId: '', fullName: '', dob: '', designation: '', department: '', email: '', password: '', personalEmail: '',
-  phone: '', secondaryPhone: '', permanentAddress: '', gender: 'Not Specified', guardianName: '', motherName: '', bloodGroup: '',
-  linkedInUrl: '', aadhaarNumber: '', panNumber: '', bankName: '', branchName: '', ifscCode: '', accountNumber: '',
-  accountHolderName: '', accountType: 'Savings', upiId: '', joiningDate: '', relievingDate: '', status: 'Active', role: 'Employee', avatar: null,
+  employeeId: '', fullName: '', dob: '', designation: '', department: '', email: '', password: '', personalEmail: '', phone: '', secondaryPhone: '',
+  permanentAddress: '', gender: 'Not Specified', guardianName: '', motherName: '', bloodGroup: '', linkedInUrl: '', aadhaarNumber: '', panNumber: '',
+  bankName: '', branchName: '', ifscCode: '', accountNumber: '', accountHolderName: '', accountType: 'Savings', upiId: '', joiningDate: '', relievingDate: '', status: 'Active', role: 'Employee', avatar: null,
 };
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'A2B Positive (A2B+)'];
-const GENDERS = ['Male', 'Female', 'Not Specified'];
+const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-', 'A2B Positive (A2B+)'], GENDERS = ['Male', 'Female', 'Not Specified'];
 
 interface EmployeeFormViewProps {
   mode: 'add' | 'edit'; employee: Employee | null; onBack: () => void; onSaved: (msg?: string) => void;
@@ -118,8 +115,8 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
           <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">{mode === 'edit' ? `Edit Team Member (${employee?.fullName})` : 'New Team Member'}</h2></div>
         </div>
         <div className="flex items-center gap-2.5">
-          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border rounded-md text-[12px] font-semibold text-studio-text hover:bg-studio-sidebar cursor-pointer">Cancel</button>
-          <button type="submit" form="employee-full-form" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-md text-[12px] font-semibold hover:bg-opacity-95 shadow-sm disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Team Member'}</button>
+          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-semibold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" form="employee-full-form" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Team Member'}</button>
         </div>
       </div>
 
@@ -135,8 +132,8 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
           <div>
             <p className="text-[13px] font-bold text-studio-text">Team Member Profile Photo</p>
             <div className="flex items-center gap-3 mt-1">
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-[11.5px] text-brand-orange font-semibold hover:underline">Upload Photo</button>
-              {form.avatar && (<><span className="text-studio-muted text-[10px]">•</span><button type="button" onClick={() => setForm((p) => ({ ...p, avatar: null }))} className="text-[11.5px] text-red-500 font-semibold hover:underline flex items-center gap-1"><Trash2 className="w-3 h-3" /> Remove</button></>)}
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-[11.5px] text-brand-orange font-semibold hover:underline cursor-pointer">Upload Photo</button>
+              {form.avatar && (<><span className="text-studio-muted text-[10px]">•</span><button type="button" onClick={() => setForm((p) => ({ ...p, avatar: null }))} className="text-[11.5px] text-red-500 font-semibold hover:underline flex items-center gap-1 cursor-pointer"><Trash2 className="w-3 h-3" /> Remove</button></>)}
             </div>
           </div>
         </div>
@@ -181,9 +178,7 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
               <label className="block text-[11px] font-bold text-studio-text mb-1">{mode === 'edit' ? 'Reset Password' : <>Member Login Password <span className="text-red-500">*</span></>}</label>
               <div className="relative">
                 <input type={showPassword ? 'text' : 'password'} placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Min 9 chars, 1 uppercase, 1 special (!@#$%&_*)'} value={form.password || ''} onChange={set('password')} className={`${inputCls(!!errors.password)} pr-8`} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-2.5 text-studio-muted hover:text-studio-text cursor-pointer" title={showPassword ? 'Hide password' : 'Show password'}>
-                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-2.5 text-studio-muted hover:text-studio-text cursor-pointer" title={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}</button>
               </div>
               {errors.password && <p className="text-[10px] text-red-500 mt-0.5">{errors.password}</p>}
             </div>
@@ -191,6 +186,11 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
         </div>
 
         <EmployeeFormBankSection form={form} set={set} inputCls={inputCls} labelCls={labelCls} />
+
+        <div className="pt-4 border-t border-studio-border/80 flex items-center justify-end gap-3">
+          <button type="button" onClick={onBack} className="h-8.5 px-4 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-bold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" disabled={saving} className="h-8.5 px-5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Team Member'}</button>
+        </div>
       </form>
     </div>
   );
