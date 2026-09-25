@@ -24,14 +24,6 @@ export default function GeneralSettingsView() {
     return 'Studio Settings';
   };
 
-  const getSubtitle = () => {
-    if (isLogs) return 'Track user login activity, authentication events, client IP addresses, OS, and browser details';
-    if (isLeaves) return 'Configure annual leave policies, monthly accrual rates, and publish the holiday calendar';
-    if (isServices) return 'Configure Business Lines (BL) and Services inventory for project mapping';
-    if (isConfigurations) return 'Manage operational standards, approval workflows, billing currencies, and monthly FX rates';
-    return 'Manage studio identity, legal entity details, domain, and operations contact information';
-  };
-
   const getBreadcrumbLabel = () => {
     if (isLogs) return 'Logs';
     if (isLeaves) return 'Leaves';
@@ -57,7 +49,6 @@ export default function GeneralSettingsView() {
               <ShieldCheck className="w-3 h-3" /> Super Admin
             </span>
           </div>
-          <p className="text-[12px] text-studio-muted mt-0.5">{getSubtitle()}</p>
         </div>
 
         {isServices && (

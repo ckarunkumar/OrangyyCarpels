@@ -1,4 +1,4 @@
-import { Building2, Globe, Pencil, Mail, Phone } from 'lucide-react';
+import { Pencil, Mail, Phone } from 'lucide-react';
 import { Client } from '../../types/registry';
 
 interface ClientTableRowProps {
@@ -39,10 +39,7 @@ export default function ClientTableRow({
       </div>
 
       {/* 2. Company Name */}
-      <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0">
-          <Building2 className="w-3.5 h-3.5" />
-        </div>
+      <div className="col-span-3 min-w-0 pr-2 flex items-center">
         <button
           type="button"
           onClick={(e) => {
@@ -74,8 +71,7 @@ export default function ClientTableRow({
       </div>
 
       {/* 4. Billing Currency */}
-      <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5">
-        <Globe className="w-3.5 h-3.5 text-studio-muted shrink-0" />
+      <div className="col-span-2 text-studio-muted truncate flex items-center">
         <span className="truncate">{client.billingCurrency}</span>
       </div>
 
@@ -107,8 +103,11 @@ export default function ClientTableRow({
         </button>
       </div>
 
-      {/* 6. Actions & Status */}
+      {/* 6. Status & Actions (Status first, Edit last) */}
       <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
+        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+          {client.status}
+        </span>
         {isAdmin && (
           <button
             type="button"
@@ -122,9 +121,6 @@ export default function ClientTableRow({
             <Pencil className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-          {client.status}
-        </span>
       </div>
     </div>
   );

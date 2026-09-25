@@ -92,7 +92,7 @@ export default function ClientUsersListView({
 
   return (
     <>
-      <ClientUserModal open={modalOpen} user={editingUser} clients={clients} onClose={handleCloseModal} onSaved={handleSaved} />
+      <ClientUserModal open={modalOpen} user={editingUser} clients={clients} defaultClientId={selectedClientId !== 'all' ? selectedClientId : undefined} onClose={handleCloseModal} onSaved={handleSaved} />
       <DeleteClientUserModal user={deletingUser} isDeleting={isDeleting} onCancel={() => setDeletingUser(null)} onConfirm={confirmDelete} />
 
       <div className="space-y-4">

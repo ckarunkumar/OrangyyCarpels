@@ -76,8 +76,11 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
         )}
       </div>
 
-      {/* 7. Status */}
+      {/* 7. Status & Actions (Status first, Edit last) */}
       <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
+        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+          {proj.status}
+        </span>
         {isAdmin && (
           <button
             type="button"
@@ -88,9 +91,6 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
             <Pencil className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-          {proj.status}
-        </span>
       </div>
     </div>
   );

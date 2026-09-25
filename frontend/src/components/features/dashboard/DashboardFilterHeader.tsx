@@ -4,7 +4,6 @@ import UsdRateIndicator from './UsdRateIndicator';
 
 interface DashboardFilterHeaderProps {
   title: string;
-  subtitle?: string;
   isDrilldown?: boolean;
   onBackToStudio?: () => void;
   periodType: 'monthly' | 'yearly';
@@ -18,7 +17,6 @@ interface DashboardFilterHeaderProps {
 
 export default function DashboardFilterHeader({
   title,
-  subtitle = 'Live billing, multi-currency conversion, and resource metrics',
   periodType,
   onChangePeriodType,
   selectedFY,
@@ -54,9 +52,6 @@ export default function DashboardFilterHeader({
           <h1 className="text-[22px] font-bold tracking-tight text-slate-900">
             {title}
           </h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">
-            {subtitle}
-          </p>
         </div>
 
         {/* Filter & Currency Rate Controls */}

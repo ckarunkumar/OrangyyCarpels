@@ -7,7 +7,7 @@ import LeaveApprovalDrawer from './LeaveApprovalDrawer';
 import LeaveEditDrawer from './LeaveEditDrawer';
 import TeamAvailabilityView from './TeamAvailabilityView';
 import ApprovalsCalendarView, { MONTH_NAMES, CalendarFilterTab } from './ApprovalsCalendarView';
-import LeaveCalendarKpiCards from './leaves/LeaveCalendarKpiCards';
+import MyLeavesKPICards from './MyLeavesKPICards';
 import MyLeavesTable from './MyLeavesTable';
 import { useSearch } from '../../context/SearchContext';
 
@@ -75,9 +75,9 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
 
   const handleSelectKpi = (kpiKey: 'pending' | 'wfh' | 'sick' | 'overtime') => {
     setActiveTab('approvals');
-    if (kpiKey === 'pending') setCalendarFilter('pending');
-    else if (kpiKey === 'wfh') setCalendarFilter('wfh');
-    else if (kpiKey === 'sick') setCalendarFilter('sick');
+    if (kpiKey === 'pending') setCalendarFilter(calendarFilter === 'pending' ? 'all' : 'pending');
+    else if (kpiKey === 'wfh') setCalendarFilter(calendarFilter === 'wfh' ? 'all' : 'wfh');
+    else if (kpiKey === 'sick') setCalendarFilter(calendarFilter === 'sick' ? 'all' : 'sick');
     else if (kpiKey === 'overtime') setCalendarFilter('all');
   };
 
@@ -93,12 +93,71 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
 
       <Breadcrumbs items={[{ label: 'Leaves & Calendar' }]} />
 
-      <div className="flex justify-between items-center border-b border-studio-border pb-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Leaves &amp; Calendar</h2>
-          <p className="text-[12px] text-studio-muted">Manage time off requests, work from home quotas and policies, and published studio calendar</p>
+
+          {/* Compact Management Summary Filters (SA & PM only, on Approvals) */}
+          {activeRole !== 'Employee' && activeTab === 'approvals' && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleSelectKpi('pending')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
+                  calendarFilter === 'pending'
+                    ? 'bg-amber-500 text-white border-amber-600 font-bold'
+                    : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'
+                }`}
+              >
+                <span>Pending Approvals</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-mono font-bold ${
+                  calendarFilter === 'pending' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>{kpiData.pending}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectKpi('wfh')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
+                  calendarFilter === 'wfh'
+                    ? 'bg-sky-500 text-white border-sky-600 font-bold'
+                    : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'
+                }`}
+              >
+                <span>Work From Home</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-mono font-bold ${
+                  calendarFilter === 'wfh' ? 'bg-sky-600 text-white' : 'bg-sky-50 text-sky-700 border border-sky-200'
+                }`}>{kpiData.wfhEmps}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectKpi('sick')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
+                  calendarFilter === 'sick'
+                    ? 'bg-purple-500 text-white border-purple-600 font-bold'
+                    : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'
+                }`}
+              >
+                <span>Sick Leave</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10.5px] font-mono font-bold ${
+                  calendarFilter === 'sick' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 border border-purple-200'
+                }`}>{kpiData.sickEmps}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectKpi('overtime')}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium transition-all cursor-pointer shadow-2xs"
+              >
+                <span>Comp Off</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10.5px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">{kpiData.otCount}</span>
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 shrink-0">
           <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="px-2.5 py-1.5 border border-studio-border rounded bg-white text-[12px] font-semibold text-studio-text focus:outline-none focus:border-brand-orange shadow-2xs">
             {LEAVE_YEARS.map((y) => (<option key={y} value={y}>{y}</option>))}
           </select>
@@ -107,16 +166,6 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
           </button>
         </div>
       </div>
-
-      {/* 4 KPI Cards directly under the heading */}
-      <LeaveCalendarKpiCards
-        pendingCount={kpiData.pending}
-        wfhEmployeesCount={kpiData.wfhEmps}
-        sickLeaveEmployeesCount={kpiData.sickEmps}
-        overtimeClaimsCount={kpiData.otCount}
-        activeFilter={calendarFilter}
-        onSelectKpi={handleSelectKpi}
-      />
 
       <div className="border-b border-studio-border flex justify-between items-center text-[13px] font-medium">
         <div className="flex gap-6">
@@ -158,10 +207,13 @@ export default function LeavesView({ activeRole }: { activeRole: UserRole }) {
       )}
 
       {activeTab === 'dashboard' && (
-        <MyLeavesTable
-          myRequests={filteredMyRequests} onSelect={(r) => setEditingItem(r)} onEdit={(r) => setEditingItem(r)}
-          onCancel={handleCancelApplication} onDelete={handleDeleteApplication}
-        />
+        <div className="space-y-4">
+          <MyLeavesKPICards balance={balance} />
+          <MyLeavesTable
+            myRequests={filteredMyRequests} onSelect={(r) => setEditingItem(r)} onEdit={(r) => setEditingItem(r)}
+            onCancel={handleCancelApplication} onDelete={handleDeleteApplication}
+          />
+        </div>
       )}
 
       {activeTab === 'calendar' && (<TeamAvailabilityView holidays={holidays} />)}

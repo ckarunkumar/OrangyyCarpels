@@ -123,7 +123,6 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
             <div>
               <h2 className="text-[20px] font-bold tracking-tight text-studio-text">{selectedClient || 'Time Sheet'}</h2>
-              <p className="text-[12px] text-studio-muted">Log and submit hours worked against projects</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-studio-border bg-studio-sidebar/40 text-[11.5px]">

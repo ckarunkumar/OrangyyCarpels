@@ -6,11 +6,12 @@ interface ClientUserModalProps {
   open: boolean;
   user: ClientUser | null;
   clients: Client[];
+  defaultClientId?: string;
   onClose: () => void;
   onSaved: (msg: string) => void;
 }
 
-export default function ClientUserModal({ open, user, clients, onClose, onSaved }: ClientUserModalProps) {
+export default function ClientUserModal({ open, user, clients, defaultClientId, onClose, onSaved }: ClientUserModalProps) {
   const isEdit = !!user;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,12 +41,12 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
         setEmail('');
         setPhone('');
         setPassword('Client@123');
-        setClientId(clients[0]?.id || '');
+        setClientId(defaultClientId || clients[0]?.id || '');
         setStatus('Active');
         setSelectedProjectIds([]);
       }
     }
-  }, [open, user, clients]);
+  }, [open, user, clients, defaultClientId]);
 
   useEffect(() => {
     if (clientId) {
@@ -118,7 +119,6 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
           </div>
           <button type="button" onClick={onClose} className="p-1 rounded-lg text-studio-muted hover:bg-studio-hover cursor-pointer"><X className="w-5 h-5" /></button>
         </div>
-
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-[12.5px]">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 text-[12px] font-medium">
@@ -137,7 +137,6 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="samyutha@abc.com" className={inputCls} required />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Mobile / Phone</label>
@@ -150,7 +149,6 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
               </select>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Status *</label>
@@ -165,7 +163,6 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isEdit ? 'Leave blank to keep current' : 'Min 6 characters'} className={inputCls} />
             </div>
           </div>
-
           <div className="pt-2 border-t border-studio-border/60">
             <div className="flex items-center justify-between mb-1">
               <label className={labelCls}>Project Assignment</label>
@@ -190,7 +187,6 @@ export default function ClientUserModal({ open, user, clients, onClose, onSaved 
               )}
             </div>
           </div>
-
           <div className="pt-3 border-t border-studio-border flex justify-end gap-2.5">
             <button type="button" onClick={onClose} className="px-4 py-2 border border-studio-border rounded-lg text-[12px] font-semibold text-studio-text hover:bg-studio-sidebar cursor-pointer">Cancel</button>
             <button type="submit" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Client User'}</button>
