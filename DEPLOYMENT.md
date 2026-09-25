@@ -222,3 +222,25 @@ If an issue occurs after a production deployment:
    cd ..
    pm2 reload deploy/ecosystem.golive.config.js
    ```
+
+---
+
+## 7. Database Backups into Local Git Folder
+
+To back up databases directly into the local `./backups/` directory inside this project:
+
+### 1. Back up Live Database (carpels.orangyy.design) to Local Folder
+```bash
+./backup-db-from-golive.sh
+```
+* Exports the live production MySQL database (`orangyycarpels`) directly from the server.
+* Saves a compressed timestamped copy: `backups/carpels_orangyy_design_YYYY-MM-DD_HHMMSS.sql.gz`
+* Creates/updates `backups/latest_golive_backup.sql.gz`
+
+### 2. Back up Local Database to Local Folder
+```bash
+./backup-db-local.sh
+```
+* Exports the local MySQL database (`orangyycarpels`) into `backups/local_database_YYYY-MM-DD_HHMMSS.sql.gz`
+* Creates/updates `backups/latest_local_backup.sql.gz`
+
