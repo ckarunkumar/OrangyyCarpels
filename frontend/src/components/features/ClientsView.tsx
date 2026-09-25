@@ -8,7 +8,6 @@ import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';
 import ClientProjectsView from './ClientProjectsView';
 import ClientTable from './ClientTable';
-import DeleteConfirmModal from '../ui/DeleteConfirmModal';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import { useSearch } from '../../context/SearchContext';
 
@@ -27,8 +26,6 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [targetClient, setTargetClient] = useState<Client | null>(null);
-  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,24 +70,6 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     fetchClients();
   };
 
-  const confirmDelete = async () => {
-    if (!deletingClient) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/clients/${deletingClient.id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete client');
-      setSuccessToast(`Client "${deletingClient.name}" deleted successfully.`);
-      setDeletingClient(null);
-      fetchClients();
-      setTimeout(() => setSuccessToast(null), 5000);
-    } catch (err: any) {
-      alert(err.message || 'Error deleting client');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const filteredClients = clients.filter((c) => {
     if (clientStatusFilter === 'Active' && c.status !== 'Active') return false;
     if (clientStatusFilter === 'Inactive' && c.status !== 'Inactive') return false;
@@ -110,21 +89,6 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     <>
       <ClientDetailDrawer open={detailOpen} client={selectedClient} isAdmin={isAdmin} onClose={() => setDetailOpen(false)} onEdit={handleOpenEdit} />
       <ClientProjectsDrawer open={!!projectsClient} client={projectsClient} initialFilter={projectsFilter} onClose={() => setProjectsClient(null)} />
-      <DeleteConfirmModal
-        open={!!deletingClient}
-        title="Delete Client"
-        description={
-          deletingClient ? (
-            <p>
-              Are you sure you want to delete client <span className="font-bold text-studio-text">{deletingClient.name}</span> ({deletingClient.id})? This action cannot be undone.
-            </p>
-          ) : null
-        }
-        confirmLabel="Delete Client"
-        isDeleting={isDeleting}
-        onCancel={() => setDeletingClient(null)}
-        onConfirm={confirmDelete}
-      />
 
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         {successToast && (
@@ -170,7 +134,6 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
           onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
           onOpenProjectsDrawer={(c, f) => { setProjectsFilter(f); setProjectsClient(c); }}
           onOpenEdit={handleOpenEdit}
-          onDelete={(c) => setDeletingClient(c)}
         />
       </div>
     </>

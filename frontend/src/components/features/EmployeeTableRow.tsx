@@ -1,4 +1,4 @@
-import { Mail, Phone, Pencil, Shield, FolderGit2, Trash2 } from 'lucide-react';
+import { Mail, Phone, Pencil, Shield, FolderGit2 } from 'lucide-react';
 import { Employee } from '../../types/registry';
 
 interface EmployeeTableRowProps {
@@ -6,7 +6,6 @@ interface EmployeeTableRowProps {
   isAdmin: boolean;
   onSelect: (emp: Employee) => void;
   onEdit: (emp: Employee) => void;
-  onDelete: (emp: Employee) => void;
 }
 
 export default function EmployeeTableRow({
@@ -14,7 +13,6 @@ export default function EmployeeTableRow({
   isAdmin,
   onSelect,
   onEdit,
-  onDelete,
 }: EmployeeTableRowProps) {
   return (
     <div
@@ -27,7 +25,7 @@ export default function EmployeeTableRow({
         </span>
       </div>
 
-      <div className="col-span-2 min-w-0 pr-2 flex items-center gap-2.5">
+      <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-full bg-studio-sidebar flex items-center justify-center text-[11px] font-bold text-studio-muted border border-studio-border shrink-0 overflow-hidden">
           {emp.avatar ? (
             <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" />
@@ -68,7 +66,7 @@ export default function EmployeeTableRow({
         <span className="text-[12px] text-studio-text font-normal truncate">{emp.email}</span>
       </div>
 
-      <div className="col-span-2 text-studio-muted flex items-center gap-2 whitespace-nowrap min-w-0">
+      <div className="col-span-1 text-studio-muted flex items-center gap-1.5 whitespace-nowrap min-w-0">
         <Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" />
         <span className="text-[12px] text-studio-text font-normal truncate">{emp.phone || '-'}</span>
       </div>
@@ -103,28 +101,18 @@ export default function EmployeeTableRow({
       </div>
 
       <div
-        className="col-span-1 text-right flex items-center justify-end gap-1.5"
+        className="col-span-1 text-right flex items-center justify-end"
         onClick={(e) => e.stopPropagation()}
       >
         {isAdmin && (
-          <>
-            <button
-              type="button"
-              onClick={() => onEdit(emp)}
-              title="Edit Team Member"
-              className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(emp)}
-              title="Delete Team Member"
-              className="p-1.5 text-studio-muted hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => onEdit(emp)}
+            title="Edit Team Member"
+            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
     </div>

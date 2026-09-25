@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Mail, Phone, User } from 'lucide-react';
+import { Pencil, Mail, Phone, User } from 'lucide-react';
 import { Client } from '../../types/registry';
 
 interface ClientTableRowProps {
@@ -8,7 +8,6 @@ interface ClientTableRowProps {
   onOpenDetail: (client: Client) => void;
   onOpenProjectsDrawer: (client: Client, filter: 'Active' | 'Inactive') => void;
   onOpenEdit: (client: Client) => void;
-  onDelete: (client: Client) => void;
 }
 
 export default function ClientTableRow({
@@ -18,7 +17,6 @@ export default function ClientTableRow({
   onOpenDetail,
   onOpenProjectsDrawer,
   onOpenEdit,
-  onDelete,
 }: ClientTableRowProps) {
   const activeCount = client.projects?.filter((p) => p.status === 'Active').length || 0;
   const inactiveCount = client.projects?.filter((p) => p.status === 'Inactive').length || 0;
@@ -119,30 +117,20 @@ export default function ClientTableRow({
         </button>
       </div>
 
-      {/* 7. Action Column */}
+      {/* 7. Action Column (Edit Icon Only) */}
       <div
-        className="col-span-1 text-right flex items-center justify-end gap-1.5"
+        className="col-span-1 text-right flex items-center justify-end"
         onClick={(e) => e.stopPropagation()}
       >
         {isAdmin && (
-          <>
-            <button
-              type="button"
-              onClick={() => onOpenEdit(client)}
-              title="Edit Client"
-              className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(client)}
-              title="Delete Client"
-              className="p-1.5 text-studio-muted hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={() => onOpenEdit(client)}
+            title="Edit Client"
+            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
     </div>

@@ -5,7 +5,6 @@ import { Employee } from '../../types/registry';
 import EmployeeDetailDrawer from './EmployeeDetailDrawer';
 import EmployeeFormView from './EmployeeFormView';
 import EmployeeTable from './EmployeeTable';
-import DeleteConfirmModal from '../ui/DeleteConfirmModal';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import { useSearch } from '../../context/SearchContext';
 
@@ -22,8 +21,6 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [targetEmployee, setTargetEmployee] = useState<Employee | null>(null);
-  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,24 +61,6 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
     fetchEmployees();
   };
 
-  const confirmDelete = async () => {
-    if (!deletingEmployee) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/employees/${deletingEmployee.employeeId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete team member');
-      setSuccessToast(`Team member "${deletingEmployee.fullName}" deleted successfully.`);
-      setDeletingEmployee(null);
-      fetchEmployees();
-      setTimeout(() => setSuccessToast(null), 5000);
-    } catch (err: any) {
-      alert(err.message || 'Error deleting team member');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   const filteredEmployees = employees.filter((emp) => {
     if (filterType === 'Super Admin' && emp.role !== 'Super Admin') return false;
     if (filterType === 'Project Manager' && emp.role !== 'Project Manager') return false;
@@ -100,21 +79,6 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
   return (
     <>
       <EmployeeDetailDrawer open={detailOpen} employee={selectedEmployee} isAdmin={isAdmin} onClose={() => setDetailOpen(false)} onEdit={handleOpenEdit} />
-      <DeleteConfirmModal
-        open={!!deletingEmployee}
-        title="Delete Team Member"
-        description={
-          deletingEmployee ? (
-            <p>
-              Are you sure you want to delete team member <span className="font-bold text-studio-text">{deletingEmployee.fullName}</span> ({deletingEmployee.employeeId})? This action cannot be undone.
-            </p>
-          ) : null
-        }
-        confirmLabel="Delete Member"
-        isDeleting={isDeleting}
-        onCancel={() => setDeletingEmployee(null)}
-        onConfirm={confirmDelete}
-      />
 
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         {successToast && (
@@ -168,7 +132,6 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
             searchQuery={searchQuery}
             onSelect={(emp) => { setSelectedEmployee(emp); setDetailOpen(true); }}
             onEdit={handleOpenEdit}
-            onDelete={(emp) => setDeletingEmployee(emp)}
           />
         )}
       </div>

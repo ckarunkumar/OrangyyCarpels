@@ -9,7 +9,6 @@ interface EmployeeTableProps {
   searchQuery?: string;
   onSelect: (emp: Employee) => void;
   onEdit: (emp: Employee) => void;
-  onDelete: (emp: Employee) => void;
 }
 
 export default function EmployeeTable({
@@ -19,16 +18,15 @@ export default function EmployeeTable({
   searchQuery,
   onSelect,
   onEdit,
-  onDelete,
 }: EmployeeTableProps) {
   return (
     <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
         <div className="col-span-1">EMP ID</div>
-        <div className="col-span-2">NAME</div>
+        <div className="col-span-3">NAME</div>
         <div className="col-span-2">SYSTEM ROLE</div>
         <div className="col-span-2">EMAIL</div>
-        <div className="col-span-2">PHONE</div>
+        <div className="col-span-1">PHONE</div>
         <div className="col-span-1">PROJECTS</div>
         <div className="col-span-1">STATUS</div>
         <div className="col-span-1 text-right">ACTION</div>
@@ -49,7 +47,6 @@ export default function EmployeeTable({
               isAdmin={isAdmin}
               onSelect={onSelect}
               onEdit={onEdit}
-              onDelete={onDelete}
             />
           ))
         )}

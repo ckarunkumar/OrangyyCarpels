@@ -11,7 +11,6 @@ interface ClientTableProps {
   onOpenDetail: (client: Client) => void;
   onOpenProjectsDrawer: (client: Client, filter: 'Active' | 'Inactive') => void;
   onOpenEdit: (client: Client) => void;
-  onDelete: (client: Client) => void;
 }
 
 export default function ClientTable({
@@ -23,7 +22,6 @@ export default function ClientTable({
   onOpenDetail,
   onOpenProjectsDrawer,
   onOpenEdit,
-  onDelete,
 }: ClientTableProps) {
   return (
     <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
@@ -54,7 +52,6 @@ export default function ClientTable({
               onOpenDetail={onOpenDetail}
               onOpenProjectsDrawer={onOpenProjectsDrawer}
               onOpenEdit={onOpenEdit}
-              onDelete={onDelete}
             />
           ))
         )}

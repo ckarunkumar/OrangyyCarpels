@@ -24,8 +24,8 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
   return (
     <div onClick={() => onSelect(proj)} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer">
       {/* 1. Project Code */}
-      <div className="col-span-2 min-w-0">
-        <span className="text-[10.5px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">
+      <div className="col-span-1 min-w-[70px]">
+        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">
           {proj.id}
         </span>
       </div>
@@ -76,16 +76,20 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
         )}
       </div>
 
-      {/* 7. Status & Actions (Status first, Edit last) */}
-      <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
+      {/* 7. Status */}
+      <div className="col-span-1 flex items-center">
         <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
           {proj.status}
         </span>
+      </div>
+
+      {/* 8. Action (Edit Icon Only) */}
+      <div className="col-span-1 text-right flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
         {isAdmin && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onEdit(proj); }}
-            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity"
+            onClick={() => onEdit(proj)}
+            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
             title="Edit Project"
           >
             <Pencil className="w-3.5 h-3.5" />

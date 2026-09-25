@@ -153,13 +153,14 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
         ) : (
           <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
             <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-              <div className="col-span-2">Project Code</div>
-              <div className="col-span-3">Project Name</div>
-              <div className="col-span-2">Project Manager</div>
-              <div className="col-span-1 text-center">Team</div>
-              <div className="col-span-1">Billing Type</div>
-              <div className="col-span-2">Budget / Hours</div>
-              <div className="col-span-1 flex items-center justify-end">Status</div>
+              <div className="col-span-1">PROJECT CODE</div>
+              <div className="col-span-3">PROJECT NAME</div>
+              <div className="col-span-2">PROJECT MANAGER</div>
+              <div className="col-span-1 text-center">TEAM</div>
+              <div className="col-span-1">BILLING TYPE</div>
+              <div className="col-span-2">BUDGET / HOURS</div>
+              <div className="col-span-1">STATUS</div>
+              <div className="col-span-1 text-right">ACTION</div>
             </div>
 
             <div className="divide-y divide-studio-border bg-white">
