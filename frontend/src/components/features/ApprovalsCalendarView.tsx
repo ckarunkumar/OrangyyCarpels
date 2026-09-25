@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import ApprovalsCalendarCell, { ApprovalRequest } from './leaves/ApprovalsCalendarCell';
 import PendingCompOffTable from './leaves/PendingCompOffTable';
 
@@ -23,12 +23,13 @@ export const MONTH_NAMES = [
 
 const parseDateToYMD = (dateStr: string): string => {
   if (!dateStr) return '';
-  const parts = dateStr.trim().split('-');
+  const clean = String(dateStr).trim().split('T')[0];
+  const parts = clean.split('-');
   if (parts.length === 3) {
     if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
     return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
   }
-  return dateStr;
+  return clean;
 };
 
 export default function ApprovalsCalendarView({
@@ -38,18 +39,9 @@ export default function ApprovalsCalendarView({
   selectedYear,
   monthIdx = 8,
   year,
-  activeFilterTab: externalFilterTab,
-  onChangeFilterTab,
+  activeFilterTab = 'all',
   onReview,
 }: Props) {
-  const [internalTab, setInternalTab] = useState<CalendarFilterTab>('all');
-  const activeTab = externalFilterTab || internalTab;
-
-  const setFilterTab = (t: CalendarFilterTab) => {
-    setInternalTab(t);
-    if (onChangeFilterTab) onChangeFilterTab(t);
-  };
-
   const currentMonthIdx = monthIdx;
   const currentYear = year || selectedYear || 2026;
   const currentMonthStr = `${currentYear}-${String(currentMonthIdx + 1).padStart(2, '0')}`;
@@ -58,18 +50,18 @@ export default function ApprovalsCalendarView({
     return requests
       .filter((r) => r.status !== 'Cancelled')
       .filter((r) => {
-        if (activeTab === 'leave') return r.leaveType !== 'Work From Home';
-        if (activeTab === 'wfh') return r.leaveType === 'Work From Home';
-        if (activeTab === 'sick') return r.leaveType === 'Sick Leave';
-        if (activeTab === 'pending') return r.status?.startsWith('Pending');
-        return true; // 'all'
+        if (activeFilterTab === 'leave') return r.leaveType !== 'Work From Home';
+        if (activeFilterTab === 'wfh') return r.leaveType === 'Work From Home';
+        if (activeFilterTab === 'sick') return r.leaveType === 'Sick Leave';
+        if (activeFilterTab === 'pending') return r.status?.startsWith('Pending');
+        return true;
       })
       .map((r) => ({
         ...r,
         startYMD: parseDateToYMD(r.startDate),
         endYMD: parseDateToYMD(r.endDate || r.startDate),
       }));
-  }, [requests, activeTab]);
+  }, [requests, activeFilterTab]);
 
   const monthRequests = useMemo(() => {
     return filteredByTabRequests.filter(
@@ -86,12 +78,13 @@ export default function ApprovalsCalendarView({
 
   const calendarDays = useMemo(() => {
     const firstDayOfWeek = new Date(currentYear, currentMonthIdx, 1).getDay();
+    const startOffset = (firstDayOfWeek + 6) % 7; // Monday = 0, Sunday = 6
     const daysInCurrentMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
     const daysInPrevMonth = new Date(currentYear, currentMonthIdx, 0).getDate();
     const days: any[] = [];
 
     // Prev month days
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    for (let i = startOffset - 1; i >= 0; i--) {
       const dayNum = daysInPrevMonth - i;
       const prevM = currentMonthIdx === 0 ? 12 : currentMonthIdx;
       const prevY = currentMonthIdx === 0 ? currentYear - 1 : currentYear;
@@ -100,7 +93,7 @@ export default function ApprovalsCalendarView({
       days.push({
         dayNumber: dayNum, isCurrentMonth: false, dateStr,
         items: filteredByTabRequests.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD),
-        holiday: holidays.find((h) => h.date === dateStr),
+        holiday: holidays.find((h) => parseDateToYMD(h.date) === dateStr),
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6, isSunday: dayOfWeek === 0, isSaturday: dayOfWeek === 6,
       });
     }
@@ -112,7 +105,7 @@ export default function ApprovalsCalendarView({
       days.push({
         dayNumber: d, isCurrentMonth: true, dateStr,
         items: filteredByTabRequests.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD),
-        holiday: holidays.find((h) => h.date === dateStr),
+        holiday: holidays.find((h) => parseDateToYMD(h.date) === dateStr),
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6, isSunday: dayOfWeek === 0, isSaturday: dayOfWeek === 6,
       });
     }
@@ -128,7 +121,7 @@ export default function ApprovalsCalendarView({
       days.push({
         dayNumber: n, isCurrentMonth: false, dateStr,
         items: filteredByTabRequests.filter((r) => r.startYMD <= dateStr && dateStr <= r.endYMD),
-        holiday: holidays.find((h) => h.date === dateStr),
+        holiday: holidays.find((h) => parseDateToYMD(h.date) === dateStr),
         isWeekend: dayOfWeek === 0 || dayOfWeek === 6, isSunday: dayOfWeek === 0, isSaturday: dayOfWeek === 6,
       });
     }
@@ -138,64 +131,25 @@ export default function ApprovalsCalendarView({
   return (
     <div className="space-y-4">
       <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
-        {/* Calendar Top Header with Filter Tabs directly beside the calendar */}
-        <div className="bg-slate-50/90 border-b border-studio-border px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-              Approvals Calendar ({pendingCountInMonth} Pending)
-            </span>
-            <span className="text-[11px] font-mono text-slate-500 font-semibold">
-              {monthRequests.length} records
-            </span>
-          </div>
-
-          {/* Filter Tabs: [All] [Leave] [Work From Home] */}
-          <div className="flex items-center p-0.5 rounded-lg bg-slate-200/70 border border-slate-300/60 self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setFilterTab('all')}
-              className={`px-3 py-1 text-[11.5px] rounded-md transition-colors cursor-pointer ${
-                activeTab === 'all'
-                  ? 'bg-white text-brand-orange font-bold shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
-              }`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterTab('leave')}
-              className={`px-3 py-1 text-[11.5px] rounded-md transition-colors cursor-pointer ${
-                activeTab === 'leave'
-                  ? 'bg-white text-brand-orange font-bold shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
-              }`}
-            >
-              Leave
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterTab('wfh')}
-              className={`px-3 py-1 text-[11.5px] rounded-md transition-colors cursor-pointer ${
-                activeTab === 'wfh'
-                  ? 'bg-white text-brand-orange font-bold shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
-              }`}
-            >
-              Work From Home
-            </button>
-          </div>
+        {/* Calendar Top Header: Left heading, Right records */}
+        <div className="bg-slate-50/90 border-b border-studio-border px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+            Approvals Calendar ({pendingCountInMonth} Pending)
+          </span>
+          <span className="text-[11px] font-mono text-slate-500 font-semibold">
+            {monthRequests.length} records
+          </span>
         </div>
 
-        {/* 7-Day Header with Saturday & Sunday in Red */}
+        {/* 7-Day Header: Mon -> Sun with Saturday & Sunday in Red */}
         <div className="grid grid-cols-7 border-b border-studio-border bg-white text-center text-[11px] font-bold py-2.5">
-          <div className="text-red-500 font-extrabold">Sun</div>
           <div className="text-slate-600">Mon</div>
           <div className="text-slate-600">Tue</div>
           <div className="text-slate-600">Wed</div>
           <div className="text-slate-600">Thu</div>
           <div className="text-slate-600">Fri</div>
           <div className="text-red-500 font-extrabold">Sat</div>
+          <div className="text-red-500 font-extrabold">Sun</div>
         </div>
 
         {/* Calendar Grid Cells */}

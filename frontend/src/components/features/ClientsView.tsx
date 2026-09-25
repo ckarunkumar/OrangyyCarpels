@@ -8,6 +8,7 @@ import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';
 import ClientProjectsView from './ClientProjectsView';
 import ClientTable from './ClientTable';
+import DeleteConfirmModal from '../ui/DeleteConfirmModal';
 import Breadcrumbs from '../ui/Breadcrumbs';
 import { useSearch } from '../../context/SearchContext';
 
@@ -26,6 +27,8 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [targetClient, setTargetClient] = useState<Client | null>(null);
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,6 +73,24 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     fetchClients();
   };
 
+  const confirmDelete = async () => {
+    if (!deletingClient) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/clients/${deletingClient.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete client');
+      setSuccessToast(`Client "${deletingClient.name}" deleted successfully.`);
+      setDeletingClient(null);
+      fetchClients();
+      setTimeout(() => setSuccessToast(null), 5000);
+    } catch (err: any) {
+      alert(err.message || 'Error deleting client');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const filteredClients = clients.filter((c) => {
     if (clientStatusFilter === 'Active' && c.status !== 'Active') return false;
     if (clientStatusFilter === 'Inactive' && c.status !== 'Inactive') return false;
@@ -89,6 +110,21 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     <>
       <ClientDetailDrawer open={detailOpen} client={selectedClient} isAdmin={isAdmin} onClose={() => setDetailOpen(false)} onEdit={handleOpenEdit} />
       <ClientProjectsDrawer open={!!projectsClient} client={projectsClient} initialFilter={projectsFilter} onClose={() => setProjectsClient(null)} />
+      <DeleteConfirmModal
+        open={!!deletingClient}
+        title="Delete Client"
+        description={
+          deletingClient ? (
+            <p>
+              Are you sure you want to delete client <span className="font-bold text-studio-text">{deletingClient.name}</span> ({deletingClient.id})? This action cannot be undone.
+            </p>
+          ) : null
+        }
+        confirmLabel="Delete Client"
+        isDeleting={isDeleting}
+        onCancel={() => setDeletingClient(null)}
+        onConfirm={confirmDelete}
+      />
 
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         {successToast && (
@@ -100,23 +136,23 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
 
         <Breadcrumbs items={[{ label: 'Client Management' }]} />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-studio-border pb-3">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
             <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Client Management</h2>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <button type="button" onClick={() => setClientStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'all' ? 'bg-slate-900 text-white border-slate-900 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                <span>All</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${clientStatusFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>{clientCounts.total}</span>
+              <button type="button" onClick={() => setClientStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.total}</span>
               </button>
-              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Active' ? 'bg-emerald-600 text-white border-emerald-700 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                <span>Active</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${clientStatusFilter === 'Active' ? 'bg-emerald-700 text-white' : 'bg-green-50 text-green-700 border border-green-200'}`}>{clientCounts.active}</span>
+              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>Active</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.active}</span>
               </button>
-              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Inactive' ? 'bg-rose-600 text-white border-rose-700 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                <span>Inactive</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${clientStatusFilter === 'Inactive' ? 'bg-rose-700 text-white' : 'bg-gray-50 text-gray-600 border border-gray-200'}`}>{clientCounts.inactive}</span>
+              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Inactive' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>Inactive</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.inactive}</span>
               </button>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5">
             {isAdmin && (
-              <button type="button" onClick={() => { setTargetClient(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 shadow-sm cursor-pointer shrink-0">
+              <button type="button" onClick={() => { setTargetClient(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm cursor-pointer shrink-0">
                 <Plus className="w-4 h-4" /> Add Client
               </button>
             )}
@@ -125,7 +161,17 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
 
         {error && <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded text-[13px] font-semibold">{error}</div>}
 
-        <ClientTable loading={loading} clients={filteredClients} isAdmin={isAdmin} searchQuery={searchQuery} onSelectClientProjects={(c) => { setActiveClientForProjects(c); setSearchParams({ clientId: c.id }); }} onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }} onOpenProjectsDrawer={(c, f) => { setProjectsFilter(f); setProjectsClient(c); }} onOpenEdit={handleOpenEdit} />
+        <ClientTable
+          loading={loading}
+          clients={filteredClients}
+          isAdmin={isAdmin}
+          searchQuery={searchQuery}
+          onSelectClientProjects={(c) => { setActiveClientForProjects(c); setSearchParams({ clientId: c.id }); }}
+          onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
+          onOpenProjectsDrawer={(c, f) => { setProjectsFilter(f); setProjectsClient(c); }}
+          onOpenEdit={handleOpenEdit}
+          onDelete={(c) => setDeletingClient(c)}
+        />
       </div>
     </>
   );

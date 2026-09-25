@@ -38,24 +38,13 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
   const clientName = client.displayName || client.name;
 
   useEffect(() => {
-    if (tab === 'projects') {
-      setSearchPlaceholder(`Search ${clientName} projects (code, name, manager, service)...`);
-    } else {
-      setSearchPlaceholder(`Search ${clientName} client users (name, email, ID)...`);
-    }
+    setSearchPlaceholder(tab === 'projects' ? `Search ${clientName} projects (code, name, manager, service)...` : `Search ${clientName} client users (name, email, ID)...`);
   }, [tab, clientName, setSearchPlaceholder]);
 
   const fetchClientProjects = () => {
     setLoading(true);
-    Promise.all([
-      fetch(`/api/projects?clientId=${client.id}`).then((r) => r.json()),
-      fetch('/api/employees').then((r) => r.json()).catch(() => []),
-    ])
-      .then(([projs, emps]) => {
-        setProjects(Array.isArray(projs) ? projs : []);
-        setEmployees(Array.isArray(emps) ? emps : []);
-        setError(null);
-      })
+    Promise.all([fetch(`/api/projects?clientId=${client.id}`).then((r) => r.json()), fetch('/api/employees').then((r) => r.json()).catch(() => [])])
+      .then(([projs, emps]) => { setProjects(Array.isArray(projs) ? projs : []); setEmployees(Array.isArray(emps) ? emps : []); setError(null); })
       .catch((err) => { setError(err.message); setProjects([]); })
       .finally(() => setLoading(false));
   };
@@ -109,28 +98,30 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
         <Breadcrumbs items={[{ label: 'Client Management', onClick: onBack }, { label: clientName }, { label: tab === 'projects' ? 'Projects' : 'Client Users' }]} />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-studio-border pb-3">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
             <button type="button" onClick={onBack} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back to Client Management">
               <ArrowLeft className="w-4 h-4" />
             </button>
             <h2 className="text-[20px] font-bold tracking-tight text-studio-text">{clientName}</h2>
+          </div>
 
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {/* 1. Filters: All / Active / Inactive */}
             {tab === 'projects' && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button type="button" onClick={() => setProjectStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'all' ? 'bg-slate-900 text-white border-slate-900 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                  <span>All</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${projectStatusFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'}`}>{projectCounts.total}</span>
+                <button type="button" onClick={() => setProjectStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                  <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.total}</span>
                 </button>
-                <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Active' ? 'bg-emerald-600 text-white border-emerald-700 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                  <span>Active</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${projectStatusFilter === 'Active' ? 'bg-emerald-700 text-white' : 'bg-green-50 text-green-700 border border-green-200'}`}>{projectCounts.active}</span>
+                <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                  <span>Active</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.active}</span>
                 </button>
-                <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Inactive' ? 'bg-rose-600 text-white border-rose-700 font-bold' : 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                  <span>Inactive</span><span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${projectStatusFilter === 'Inactive' ? 'bg-rose-700 text-white' : 'bg-gray-50 text-gray-600 border border-gray-200'}`}>{projectCounts.inactive}</span>
+                <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Inactive' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                  <span>Inactive</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.inactive}</span>
                 </button>
               </div>
             )}
-          </div>
 
-          <div className="flex items-center gap-2.5">
+            {/* 2. Tabs: Projects / Client Users */}
             <div className="flex p-0.5 rounded-lg bg-studio-sidebar border border-studio-border">
               <button type="button" onClick={() => setTab('projects')} className={`px-3 py-1.5 text-[12px] rounded-md transition-colors cursor-pointer ${tab === 'projects' ? 'bg-white text-brand-orange shadow-2xs font-bold' : 'text-studio-muted hover:text-studio-text font-medium'}`}>
                 Projects ({projects.length})
@@ -140,13 +131,14 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
               </button>
             </div>
 
+            {/* 3. Action button: Add Project / Add Client User */}
             {isAdmin && (
               tab === 'projects' ? (
-                <button type="button" onClick={() => { setTargetProject(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
+                <button type="button" onClick={() => { setTargetProject(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
                   <Plus className="w-4 h-4" /> Add Project
                 </button>
               ) : (
-                <button type="button" onClick={() => setOpenAddUserModal(true)} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-semibold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
+                <button type="button" onClick={() => setOpenAddUserModal(true)} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
                   <Plus className="w-4 h-4" /> Add Client User
                 </button>
               )
@@ -167,7 +159,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
               <div className="col-span-1 text-center">Team</div>
               <div className="col-span-1">Billing Type</div>
               <div className="col-span-2">Budget / Hours</div>
-              <div className="col-span-1 text-right">Status</div>
+              <div className="col-span-1 flex items-center justify-end">Status</div>
             </div>
 
             <div className="divide-y divide-studio-border bg-white">

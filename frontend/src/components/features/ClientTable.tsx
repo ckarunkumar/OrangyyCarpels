@@ -11,6 +11,7 @@ interface ClientTableProps {
   onOpenDetail: (client: Client) => void;
   onOpenProjectsDrawer: (client: Client, filter: 'Active' | 'Inactive') => void;
   onOpenEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 }
 
 export default function ClientTable({
@@ -22,16 +23,18 @@ export default function ClientTable({
   onOpenDetail,
   onOpenProjectsDrawer,
   onOpenEdit,
+  onDelete,
 }: ClientTableProps) {
   return (
     <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-        <div className="col-span-2">Client ID</div>
-        <div className="col-span-3">Company Name</div>
-        <div className="col-span-2">Contact Details</div>
-        <div className="col-span-2">Billing Currency</div>
-        <div className="col-span-2">Projects</div>
-        <div className="col-span-1 text-right">Status</div>
+        <div className="col-span-1 min-w-[70px]">CLIENT ID</div>
+        <div className="col-span-3 min-w-0">COMPANY NAME</div>
+        <div className="col-span-1 min-w-0">CLIENT USERS</div>
+        <div className="col-span-2 min-w-0">CONTACT DETAILS</div>
+        <div className="col-span-2 whitespace-nowrap min-w-0">BILLING CURRENCY</div>
+        <div className="col-span-2 min-w-0 flex items-center">PROJECTS</div>
+        <div className="col-span-1 text-right">ACTION</div>
       </div>
 
       <div className="divide-y divide-studio-border bg-white">
@@ -51,6 +54,7 @@ export default function ClientTable({
               onOpenDetail={onOpenDetail}
               onOpenProjectsDrawer={onOpenProjectsDrawer}
               onOpenEdit={onOpenEdit}
+              onDelete={onDelete}
             />
           ))
         )}

@@ -19,7 +19,7 @@ export default function TimesheetProjectTable({
   onQuickLog,
 }: ProjectTableProps) {
   return (
-    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm flex flex-col flex-1 min-h-0">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
         <div className="col-span-2">PROJECT CODE</div>
         <div className="col-span-3">PROJECT NAME</div>
@@ -30,7 +30,7 @@ export default function TimesheetProjectTable({
         <div className="col-span-1 text-right">ACTION</div>
       </div>
 
-      <div className="divide-y divide-studio-border bg-white flex-1 overflow-y-auto min-h-0">
+      <div className="divide-y divide-studio-border bg-white">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
         ) : projects.length === 0 ? (

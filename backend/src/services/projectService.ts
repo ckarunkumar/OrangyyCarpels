@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { ProjectWithClient, RateVersionRecord } from './registryTypes';
+import { NotificationService } from './notificationService';
 
 export class ProjectService {
   static async getAllProjects(role: string, clientId?: string, userId?: string): Promise<ProjectWithClient[]> {
@@ -89,6 +90,15 @@ export class ProjectService {
       });
     }
 
+    if (Array.isArray(assignedEmployees)) {
+      for (const empCode of assignedEmployees) {
+        await NotificationService.createNotification({
+          userId: empCode, role: 'Employee', title: 'Project Assignment',
+          message: `You’ve been assigned to Project ${proj.name}.`, type: 'project_assign', projectId: proj.id,
+        });
+      }
+    }
+
     return {
       id: proj.id, name: proj.name, clientId: proj.clientId, clientName: client.name,
       clientCurrency: client.billingCurrency, billingType: proj.billingType as any,
@@ -146,6 +156,17 @@ export class ProjectService {
         update: { clientId: targetClientId },
         create: { clientUserId: data.clientContactPersonId, projectId: id, clientId: targetClientId },
       });
+    }
+
+    if (Array.isArray(data.assignedEmployees)) {
+      const oldAssigned = (existing.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
+      const newAssigned = data.assignedEmployees.filter((e: string) => !oldAssigned.includes(e));
+      for (const empCode of newAssigned) {
+        await NotificationService.createNotification({
+          userId: empCode, role: 'Employee', title: 'Project Assignment',
+          message: `You’ve been assigned to Project ${updated.name}.`, type: 'project_assign', projectId: updated.id,
+        });
+      }
     }
 
     return {

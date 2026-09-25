@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LeaveService = void 0;
 const prisma_1 = require("../lib/prisma");
+const notificationService_1 = require("./notificationService");
 class LeaveService {
     static async getBalance(employeeId, year = 2026) {
         const emp = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
@@ -39,7 +40,7 @@ class LeaveService {
         if (data.leaveType === 'Comp-off' && balance.compOffBalance < daysCount)
             throw new Error(`Insufficient Comp-off balance (${balance.compOffBalance} days available).`);
         const targetStatus = user.role === 'Project Manager' ? 'Pending_SA' : 'Pending_PM';
-        return prisma_1.prisma.leaveRequest.create({
+        const req = await prisma_1.prisma.leaveRequest.create({
             data: {
                 employeeId: empId, employeeName: user.fullName, leaveType: data.leaveType,
                 startDate: data.startDate, endDate: isHalfDay ? data.startDate : data.endDate,
@@ -48,6 +49,10 @@ class LeaveService {
                 pmApproval: user.role === 'Project Manager' ? 'Approved' : 'Pending', saApproval: 'Pending',
             },
         });
+        const msg = `${user.fullName} requested ${data.leaveType} for ${data.startDate}.`;
+        await notificationService_1.NotificationService.createNotification({ role: 'Project Manager', title: `Leave Request`, message: msg, type: 'leave_request' });
+        await notificationService_1.NotificationService.createNotification({ role: 'Super Admin', title: `Leave Request`, message: msg, type: 'leave_request' });
+        return req;
     }
     static async getLeaveRequests(user, scope = 'mine') {
         if (scope === 'approvals') {
@@ -93,7 +98,11 @@ class LeaveService {
             throw new Error('Unauthorized');
         if (existing.status === 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
-        return prisma_1.prisma.leaveRequest.update({ where: { id }, data: { status: 'Cancelled', pmApproval: 'Cancelled', saApproval: 'Cancelled' } });
+        const updated = await prisma_1.prisma.leaveRequest.update({ where: { id }, data: { status: 'Cancelled', pmApproval: 'Cancelled', saApproval: 'Cancelled' } });
+        const cMsg = `${existing.employeeName || 'Employee'} cancelled their ${existing.leaveType} request.`;
+        await notificationService_1.NotificationService.createNotification({ role: 'Project Manager', title: 'Leave Cancelled', message: cMsg, type: 'leave_cancel' });
+        await notificationService_1.NotificationService.createNotification({ role: 'Super Admin', title: 'Leave Cancelled', message: cMsg, type: 'leave_cancel' });
+        return updated;
     }
     static async deleteLeave(user, id) {
         const existing = await prisma_1.prisma.leaveRequest.findUnique({ where: { id } });
@@ -105,7 +114,10 @@ class LeaveService {
             throw new Error('Unauthorized');
         if (existing.status === 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
-        return prisma_1.prisma.leaveRequest.delete({ where: { id } });
+        const deleted = await prisma_1.prisma.leaveRequest.delete({ where: { id } });
+        const dMsg = `${existing.employeeName || 'Employee'} deleted a ${existing.leaveType} application.`;
+        await notificationService_1.NotificationService.createNotification({ role: 'Super Admin', title: 'Leave Deleted', message: dMsg, type: 'leave_delete' });
+        return deleted;
     }
     static async approveOrRejectLeave(user, id, action, remarks) {
         if (user.role !== 'Project Manager' && user.role !== 'Super Admin')
@@ -116,22 +128,21 @@ class LeaveService {
         if (action === 'reject') {
             if (existing.status === 'Approved')
                 await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
-            return prisma_1.prisma.leaveRequest.update({
+            const updated = await prisma_1.prisma.leaveRequest.update({
                 where: { id },
-                data: {
-                    status: 'Declined', rejectionReason: remarks || 'Declined',
-                    pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval,
-                    saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval,
-                },
+                data: { status: 'Declined', rejectionReason: remarks || 'Declined', pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval, saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval },
             });
+            await notificationService_1.NotificationService.createNotification({ userId: existing.employeeId, role: 'Employee', title: 'Leave Rejected', message: `Your ${existing.leaveType} request for ${existing.startDate} was rejected.`, type: 'leave_reject' });
+            return updated;
         }
-        // Approve action: if not already approved, deduct quota
         if (existing.status !== 'Approved')
             await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'increment');
-        return prisma_1.prisma.leaveRequest.update({
+        const updated = await prisma_1.prisma.leaveRequest.update({
             where: { id },
             data: { status: 'Approved', pmApproval: 'Approved', saApproval: user.role === 'Super Admin' ? 'Approved' : existing.saApproval, approverName: user.fullName, rejectionReason: null },
         });
+        await notificationService_1.NotificationService.createNotification({ userId: existing.employeeId, role: 'Employee', title: 'Leave Approved', message: `Your ${existing.leaveType} request for ${existing.startDate} was approved.`, type: 'leave_approve' });
+        return updated;
     }
     static async adjustQuota(employeeId, leaveType, daysCount, mode) {
         const change = mode === 'increment' ? daysCount : -daysCount;

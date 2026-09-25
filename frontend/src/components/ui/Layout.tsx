@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText, SlidersHorizontal } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText, SlidersHorizontal, X } from 'lucide-react';
 import UserProfileDrawer from './UserProfileDrawer';
 import NotificationDrawer, { NotificationItem } from './NotificationDrawer';
 import GlobalSearchBar from './GlobalSearchBar';
@@ -16,13 +16,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [activeToast, setActiveToast] = useState<NotificationItem | null>(null);
+  const lastNotifIdRef = useRef<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const fetchNotifications = () => { fetch('/api/notifications').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setNotifications(d); }).catch(() => {}); };
+  const fetchNotifications = () => {
+    fetch('/api/notifications').then((r) => r.json()).then((d) => {
+      if (Array.isArray(d)) {
+        setNotifications(d);
+        const newest = d[0];
+        if (newest && !newest.isRead && lastNotifIdRef.current !== null && newest.id !== lastNotifIdRef.current) {
+          setActiveToast(newest);
+          setTimeout(() => setActiveToast((cur) => (cur?.id === newest.id ? null : cur)), 5000);
+        }
+        if (newest) lastNotifIdRef.current = newest.id;
+      }
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 20000);
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -42,6 +57,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
   const handleSelectNotification = (item: NotificationItem) => {
     if (!item.isRead) handleMarkAsRead(item.id);
+    setActiveToast(null);
     setIsNotificationOpen(false);
     if (item.projectId) navigate(`/timesheets?projectId=${item.projectId}`);
   };
@@ -64,20 +80,27 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <UserProfileDrawer open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <NotificationDrawer open={isNotificationOpen} notifications={notifications} onClose={() => setIsNotificationOpen(false)} onSelectNotification={handleSelectNotification} onMarkAllAsRead={handleMarkAllAsRead} />
 
+      {/* Interactive Contextual Notification Toast */}
+      {activeToast && (
+        <div onClick={() => handleSelectNotification(activeToast)} className="fixed bottom-6 right-6 z-50 max-w-sm w-full bg-white/95 backdrop-blur-md border border-studio-border rounded-xl shadow-2xl p-3.5 flex items-start gap-3 cursor-pointer hover:border-brand-orange/40 transition-all animate-in slide-in-from-bottom-5 duration-300">
+          <div className="p-2 rounded-lg bg-orange-50 text-brand-orange border border-orange-100 shrink-0 mt-0.5"><Bell className="w-4 h-4" /></div>
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex items-center justify-between gap-1">
+              <h5 className="text-[12.5px] font-bold text-studio-text truncate">{activeToast.title}</h5>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setActiveToast(null); }} className="text-studio-muted hover:text-studio-text p-0.5 rounded cursor-pointer"><X className="w-3.5 h-3.5" /></button>
+            </div>
+            <p className="text-[11.5px] text-studio-muted leading-relaxed line-clamp-2">{activeToast.message}</p>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <header className="shrink-0 border-b border-studio-border bg-white pr-6 flex justify-between items-center h-14 z-40">
         <div className="flex items-center h-full">
-          <button
-            type="button"
-            onClick={() => setIsSidebarVisible((prev) => !prev)}
-            className="w-16 h-full flex items-center justify-center shrink-0 border-r border-studio-border hover:bg-studio-sidebar/60 transition-colors focus:outline-none cursor-pointer"
-            title={isSidebarVisible ? 'Hide navigation bar' : 'Open navigation bar'}
-          >
+          <button type="button" onClick={() => setIsSidebarVisible((prev) => !prev)} className="w-16 h-full flex items-center justify-center shrink-0 border-r border-studio-border hover:bg-studio-sidebar/60 transition-colors focus:outline-none cursor-pointer" title={isSidebarVisible ? 'Hide navigation bar' : 'Open navigation bar'}>
             <img src="/logo.svg" alt="Orangyy Carpels" className="w-7 h-7 object-contain hover:scale-105 transition-transform" />
           </button>
-          <Link to="/" className="font-semibold text-[14px] tracking-tight text-studio-text pl-4 hover:text-brand-orange transition-colors shrink-0">
-            Orangyy Carpels
-          </Link>
+          <Link to="/" className="font-semibold text-[14px] tracking-tight text-studio-text pl-4 hover:text-brand-orange transition-colors shrink-0">Orangyy Carpels</Link>
           <GlobalSearchBar />
         </div>
 
@@ -112,29 +135,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Left Side Icon-Only Navigation Bar with Show/Hide Toggle */}
-        <aside
-          className={`h-full border-studio-border bg-studio-sidebar py-3 flex flex-col justify-between shrink-0 overflow-visible items-center z-30 transition-all duration-200 ease-in-out ${
-            isSidebarVisible ? 'w-16 border-r px-2 opacity-100' : 'w-0 border-r-0 px-0 opacity-0 pointer-events-none overflow-hidden'
-          }`}
-        >
-          {/* Main Module Icons */}
+        <aside className={`h-full border-studio-border bg-studio-sidebar py-3 flex flex-col justify-between shrink-0 overflow-visible items-center z-30 transition-all duration-200 ease-in-out ${isSidebarVisible ? 'w-16 border-r px-2 opacity-100' : 'w-0 border-r-0 px-0 opacity-0 pointer-events-none overflow-hidden'}`}>
           <nav className="space-y-2 w-full flex flex-col items-center">
             {visibleNavItems.map((item) => {
               const isActive = location.pathname === item.path;
               const IconComponent = item.icon;
               return (
                 <div key={item.label} className="relative group flex justify-center w-full">
-                  <Link
-                    to={item.path}
-                    title={item.label}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
-                      isActive ? 'bg-orange-50 text-brand-orange font-semibold shadow-xs border border-orange-200' : 'text-studio-muted hover:bg-studio-hover hover:text-studio-text'
-                    }`}
-                  >
+                  <Link to={item.path} title={item.label} className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${isActive ? 'bg-orange-50 text-brand-orange font-semibold shadow-xs border border-orange-200' : 'text-studio-muted hover:bg-studio-hover hover:text-studio-text'}`}>
                     <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-brand-orange' : 'text-studio-muted group-hover:text-studio-text'}`} />
                   </Link>
-                  {/* Tooltip on mouse hover */}
                   <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-slate-900 text-white text-[11.5px] font-medium rounded-md shadow-xl whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-[100] pointer-events-none">
                     {item.label}
                     <div className="absolute right-full top-1/2 -translate-y-1/2 -mr-px border-4 border-transparent border-r-slate-900" />
@@ -144,26 +154,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Bottom General Settings Icon for Super Admin */}
           {role === 'Super Admin' && (
             <div className="w-full pt-2 border-t border-studio-border/60 flex flex-col items-center shrink-0">
               <div className="relative group flex justify-center w-full">
-                <Link
-                  to="/settings/studio"
-                  className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${
-                    location.pathname.startsWith('/settings')
-                      ? 'bg-orange-50 text-brand-orange font-semibold shadow-xs border border-orange-200'
-                      : 'text-studio-muted hover:bg-studio-hover hover:text-studio-text'
-                  }`}
-                >
+                <Link to="/settings/studio" className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all ${location.pathname.startsWith('/settings') ? 'bg-orange-50 text-brand-orange font-semibold shadow-xs border border-orange-200' : 'text-studio-muted hover:bg-studio-hover hover:text-studio-text'}`}>
                   <Settings className={`w-4 h-4 shrink-0 ${location.pathname.startsWith('/settings') ? 'text-brand-orange' : 'text-studio-muted group-hover:text-studio-text'}`} />
                 </Link>
-
-                {/* Hover Flyout Sub Menu */}
                 <div className="absolute left-full bottom-0 ml-2 py-2 px-1.5 bg-white border border-studio-border rounded-xl shadow-2xl min-w-44 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-hover:pointer-events-auto transition-all duration-150 z-[100]">
-                  <div className="px-2.5 pb-1.5 mb-1 border-b border-studio-border/60">
-                    <span className="text-[11px] font-bold text-studio-text tracking-tight uppercase">General Settings</span>
-                  </div>
+                  <div className="px-2.5 pb-1.5 mb-1 border-b border-studio-border/60"><span className="text-[11px] font-bold text-studio-text tracking-tight uppercase">General Settings</span></div>
                   <div className="space-y-0.5">
                     <Link to="/settings/studio" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings' || location.pathname === '/settings/studio' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><Building2 className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Studio</span></Link>
                     <Link to="/settings/configurations" className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${location.pathname === '/settings/configurations' || location.pathname === '/settings/config' ? 'bg-orange-50 text-brand-orange font-semibold' : 'text-studio-text hover:bg-studio-hover'}`}><SlidersHorizontal className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span>Configurations</span></Link>
@@ -177,9 +175,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           )}
         </aside>
 
-        <main className="flex-1 min-h-0 bg-studio-bg overflow-y-auto px-8 py-6">
-          {children}
-        </main>
+        <main className="flex-1 min-h-0 bg-studio-bg overflow-y-auto px-8 py-6">{children}</main>
       </div>
     </div>
   );

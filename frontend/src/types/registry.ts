@@ -19,6 +19,12 @@ export interface Client {
   defaultBillingType?: 'T&M' | 'Fixed RC' | 'Fixed PC' | 'Hourly Rate (T&M)' | 'Monthly Res Cost (Fixed)' | 'Project Cost (Fixed)' | string;
   dueTime?: '15 days' | '30 days' | '45 days' | '60 days' | '90 days' | string;
   status: 'Active' | 'Inactive';
+  clientUsers?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    status?: string;
+  }>;
   projects?: Array<{
     id: string;
     name: string;

@@ -177,5 +177,14 @@ class EmployeeService {
             experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
         };
     }
+    static async deleteEmployee(role, employeeId) {
+        if (role !== 'Super Admin')
+            throw new Error('Access Denied: Only Super Admins can delete employee profiles.');
+        const existing = await prisma_1.prisma.employee.findUnique({ where: { employeeId } });
+        if (!existing)
+            throw new Error(`Employee with ID ${employeeId} not found.`);
+        await prisma_1.prisma.employee.delete({ where: { employeeId } });
+        return { success: true };
+    }
 }
 exports.EmployeeService = EmployeeService;

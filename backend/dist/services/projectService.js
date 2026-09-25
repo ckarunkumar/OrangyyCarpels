@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectService = void 0;
 const prisma_1 = require("../lib/prisma");
+const notificationService_1 = require("./notificationService");
 class ProjectService {
     static async getAllProjects(role, clientId, userId) {
         if (role === 'Employee')
@@ -83,6 +84,14 @@ class ProjectService {
                 create: { clientUserId: clientContactPersonId, projectId: targetProjectId, clientId },
             });
         }
+        if (Array.isArray(assignedEmployees)) {
+            for (const empCode of assignedEmployees) {
+                await notificationService_1.NotificationService.createNotification({
+                    userId: empCode, role: 'Employee', title: 'Project Assignment',
+                    message: `You’ve been assigned to Project ${proj.name}.`, type: 'project_assign', projectId: proj.id,
+                });
+            }
+        }
         return {
             id: proj.id, name: proj.name, clientId: proj.clientId, clientName: client.name,
             clientCurrency: client.billingCurrency, billingType: proj.billingType,
@@ -139,6 +148,16 @@ class ProjectService {
                 update: { clientId: targetClientId },
                 create: { clientUserId: data.clientContactPersonId, projectId: id, clientId: targetClientId },
             });
+        }
+        if (Array.isArray(data.assignedEmployees)) {
+            const oldAssigned = (existing.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
+            const newAssigned = data.assignedEmployees.filter((e) => !oldAssigned.includes(e));
+            for (const empCode of newAssigned) {
+                await notificationService_1.NotificationService.createNotification({
+                    userId: empCode, role: 'Employee', title: 'Project Assignment',
+                    message: `You’ve been assigned to Project ${updated.name}.`, type: 'project_assign', projectId: updated.id,
+                });
+            }
         }
         return {
             id: updated.id, name: updated.name, clientId: updated.clientId, clientName: updated.client.name,

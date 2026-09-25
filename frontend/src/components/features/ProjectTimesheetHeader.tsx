@@ -90,7 +90,7 @@ export default function ProjectTimesheetHeader({
         {/* 3. EXPORT */}
         {(isSA || isPM) && (
           <div ref={exportRef} className="relative">
-            <button type="button" disabled={!canExport} onClick={() => setExportOpen((v) => !v)} title={!canExport ? 'Export enabled once submitted' : 'Export Timesheet'} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-bold transition-all shadow-2xs ${canExport ? 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar cursor-pointer' : 'bg-studio-sidebar/50 border-studio-border text-studio-muted opacity-50 cursor-not-allowed'}`}>
+            <button type="button" disabled={!canExport} onClick={() => setExportOpen((v) => !v)} title={!canExport ? 'Export enabled once submitted' : 'Export Timesheet'} className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-[12px] font-bold transition-all shadow-2xs ${canExport ? 'bg-white border-studio-border text-studio-text hover:bg-studio-sidebar cursor-pointer' : 'bg-studio-sidebar/50 border-studio-border text-studio-muted opacity-50 cursor-not-allowed'}`}>
               <Download className="w-3.5 h-3.5 text-brand-orange" /><span>Export</span><ChevronDown className="w-3 h-3 text-studio-muted" />
             </button>
             {exportOpen && canExport && (
@@ -109,7 +109,7 @@ export default function ProjectTimesheetHeader({
             type="button"
             onClick={onSave}
             disabled={isLocked || actionLoading}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 transition-all ${
               isLocked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
             }`}
           >
@@ -119,29 +119,29 @@ export default function ProjectTimesheetHeader({
 
         {/* 5. ROLE-BASED ACTION */}
         {isEmp && myStatus === 'Draft' && (
-          <button type="button" onClick={() => onAction('Submit')} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
+          <button type="button" onClick={() => onAction('Submit')} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
             <Send className="w-3.5 h-3.5" /> Submit
           </button>
         )}
         {isPM && status === 'Submitted' && (
-          <button type="button" onClick={() => onAction('Approve')} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-green-600 text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-green-700 cursor-pointer transition-all">
+          <button type="button" onClick={() => onAction('Approve')} className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-green-700 cursor-pointer transition-all">
             <Check className="w-3.5 h-3.5" /> Approve
           </button>
         )}
         {isSA && (status === 'Submitted' || status === 'PM_Approved') && (
-          <button type="button" onClick={() => onAction('Lock')} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
+          <button type="button" onClick={() => onAction('Lock')} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
             <Lock className="w-3.5 h-3.5" /> Lock Timesheet
           </button>
         )}
         {isSA && status === 'Approved' && (
-          <button type="button" onClick={() => onAction('ReOpen')} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
+          <button type="button" onClick={() => onAction('ReOpen')} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold shadow-2xs hover:bg-opacity-95 cursor-pointer transition-all">
             <Lock className="w-3.5 h-3.5" /> Unlock / Reopen
           </button>
         )}
 
         {/* 6. REOPEN ALL (Last action button) */}
         {(isPM || isSA) && (status === 'Partially_Submitted' || status === 'Submitted' || (isSA && status === 'PM_Approved')) && (
-          <button type="button" onClick={() => onAction('ReOpen')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-studio-border bg-white text-studio-text text-[12px] font-bold shadow-2xs hover:bg-studio-sidebar cursor-pointer transition-colors">
+          <button type="button" onClick={() => onAction('ReOpen')} className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-studio-border bg-white text-studio-text text-[12px] font-bold shadow-2xs hover:bg-studio-sidebar cursor-pointer transition-colors">
             <RotateCcw className="w-3.5 h-3.5 text-studio-muted" /> Reopen All
           </button>
         )}

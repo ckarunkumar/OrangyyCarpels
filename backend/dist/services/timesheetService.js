@@ -340,7 +340,7 @@ class TimesheetService {
         }
         if (targetStatus === 'Submitted') {
             const submitter = currentEmp?.fullName || currentEmpCode || 'Team Member';
-            await notificationService_1.NotificationService.createNotification({ role: 'Project Manager', title: `Timesheet Submitted: ${proj.name || projectId}`, message: `${submitter} submitted timesheet for project "${proj.name || projectId}" (${month}).`, type: 'timesheet_submit', projectId });
+            await notificationService_1.NotificationService.createNotification({ role: 'Project Manager', title: 'Timesheet Submitted', message: `${submitter} submitted the ${month} Timesheet for review.`, type: 'timesheet_submit', projectId });
         }
         await this.syncProjectLoggedHours(projectId);
         return { success: true };
@@ -379,7 +379,10 @@ class TimesheetService {
         }
         const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
         const nRole = nextStatus === 'PM_Approved' ? 'Super Admin' : 'Employee';
-        await notificationService_1.NotificationService.createNotification({ role: nRole, title: `Timesheet ${nextStatus}: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) updated to ${nextStatus}.`, type: 'timesheet_approve', projectId });
+        const msg = nextStatus === 'PM_Approved'
+            ? `${month} Timesheet approved by PM — awaiting Admin action.`
+            : `Your ${month} Timesheet for "${proj?.name || projectId}" was approved.`;
+        await notificationService_1.NotificationService.createNotification({ role: nRole, title: `Timesheet ${nextStatus === 'PM_Approved' ? 'PM Approved' : 'Approved'}`, message: msg, type: 'timesheet_approve', projectId });
         await this.syncProjectLoggedHours(projectId);
         return { success: true, status: nextStatus };
     }
@@ -392,7 +395,7 @@ class TimesheetService {
         }
         await prisma_1.prisma.dailyTimesheetEntry.updateMany({ where: { projectId, date: { startsWith: month } }, data: { status: 'Draft' } });
         const proj = await prisma_1.prisma.project.findUnique({ where: { id: projectId } });
-        await notificationService_1.NotificationService.createNotification({ role: 'Employee', title: `Timesheet Reopened: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) was reopened for rework by ${role}.`, type: 'timesheet_reopen', projectId });
+        await notificationService_1.NotificationService.createNotification({ role: 'Employee', title: 'Timesheet Reopened', message: `${month} Timesheet for "${proj?.name || projectId}" was reopened for rework by ${role}.`, type: 'timesheet_reopen', projectId });
         await this.syncProjectLoggedHours(projectId);
         return { success: true, status: 'Draft' };
     }

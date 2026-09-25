@@ -37,6 +37,7 @@ export interface ClientProfile {
   cinNumber?: string; gstNumber?: string; panNumber?: string; msmeNumber?: string;
   billingCurrency: string; defaultBillingType: string; dueTime?: string;
   status: 'Active' | 'Inactive'; projects: ProjectDetail[];
+  clientUsers?: Array<{ id: string; name: string; email: string; status: string }>;
 }
 
 export interface RateVersionRecord {

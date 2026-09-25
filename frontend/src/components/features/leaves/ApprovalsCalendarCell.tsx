@@ -68,7 +68,7 @@ export default function ApprovalsCalendarCell({
 
   return (
     <div className={`min-h-[110px] p-2 flex flex-col justify-between transition-colors ${cellBgClass}`}>
-      {/* Date & Day Header Indicators */}
+      {/* Date Header Indicator */}
       <div className="flex items-center justify-between">
         <span
           className={`text-[12px] font-bold ${
@@ -83,11 +83,6 @@ export default function ApprovalsCalendarCell({
         >
           {day.dayNumber}
         </span>
-        {isWeekend && day.isCurrentMonth && (
-          <span className="text-[9px] font-bold text-red-500 bg-red-100/60 border border-red-200 px-1 py-0.5 rounded leading-none select-none">
-            {day.isSunday ? 'Sunday' : 'Saturday'}
-          </span>
-        )}
       </div>
 
       {/* Holiday Badge (Public / Government Holiday in Light Orange) */}

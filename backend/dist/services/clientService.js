@@ -6,7 +6,14 @@ class ClientService {
     static async getClients(role) {
         if (role === 'Employee')
             throw new Error('Access Denied: Employees cannot view clients.');
-        const clients = await prisma_1.prisma.client.findMany({ include: { projects: true } });
+        const clients = await prisma_1.prisma.client.findMany({
+            include: {
+                projects: true,
+                clientUsers: {
+                    select: { id: true, name: true, email: true, status: true },
+                },
+            },
+        });
         return clients.map((c) => ({
             id: c.id, name: c.name, legalName: c.legalName || '', displayName: c.displayName || '',
             contactPerson: c.contactPerson || '', email: c.email || '', phone: c.phone || '',
@@ -15,6 +22,9 @@ class ClientService {
             cinNumber: c.cinNumber || '', gstNumber: c.gstNumber || '', panNumber: c.panNumber || '', msmeNumber: c.msmeNumber || '',
             billingCurrency: c.billingCurrency, defaultBillingType: c.defaultBillingType, dueTime: c.dueTime || '30 days',
             status: c.status,
+            clientUsers: (c.clientUsers || []).map((u) => ({
+                id: u.id, name: u.name, email: u.email, status: u.status,
+            })),
             projects: c.projects.map((p) => ({
                 id: p.id, name: p.name, billingType: p.billingType,
                 rate: role === 'Super Admin' ? p.rate : 'RESTRICTED',
@@ -135,6 +145,15 @@ class ClientService {
                 monthlyBudgets: Array.isArray(p.monthlyBudgets) ? p.monthlyBudgets : [],
             })),
         };
+    }
+    static async deleteClient(role, id) {
+        if (role !== 'Super Admin')
+            throw new Error('Access Denied: Only Super Admins can delete client profiles.');
+        const existing = await prisma_1.prisma.client.findUnique({ where: { id } });
+        if (!existing)
+            throw new Error(`Client with ID ${id} not found.`);
+        await prisma_1.prisma.client.delete({ where: { id } });
+        return { success: true };
     }
 }
 exports.ClientService = ClientService;

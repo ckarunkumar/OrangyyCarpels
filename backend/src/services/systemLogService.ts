@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { NotificationService } from './notificationService';
 
 export interface CreateLoginLogInput {
   employeeId?: string;
@@ -117,6 +118,18 @@ export class SystemLogService {
           networkInfo: geo.networkInfo,
           userAgent: input.userAgent || '',
         },
+      });
+
+      const loc = [geo.city, geo.country].filter((s) => s && s !== 'Localhost' && s !== 'Local Network').join(', ');
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const meta = [dateStr, timeStr, loc].filter(Boolean).join(' · ');
+      await NotificationService.createNotification({
+        role: 'Super Admin',
+        title: 'User Login Activity',
+        message: `${input.fullName} logged in. ${meta}`,
+        type: 'login_activity',
       });
     } catch (error) {
       console.error('Failed to record system login log:', error);

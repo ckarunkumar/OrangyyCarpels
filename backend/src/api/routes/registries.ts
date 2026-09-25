@@ -58,6 +58,18 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     }
   });
 
+  // DELETE employee
+  fastify.delete('/employees/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const role = request.user!.role;
+    try {
+      return await RegistryService.deleteEmployee(role, id);
+    } catch (err: any) {
+      const status = err.message.startsWith('Access Denied') ? 403 : 404;
+      return reply.status(status).send({ error: err.message });
+    }
+  });
+
   // GET clients list (with projects)
   fastify.get('/clients', { schema: getRegistrySchema }, async (request, reply) => {
     const role = request.user!.role;
@@ -100,6 +112,18 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     try {
       const updated = await RegistryService.updateClient(role, id, updateData);
       return updated;
+    } catch (err: any) {
+      const status = err.message.startsWith('Access Denied') ? 403 : 404;
+      return reply.status(status).send({ error: err.message });
+    }
+  });
+
+  // DELETE client
+  fastify.delete('/clients/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const role = request.user!.role;
+    try {
+      return await RegistryService.deleteClient(role, id);
     } catch (err: any) {
       const status = err.message.startsWith('Access Denied') ? 403 : 404;
       return reply.status(status).send({ error: err.message });

@@ -188,8 +188,8 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
         <EmployeeFormBankSection form={form} set={set} inputCls={inputCls} labelCls={labelCls} />
 
         <div className="pt-4 border-t border-studio-border/80 flex items-center justify-end gap-3">
-          <button type="button" onClick={onBack} className="h-8.5 px-4 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-bold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
-          <button type="submit" disabled={saving} className="h-8.5 px-5 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Team Member'}</button>
+          <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-semibold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>
+          <button type="submit" disabled={saving} className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all disabled:opacity-50 cursor-pointer">{saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Team Member'}</button>
         </div>
       </form>
     </div>

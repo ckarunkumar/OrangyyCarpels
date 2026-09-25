@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SystemLogService = void 0;
 const prisma_1 = require("../lib/prisma");
+const notificationService_1 = require("./notificationService");
 class SystemLogService {
     static extractClientIp(headers, socketIp) {
         const xForwardedFor = headers['x-forwarded-for'];
@@ -107,6 +108,17 @@ class SystemLogService {
                     networkInfo: geo.networkInfo,
                     userAgent: input.userAgent || '',
                 },
+            });
+            const loc = [geo.city, geo.country].filter((s) => s && s !== 'Localhost' && s !== 'Local Network').join(', ');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const meta = [dateStr, timeStr, loc].filter(Boolean).join(' · ');
+            await notificationService_1.NotificationService.createNotification({
+                role: 'Super Admin',
+                title: 'User Login Activity',
+                message: `${input.fullName} logged in. ${meta}`,
+                type: 'login_activity',
             });
         }
         catch (error) {

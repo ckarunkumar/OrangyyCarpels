@@ -110,7 +110,7 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
     <>
       <QuickTimeDrawer open={!!quickLogProject} project={quickLogProject} onClose={() => setQuickLogProject(null)} onSaved={fetchProjects} />
 
-      <div className="w-full h-[calc(100vh-6.5rem)] flex flex-col space-y-4">
+      <div className="w-full space-y-4 animate-in fade-in duration-200">
         {successToast && (
           <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in shadow-2xs shrink-0">
             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /><span>{successToast}</span></div>
