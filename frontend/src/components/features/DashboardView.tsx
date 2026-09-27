@@ -8,6 +8,7 @@ import DashboardFilterHeader from './dashboard/DashboardFilterHeader';
 import RateHistoryDrawer from './RateHistoryDrawer';
 import PmDashboardView from './dashboard/PmDashboardView';
 import EmployeeDashboardView from './dashboard/EmployeeDashboardView';
+import ClientDashboardView from './ClientDashboardView';
 
 import { getCurrentFiscalYear, getCurrentMonthShort, getAvailableFiscalYears } from '../../utils/dateUtils';
 
@@ -74,6 +75,10 @@ export default function DashboardView({ activeRole }: { activeRole: UserRole }) 
 
   if (activeRole === 'Employee') {
     return <EmployeeDashboardView />;
+  }
+
+  if (activeRole === 'Client') {
+    return <ClientDashboardView />;
   }
 
   const handleFYChange = (newFY: string) => {

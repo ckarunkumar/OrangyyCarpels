@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.billingRoutes = billingRoutes;
 const billingService_1 = require("../../services/billingService");
+const fxRateService_1 = require("../../services/fxRateService");
 const billingSchema_1 = require("../schemas/billingSchema");
 async function billingRoutes(fastify) {
     // GET /billing/summary
@@ -26,13 +27,36 @@ async function billingRoutes(fastify) {
             return reply.status(500).send({ error: err.message });
         }
     });
+    // GET /billing/rates/history
+    fastify.get('/billing/rates/history', async (request, reply) => {
+        try {
+            const target = request.query?.targetCurrency || 'INR';
+            const history = await fxRateService_1.FxRateService.getRateHistory(target);
+            return reply.send(history);
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message });
+        }
+    });
+    // GET /billing/rates/current
+    fastify.get('/billing/rates/current', async (request, reply) => {
+        try {
+            const target = request.query?.targetCurrency || 'INR';
+            const current = await fxRateService_1.FxRateService.getCurrentRates(target);
+            return reply.send(current);
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message });
+        }
+    });
     // POST /billing/rates/sync
     fastify.post('/billing/rates/sync', async (request, reply) => {
         try {
             const role = request.user?.role || 'Employee';
             if (role !== 'Super Admin')
                 return reply.status(403).send({ error: 'Super Admin only' });
-            const rates = await billingService_1.BillingService.syncLiveExchangeRates();
+            const target = request.body?.targetCurrency || 'INR';
+            const rates = await fxRateService_1.FxRateService.syncLiveExchangeRates(target);
             return reply.send({ success: true, rates });
         }
         catch (err) {

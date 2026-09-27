@@ -5,6 +5,8 @@ export interface EmployeeProfile {
   linkedInUrl?: string; aadhaarNumber?: string; panNumber?: string; costRate: string; capacity: string;
   joiningDate?: string; relievingDate?: string; status: 'Active' | 'Inactive';
   role: 'Super Admin' | 'Project Manager' | 'Employee'; location?: string; avatar?: string | null;
+  bankName?: string; branchName?: string; ifscCode?: string; accountNumber?: string; accountHolderName?: string;
+  accountType?: string; upiId?: string;
   password?: string | null;
   education: Array<{ degree: string; school: string; year: string }>;
   experience: Array<{ company: string; role: string; period: string }>;
@@ -19,6 +21,8 @@ export interface ProjectDetail {
   rate: string; businessLine?: string; service?: string; startDate?: string; endDate?: string;
   budgetHours: number; budgetType?: 'Monthly' | 'Total Project'; loggedHours: number; status: 'Active' | 'Inactive';
   managerId?: string; managerName?: string; assignedEmployees?: string[];
+  clientContactPersonId?: string; clientContactPersonName?: string;
+  monthlyBudgets?: Array<{ monthYear: string; budgetHours: number; isLocked?: boolean }>;
 }
 
 export interface ProjectWithClient extends ProjectDetail {
@@ -33,6 +37,7 @@ export interface ClientProfile {
   cinNumber?: string; gstNumber?: string; panNumber?: string; msmeNumber?: string;
   billingCurrency: string; defaultBillingType: string; dueTime?: string;
   status: 'Active' | 'Inactive'; projects: ProjectDetail[];
+  clientUsers?: Array<{ id: string; name: string; email: string; status: string }>;
 }
 
 export interface RateVersionRecord {

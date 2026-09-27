@@ -23,24 +23,37 @@ export class BillingSummaryService {
     const rangeStart = periodType === 'monthly' ? mStart : fyStart;
     const rangeEnd = periodType === 'monthly' ? mEnd : fyEnd;
 
-    const allRates = await prisma.exchangeRate.findMany();
+    const [allRates, allMonthlyRates] = await Promise.all([
+      prisma.exchangeRate.findMany(),
+      prisma.monthlyExchangeRate.findMany({ where: { targetCurrency: 'INR' } }),
+    ]);
+
     const monthRates = allRates.filter(r => r.monthYear === monthYearKey);
     const activeRates = (periodType === 'monthly' && monthRates.length > 0) ? monthRates : allRates;
     const rateMap = new Map<string, number>(activeRates.map(r => [r.currency, r.rateToINR]));
+
+    // Fast lookup for monthly snapshot rates by currency + year + month
+    const monthlyRateMap = new Map<string, number>();
+    for (const r of allMonthlyRates) {
+      monthlyRateMap.set(`${r.sourceCurrency}_${r.year}_${r.month}`, r.rate);
+    }
+
+    const getEntryFxRate = (curr: string, dateStr: string): number => {
+      const year = parseInt(dateStr.slice(0, 4), 10);
+      const m = parseInt(dateStr.slice(5, 7), 10);
+      return monthlyRateMap.get(`${curr}_${year}_${m}`) || rateMap.get(curr) || DEFAULT_RATES[curr] || 1.0;
+    };
 
     const projectsRaw = await prisma.project.findMany({
       where: clientIdFilter ? { clientId: clientIdFilter } : undefined,
       include: {
         client: true,
-        dailyEntries: {
-          where: { date: { gte: rangeStart, lte: rangeEnd } },
-        },
+        dailyEntries: { where: { date: { gte: rangeStart, lte: rangeEnd } } },
       },
     });
 
     let totalRevenueINR = 0, tmRevenueINR = 0, monthlyFixedRevenueINR = 0, projectFixedRevenueINR = 0;
     let totalHoursLogged = 0, activeProjectsCount = 0;
-
     const projectSummaries: ProjectBillingSummary[] = [];
 
     for (const p of projectsRaw) {
@@ -52,7 +65,7 @@ export class BillingSummaryService {
       const activeVersion = rateVersions.length > 0 ? rateVersions[0] : null;
       const currency = activeVersion?.currency || p.currency || p.client.billingCurrency || 'USD';
       const currCode = BillingCalculator.extractCurrencyCode(currency);
-      const rateToINR = rateMap.get(currCode) || DEFAULT_RATES[currCode] || 1.0;
+      const defaultFxRate = rateMap.get(currCode) || DEFAULT_RATES[currCode] || 1.0;
       const rateAmount = activeVersion ? activeVersion.rateAmount : BillingCalculator.parseRateAmount(p.rate);
 
       const bTypeRaw = p.billingType || p.client.defaultBillingType || 'T&M';
@@ -60,20 +73,31 @@ export class BillingSummaryService {
         bTypeRaw.includes('T&M') || bTypeRaw.includes('Hourly') ? 'T&M' :
         bTypeRaw.includes('RC') || bTypeRaw.includes('Resource') || bTypeRaw.includes('Retainer') ? 'Resources Cost (Fix)' : 'Project Cost (Fix)';
 
-      const entriesHours = p.dailyEntries?.reduce((sum: number, d: any) => sum + (d.hours || 0), 0) || 0;
-      let loggedHours = entriesHours;
-      if (loggedHours === 0 && isActiveInPeriod && periodType === 'yearly') {
-        loggedHours = p.loggedHours || 0;
-      }
-
+      let loggedHours = 0;
       let nativeAmountBilled = 0;
+      let inrAmountBilled = 0;
+
       if (billingModel === 'T&M') {
-        nativeAmountBilled = loggedHours * rateAmount;
-      } else if (billingModel === 'Resources Cost (Fix)' || billingModel === 'Project Cost (Fix)') {
-        if (isActiveInPeriod) nativeAmountBilled = rateAmount;
+        if (p.dailyEntries && p.dailyEntries.length > 0) {
+          for (const d of p.dailyEntries) {
+            const h = d.hours || 0;
+            loggedHours += h;
+            const entryFxRate = getEntryFxRate(currCode, d.date);
+            const entryNative = h * rateAmount;
+            nativeAmountBilled += entryNative;
+            inrAmountBilled += Math.round(entryNative * entryFxRate);
+          }
+        } else if (p.loggedHours && isActiveInPeriod && periodType === 'yearly') {
+          loggedHours = p.loggedHours;
+          nativeAmountBilled = loggedHours * rateAmount;
+          inrAmountBilled = Math.round(nativeAmountBilled * defaultFxRate);
+        }
+      } else if (isActiveInPeriod) {
+        nativeAmountBilled = rateAmount;
+        inrAmountBilled = Math.round(nativeAmountBilled * defaultFxRate);
+        loggedHours = p.dailyEntries?.reduce((sum: number, d: any) => sum + (d.hours || 0), 0) || 0;
       }
 
-      const inrAmountBilled = Math.round(nativeAmountBilled * rateToINR);
       const isVisible = isActiveInPeriod || inrAmountBilled > 0 || loggedHours > 0;
       if (!isVisible) continue;
 
@@ -105,14 +129,13 @@ export class BillingSummaryService {
         loggedHours,
         hoursBurnedPercent,
         nativeAmountBilled,
-        exchangeRateToINR: rateToINR,
+        exchangeRateToINR: defaultFxRate,
         inrAmountBilled,
         status: p.status,
         effectiveStartDate: activeVersion?.effectiveStartDate || p.startDate || '—',
       });
     }
 
-    // Client summaries
     const clientMap = new Map<string, ClientBillingSummary>();
     for (const proj of projectSummaries) {
       const existing = clientMap.get(proj.clientId);

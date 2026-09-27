@@ -127,9 +127,9 @@ export default function BusinessLineManager({ addingBL: controlledAddingBL, onAd
               <input type="text" placeholder="e.g. Physical spaces, environmental graphics, and pop-ups" value={newBLDesc} onChange={(e) => setNewBLDesc(e.target.value)} className="w-full px-3 py-1.5 bg-white border border-studio-border rounded-md text-studio-text focus:outline-none focus:border-brand-orange" />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => setAddingBL(false)} className="px-3 py-1 text-[11.5px] font-medium text-studio-muted hover:text-studio-text">Cancel</button>
-            <button type="submit" className="px-4 py-1 bg-brand-orange text-white rounded-md text-[11.5px] font-semibold hover:bg-opacity-95">Save Business Line</button>
+          <div className="flex items-center justify-end gap-2 pt-1">
+            <button type="button" onClick={() => setAddingBL(false)} className="h-8 px-3.5 border border-studio-border rounded-lg text-[12px] font-bold text-studio-text hover:bg-white shadow-2xs transition-colors cursor-pointer">Cancel</button>
+            <button type="submit" className="h-8 px-4 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-95 shadow-2xs transition-all cursor-pointer">Save Business Line</button>
           </div>
         </form>
       )}

@@ -3,7 +3,6 @@ import { ChevronDown, Calendar, X } from 'lucide-react';
 
 interface PmDashboardFilterHeaderProps {
   title: string;
-  subtitle?: string;
   isDrilldown?: boolean;
   onBackToStudio?: () => void;
   selectedFY: string;
@@ -17,8 +16,6 @@ interface PmDashboardFilterHeaderProps {
 
 export default function PmDashboardFilterHeader({
   title,
-  subtitle,
-  isDrilldown,
   selectedFY,
   onChangeFY,
   fromDate,
@@ -60,17 +57,12 @@ export default function PmDashboardFilterHeader({
     ? `${formatDateDisplay(fromDate)} - ${formatDateDisplay(toDate)}`
     : 'From Date - To Date';
 
-  const defaultSubtitle = isDrilldown
-    ? 'Live billing, multi-currency conversion, and resource metrics'
-    : 'Live yearly logs';
-
   return (
     <div className="space-y-3">
       {/* Main Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight text-slate-900">{title}</h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">{subtitle || defaultSubtitle}</p>
         </div>
 
         {/* Filter Dropdowns */}

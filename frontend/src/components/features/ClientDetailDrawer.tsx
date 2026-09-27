@@ -12,44 +12,44 @@ interface ClientDetailDrawerProps {
 export default function ClientDetailDrawer({ open, client, isAdmin, onClose, onEdit }: ClientDetailDrawerProps) {
   if (!client) return null;
 
-  const headingCls = "text-[12px] font-bold text-studio-text pb-1 border-b border-studio-border/70";
-  const boxCls = "grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3 bg-studio-sidebar/40 border border-studio-border rounded-lg p-3.5 text-[12px]";
-  const labelCls = "text-studio-muted text-[10px] uppercase font-bold block";
+  const headingCls = "text-[12px] font-bold text-studio-text uppercase tracking-wider pb-1.5 border-b border-studio-border/70";
+  const boxCls = "grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5 bg-slate-50/70 border border-studio-border rounded-xl p-4 text-[12.5px]";
+  const labelCls = "text-studio-muted text-[10.5px] uppercase font-bold block";
 
   return (
     <>
-      <div onClick={onClose} className={`fixed inset-0 z-40 bg-black/15 backdrop-blur-[1px] transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-4xl bg-white shadow-2xl flex flex-col transition-transform duration-250 ease-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div onClick={onClose} className={`fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-4xl bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${open ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-3.5 border-b border-studio-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-studio-border shrink-0 bg-white">
           <div>
-            <h3 className="text-[16px] font-semibold text-studio-text">Client Profile</h3>
-            <p className="text-[11px] text-studio-muted mt-0.5 font-mono">{client.id} • {client.name}</p>
+            <h3 className="text-[16px] font-bold text-studio-text">Client Profile</h3>
+            <p className="text-[11.5px] text-studio-muted font-mono">{client.id} • {client.name}</p>
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
-              <button type="button" onClick={() => { onClose(); onEdit(client); }} className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-semibold text-brand-orange bg-orange-50 border border-brand-orange/30 rounded hover:bg-orange-100 transition-colors">
+              <button type="button" onClick={() => { onClose(); onEdit(client); }} className="flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold text-brand-orange bg-orange-50 border border-brand-orange/30 rounded-lg hover:bg-orange-100 transition-colors cursor-pointer">
                 <Pencil className="w-3 h-3" /> Edit Client
               </button>
             )}
-            <button type="button" onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center text-studio-muted hover:bg-studio-sidebar transition-colors">
+            <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-studio-muted hover:bg-studio-sidebar transition-colors cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-7 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           {/* Header Overview Card */}
-          <div className="flex items-center gap-3 pb-3.5 border-b border-studio-border/70">
-            <div className="w-10 h-10 rounded-lg bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0 shadow-sm">
-              <Building2 className="w-5 h-5 text-studio-muted" />
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50/70 border border-studio-border shadow-2xs">
+            <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center text-studio-muted border border-studio-border shrink-0 shadow-2xs">
+              <Building2 className="w-7 h-7 text-brand-orange" />
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-[16px] font-bold text-studio-text truncate">{client.name}</h3>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-studio-sidebar border border-studio-border text-studio-text">{client.id}</span>
-                <span className={`text-[9.5px] font-semibold px-2 py-0.2 rounded-full border ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{client.status}</span>
-                <span className="text-[11px] text-studio-muted">• {client.projects?.length || 0} active projects</span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-white border border-studio-border text-studio-text">{client.id}</span>
+                <span className={`text-[9.5px] font-semibold px-2.5 py-0.5 rounded-full border ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{client.status}</span>
+                <span className="text-[11.5px] text-studio-muted">• {client.projects?.length || 0} active projects</span>
               </div>
             </div>
           </div>

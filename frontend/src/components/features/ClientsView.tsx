@@ -1,16 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { UserRole } from '../ui/Layout';
-import { Plus, Building2, Globe, Pencil, Mail, Phone, CheckCircle2 } from 'lucide-react';
-import { SkeletonRow } from '../ui/Skeleton';
+import { Plus, CheckCircle2 } from 'lucide-react';
 import { Client } from '../../types/registry';
 import ClientDetailDrawer from './ClientDetailDrawer';
 import ClientProjectsDrawer from './ClientProjectsDrawer';
 import ClientFormView from './ClientFormView';
+import ClientProjectsView from './ClientProjectsView';
+import ClientTable from './ClientTable';
 import Breadcrumbs from '../ui/Breadcrumbs';
+import { useSearch } from '../../context/SearchContext';
 
 export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
+  const { searchQuery, setSearchPlaceholder } = useSearch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [activeClientForProjects, setActiveClientForProjects] = useState<Client | null>(null);
   const [projectsClient, setProjectsClient] = useState<Client | null>(null);
   const [projectsFilter, setProjectsFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
   const [detailOpen, setDetailOpen] = useState(false);
@@ -21,19 +28,34 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   const [targetClient, setTargetClient] = useState<Client | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
+  useEffect(() => {
+    setSearchPlaceholder('Search clients (company, ID, contact)...');
+  }, [setSearchPlaceholder]);
+
   const fetchClients = () => {
     setLoading(true);
     fetch('/api/clients')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch clients list');
-        return res.json();
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const clientList = data || [];
+        setClients(clientList); setError(null);
+        const clientId = searchParams.get('clientId');
+        if (clientId) {
+          const match = clientList.find((c: Client) => c.id === clientId);
+          if (match) setActiveClientForProjects(match);
+        }
       })
-      .then((data) => { setClients(data || []); setError(null); })
       .catch((err) => { setError(err.message); setClients([]); })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchClients(); }, [activeRole]);
+
+  const clientCounts = useMemo(() => ({
+    total: clients.length,
+    active: clients.filter((c) => c.status === 'Active').length,
+    inactive: clients.filter((c) => c.status === 'Inactive').length,
+  }), [clients]);
 
   const isAdmin = activeRole === 'Super Admin';
 
@@ -42,32 +64,25 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
     setTargetClient(client); setFormMode('edit'); setViewMode('form');
   };
 
-  const handleOpenAdd = () => {
-    setTargetClient(null); setFormMode('add'); setViewMode('form');
-  };
-
-  const handleOpenProjects = (client: Client, filter: 'Active' | 'Inactive') => {
-    setProjectsFilter(filter); setProjectsClient(client);
-  };
-
   const handleSaved = (msg?: string) => {
     setViewMode('list');
-    if (msg) {
-      setSuccessToast(msg);
-      setTimeout(() => setSuccessToast(null), 5000);
-    }
+    if (msg) { setSuccessToast(msg); setTimeout(() => setSuccessToast(null), 5000); }
     fetchClients();
   };
 
+  const filteredClients = clients.filter((c) => {
+    if (clientStatusFilter === 'Active' && c.status !== 'Active') return false;
+    if (clientStatusFilter === 'Inactive' && c.status !== 'Inactive') return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || (c.displayName && c.displayName.toLowerCase().includes(q)) || (c.contactPerson && c.contactPerson.toLowerCase().includes(q)) || (c.email && c.email.toLowerCase().includes(q));
+  });
+
+  if (activeClientForProjects) {
+    return <ClientProjectsView client={activeClientForProjects} activeRole={activeRole} allClients={clients} onBack={() => { setActiveClientForProjects(null); setSearchParams({}); fetchClients(); }} />;
+  }
   if (viewMode === 'form') {
-    return (
-      <ClientFormView
-        mode={formMode}
-        client={formMode === 'edit' ? targetClient : null}
-        onBack={() => setViewMode('list')}
-        onSaved={handleSaved}
-      />
-    );
+    return <ClientFormView mode={formMode} client={formMode === 'edit' ? targetClient : null} onBack={() => setViewMode('list')} onSaved={handleSaved} />;
   }
 
   return (
@@ -77,85 +92,49 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
 
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         {successToast && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in slide-in-from-top-1 shadow-2xs">
+          <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in shadow-2xs">
             <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" /><span>{successToast}</span></div>
             <button onClick={() => setSuccessToast(null)} className="text-green-600 hover:text-green-800 text-[11px] font-bold cursor-pointer">Dismiss</button>
           </div>
         )}
 
-        <Breadcrumbs items={[{ label: 'Clientele' }]} />
-        <div className="flex justify-between items-center border-b border-studio-border pb-3">
-          <div><h2 className="text-[20px] font-bold tracking-tight text-studio-text">Clientele</h2><p className="text-[12px] text-studio-muted">Manage studio client accounts, contact details, billing currencies, and linked projects</p></div>
-          {isAdmin && (
-            <button type="button" onClick={handleOpenAdd} className="flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-orange text-white rounded text-[12px] font-semibold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer">
-              <Plus className="w-4 h-4" /> Add Client
-            </button>
-          )}
+        <Breadcrumbs items={[{ label: 'Client Management' }]} />
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-studio-border pb-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Client Management</h2>
+          </div>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button type="button" onClick={() => setClientStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.total}</span>
+              </button>
+              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>Active</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.active}</span>
+              </button>
+              <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Inactive' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>Inactive</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.inactive}</span>
+              </button>
+            </div>
+            {isAdmin && (
+              <button type="button" onClick={() => { setTargetClient(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm cursor-pointer shrink-0">
+                <Plus className="w-4 h-4" /> Add Client
+              </button>
+            )}
+          </div>
         </div>
 
         {error && <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded text-[13px] font-semibold">{error}</div>}
 
-        <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-          <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-            <div className="col-span-2">Client ID</div>
-            <div className="col-span-3">Company Name</div>
-            <div className="col-span-2">Contact Details</div>
-            <div className="col-span-2">Billing Currency</div>
-            <div className="col-span-2">Projects</div>
-            <div className="col-span-1 text-right">Status</div>
-          </div>
-
-          <div className="divide-y divide-studio-border bg-white">
-            {loading ? Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />) : clients.length === 0 ? (
-              <div className="text-center py-8 text-[12px] text-studio-muted">No clients registered.</div>
-            ) : (
-              clients.map((client) => {
-                const activeCount = client.projects?.filter((p) => p.status === 'Active').length || 0;
-                const inactiveCount = client.projects?.filter((p) => p.status === 'Inactive').length || 0;
-
-                return (
-                  <div key={client.id} onClick={() => { setSelectedClient(client); setDetailOpen(true); }} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
-                    <div className="col-span-2"><span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{client.id}</span></div>
-                    <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded bg-studio-sidebar flex items-center justify-center text-studio-muted border border-studio-border shrink-0"><Building2 className="w-3.5 h-3.5" /></div>
-                      <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">{client.name}</p>
-                    </div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-2">
-                      {client.email ? (
-                        <span className="flex items-center gap-1 truncate" title={client.email}><Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.email}</span></span>
-                      ) : client.phone ? (
-                        <span className="flex items-center gap-1 truncate" title={client.phone}><Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.phone}</span></span>
-                      ) : (
-                        <span className="text-studio-muted/60 italic text-[11px]">No contact details</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5"><Globe className="w-3.5 h-3.5 text-studio-muted shrink-0" /><span className="truncate">{client.billingCurrency}</span></div>
-                    
-                    <div className="col-span-2 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Active'); }} title={`Active Projects: ${activeCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[12px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
-                        <span>{activeCount}</span>
-                      </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenProjects(client, 'Inactive'); }} title={`Inactive Projects: ${inactiveCount}`} className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[12px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-red-400 shrink-0"></span>
-                        <span>{inactiveCount}</span>
-                      </button>
-                    </div>
-
-                    <div className="col-span-1 text-right flex items-center justify-end gap-1.5">
-                      {isAdmin && (
-                        <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEdit(client); }} title="Edit Client" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-studio-sidebar rounded text-studio-muted hover:text-brand-orange cursor-pointer transition-opacity">
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>{client.status}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <ClientTable
+          loading={loading}
+          clients={filteredClients}
+          isAdmin={isAdmin}
+          searchQuery={searchQuery}
+          onSelectClientProjects={(c) => { setActiveClientForProjects(c); setSearchParams({ clientId: c.id }); }}
+          onOpenDetail={(c) => { setSelectedClient(c); setDetailOpen(true); }}
+          onOpenProjectsDrawer={(c, f) => { setProjectsFilter(f); setProjectsClient(c); }}
+          onOpenEdit={handleOpenEdit}
+        />
       </div>
     </>
   );

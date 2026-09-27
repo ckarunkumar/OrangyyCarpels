@@ -19,6 +19,12 @@ export interface Client {
   defaultBillingType?: 'T&M' | 'Fixed RC' | 'Fixed PC' | 'Hourly Rate (T&M)' | 'Monthly Res Cost (Fixed)' | 'Project Cost (Fixed)' | string;
   dueTime?: '15 days' | '30 days' | '45 days' | '60 days' | '90 days' | string;
   status: 'Active' | 'Inactive';
+  clientUsers?: Array<{
+    id: string;
+    name: string;
+    email?: string;
+    status?: string;
+  }>;
   projects?: Array<{
     id: string;
     name: string;
@@ -49,6 +55,13 @@ export interface Employee {
   linkedInUrl?: string;
   aadhaarNumber?: string;
   panNumber?: string;
+  bankName?: string;
+  branchName?: string;
+  ifscCode?: string;
+  accountNumber?: string;
+  accountHolderName?: string;
+  accountType?: string;
+  upiId?: string;
   joiningDate?: string;
   relievingDate?: string;
   status: 'Active' | 'Inactive';
@@ -81,4 +94,33 @@ export interface Project {
   managerId?: string;
   managerName?: string;
   assignedEmployees?: string[];
+  clientContactPersonId?: string;
+  clientContactPersonName?: string;
+  monthlyBudgets?: Array<{ monthYear: string; budgetHours: number; isLocked?: boolean }>;
+}
+
+export interface ClientUser {
+  id: string;
+  name: string;
+  username?: string;
+  email: string;
+  phone?: string;
+  status: 'Active' | 'Can Login' | 'Cannot Login' | 'Inactive';
+  clientId: string;
+  client?: {
+    id: string;
+    name: string;
+    displayName?: string;
+  };
+  projects?: Array<{
+    id: number;
+    projectId: string;
+    project: {
+      id: string;
+      name: string;
+      status: string;
+    };
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
 }

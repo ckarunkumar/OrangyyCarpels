@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma';
+import { NotificationService } from './notificationService';
 
 export interface LeaveBalanceData {
   employeeId: string; year: number; casualQuota: number; casualUsed: number;
@@ -10,70 +11,36 @@ export interface LeaveBalanceData {
 
 export class LeaveService {
   static async getBalance(employeeId: string, year: number = 2026): Promise<LeaveBalanceData> {
-    const emp = await prisma.employee.findUnique({
-      where: { employeeId },
-    });
-    const casualQuota = emp?.casualQuota ?? 12;
-    const casualUsed = emp?.casualUsed ?? 0;
-    const sickQuota = emp?.sickQuota ?? 12;
-    const sickUsed = emp?.sickUsed ?? 0;
-    const earnedQuota = emp?.earnedQuota ?? 15;
-    const earnedUsed = emp?.earnedUsed ?? 0;
+    const emp = await prisma.employee.findUnique({ where: { employeeId } });
+    const casualQuota = emp?.casualQuota ?? 12; const casualUsed = emp?.casualUsed ?? 0;
+    const sickQuota = emp?.sickQuota ?? 12; const sickUsed = emp?.sickUsed ?? 0;
+    const earnedQuota = emp?.earnedQuota ?? 15; const earnedUsed = emp?.earnedUsed ?? 0;
     const compOffBalance = emp?.compOffBalance ?? 0;
-    const optionalHolidaysQuota = emp?.optionalHolidaysQuota ?? 2;
-    const optionalHolidaysUsed = emp?.optionalHolidaysUsed ?? 0;
-    const wfhMonthlyLimit = emp?.wfhMonthlyLimit ?? 2;
-    const wfhUsedThisMonth = emp?.wfhUsedThisMonth ?? 0;
+    const optionalHolidaysQuota = emp?.optionalHolidaysQuota ?? 2; const optionalHolidaysUsed = emp?.optionalHolidaysUsed ?? 0;
+    const wfhMonthlyLimit = emp?.wfhMonthlyLimit ?? 2; const wfhUsedThisMonth = emp?.wfhUsedThisMonth ?? 0;
 
     return {
-      employeeId: emp?.employeeId || employeeId,
-      year: emp?.leaveYear || year,
-      casualQuota,
-      casualUsed,
-      casualRemaining: Math.max(0, casualQuota - casualUsed),
-      sickQuota,
-      sickUsed,
-      sickRemaining: Math.max(0, sickQuota - sickUsed),
-      earnedQuota,
-      earnedUsed,
-      earnedRemaining: Math.max(0, earnedQuota - earnedUsed),
-      compOffBalance,
-      optionalHolidaysQuota,
-      optionalHolidaysUsed,
+      employeeId: emp?.employeeId || employeeId, year: emp?.leaveYear || year,
+      casualQuota, casualUsed, casualRemaining: Math.max(0, casualQuota - casualUsed),
+      sickQuota, sickUsed, sickRemaining: Math.max(0, sickQuota - sickUsed),
+      earnedQuota, earnedUsed, earnedRemaining: Math.max(0, earnedQuota - earnedUsed),
+      compOffBalance, optionalHolidaysQuota, optionalHolidaysUsed,
       optionalHolidaysRemaining: Math.max(0, optionalHolidaysQuota - optionalHolidaysUsed),
-      wfhMonthlyLimit,
-      wfhUsedThisMonth,
-      wfhRemainingThisMonth: Math.max(0, wfhMonthlyLimit - wfhUsedThisMonth),
+      wfhMonthlyLimit, wfhUsedThisMonth, wfhRemainingThisMonth: Math.max(0, wfhMonthlyLimit - wfhUsedThisMonth),
     };
   }
 
   static async applyLeave(user: { id?: string | number; employeeId: string; fullName: string; role: string }, data: { leaveType: string; startDate: string; endDate: string; isHalfDay?: boolean; halfDaySession?: string; reason: string }): Promise<any> {
-    const empId = user.employeeId;
-    const year = Number(data.startDate.slice(0, 4)) || 2026;
+    const empId = user.employeeId; const year = Number(data.startDate.slice(0, 4)) || 2026;
     const balance = await this.getBalance(empId, year);
-    const isHalfDay = !!data.isHalfDay;
-    const daysCount = isHalfDay ? 0.5 : 1.0;
+    const isHalfDay = !!data.isHalfDay; const daysCount = isHalfDay ? 0.5 : 1.0;
 
-    if (data.leaveType === 'Optional Holiday' && balance.optionalHolidaysRemaining < 1) {
-      throw new Error(`You have exhausted your annual Optional Holiday quota (${balance.optionalHolidaysQuota} max).`);
-    }
-    if (data.leaveType === 'Work From Home' && balance.wfhRemainingThisMonth < 1) {
-      throw new Error(`You have reached your monthly WFH limit (${balance.wfhMonthlyLimit} days/month).`);
-    }
-    if (data.leaveType === 'Comp-off' && balance.compOffBalance < daysCount) {
-      throw new Error(`Insufficient Comp-off balance. You currently have ${balance.compOffBalance} days available.`);
-    }
+    if (data.leaveType === 'Optional Holiday' && balance.optionalHolidaysRemaining < 1) throw new Error(`You have exhausted your annual Optional Holiday quota.`);
+    if (data.leaveType === 'Work From Home' && balance.wfhRemainingThisMonth < 1) throw new Error(`You have reached your monthly WFH limit (${balance.wfhMonthlyLimit} days/month).`);
+    if (data.leaveType === 'Comp-off' && balance.compOffBalance < daysCount) throw new Error(`Insufficient Comp-off balance (${balance.compOffBalance} days available).`);
 
-    let targetStatus = 'Pending_PM';
-    if (user.role === 'Project Manager') {
-      targetStatus = 'Pending_SA';
-    } else if (user.role === 'Super Admin') {
-      targetStatus = 'Pending_PM';
-    } else {
-      targetStatus = 'Pending_PM';
-    }
-
-    const record = await prisma.leaveRequest.create({
+    const targetStatus = user.role === 'Project Manager' ? 'Pending_SA' : 'Pending_PM';
+    const req = await prisma.leaveRequest.create({
       data: {
         employeeId: empId, employeeName: user.fullName, leaveType: data.leaveType,
         startDate: data.startDate, endDate: isHalfDay ? data.startDate : data.endDate,
@@ -82,69 +49,70 @@ export class LeaveService {
         pmApproval: user.role === 'Project Manager' ? 'Approved' : 'Pending', saApproval: 'Pending',
       },
     });
-    return record;
+    const msg = `${user.fullName} requested ${data.leaveType} for ${data.startDate}.`;
+    await NotificationService.createNotification({ role: 'Project Manager', title: `Leave Request`, message: msg, type: 'leave_request' });
+    await NotificationService.createNotification({ role: 'Super Admin', title: `Leave Request`, message: msg, type: 'leave_request' });
+    return req;
   }
 
   static async getLeaveRequests(user: { id?: string | number; employeeId: string; role: string }, scope: 'mine' | 'approvals' = 'mine'): Promise<any[]> {
-    const where: any = {};
-    if (scope === 'mine') {
-      where.employeeId = user.employeeId;
-    } else {
+    if (scope === 'approvals') {
       if (user.role === 'Employee') return [];
-      where.employeeId = { not: user.employeeId };
+      return prisma.leaveRequest.findMany({
+        where: { employeeId: { not: user.employeeId }, status: { not: 'Cancelled' } },
+        orderBy: { appliedAt: 'desc' },
+      });
     }
-    return prisma.leaveRequest.findMany({ where, orderBy: { appliedAt: 'desc' } });
+    return prisma.leaveRequest.findMany({ where: { employeeId: user.employeeId }, orderBy: { appliedAt: 'desc' } });
   }
 
   static async updateLeave(user: { id?: string | number; employeeId: string; fullName: string; role: string }, id: number, data: { leaveType: string; startDate: string; endDate: string; isHalfDay?: boolean; halfDaySession?: string; reason: string }): Promise<any> {
     const existing = await prisma.leaveRequest.findUnique({ where: { id } });
     if (!existing) throw new Error('Leave request not found');
-    if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase()) {
-      throw new Error('Unauthorized: You can only edit your own leave applications');
-    }
+    const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+    const eEmp = (existing.employeeId || '').toLowerCase().trim();
+    if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp) throw new Error('Unauthorized');
 
-    const isHalfDay = !!data.isHalfDay;
-    const daysCount = isHalfDay ? 0.5 : 1.0;
+    const isHalfDay = !!data.isHalfDay; const daysCount = isHalfDay ? 0.5 : 1.0;
+    const targetStatus = user.role === 'Project Manager' ? 'Pending_SA' : 'Pending_PM';
+    if (existing.status === 'Approved') await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
 
     return prisma.leaveRequest.update({
       where: { id },
       data: {
-        leaveType: data.leaveType,
-        startDate: data.startDate,
-        endDate: isHalfDay ? data.startDate : data.endDate,
-        isHalfDay,
-        halfDaySession: isHalfDay ? data.halfDaySession || 'First Half' : null,
-        daysCount,
-        reason: (data.reason || '').trim(),
+        leaveType: data.leaveType, startDate: data.startDate, endDate: isHalfDay ? data.startDate : data.endDate,
+        isHalfDay, halfDaySession: isHalfDay ? data.halfDaySession || 'First Half' : null,
+        daysCount, reason: (data.reason || '').trim(), status: targetStatus,
+        pmApproval: user.role === 'Project Manager' ? 'Approved' : 'Pending', saApproval: 'Pending', rejectionReason: null,
       },
     });
+  }
+
+  static async cancelLeave(user: { id?: string | number; employeeId: string; role: string }, id: number): Promise<any> {
+    const existing = await prisma.leaveRequest.findUnique({ where: { id } });
+    if (!existing) throw new Error('Leave request not found');
+    const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+    const eEmp = (existing.employeeId || '').toLowerCase().trim();
+    if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp) throw new Error('Unauthorized');
+    if (existing.status === 'Approved') await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
+    const updated = await prisma.leaveRequest.update({ where: { id }, data: { status: 'Cancelled', pmApproval: 'Cancelled', saApproval: 'Cancelled' } });
+    const cMsg = `${existing.employeeName || 'Employee'} cancelled their ${existing.leaveType} request.`;
+    await NotificationService.createNotification({ role: 'Project Manager', title: 'Leave Cancelled', message: cMsg, type: 'leave_cancel' });
+    await NotificationService.createNotification({ role: 'Super Admin', title: 'Leave Cancelled', message: cMsg, type: 'leave_cancel' });
+    return updated;
   }
 
   static async deleteLeave(user: { id?: string | number; employeeId: string; role: string }, id: number): Promise<any> {
     const existing = await prisma.leaveRequest.findUnique({ where: { id } });
     if (!existing) throw new Error('Leave request not found');
-    if (user.role === 'Employee' && existing.employeeId.toLowerCase() !== user.employeeId.toLowerCase()) {
-      throw new Error('Unauthorized: You can only cancel your own leave applications');
-    }
-
-    // Revert deducted balance if it was approved
-    if (existing.status === 'Approved') {
-      if (existing.leaveType === 'Casual Leave') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { decrement: existing.daysCount } } });
-      } else if (existing.leaveType === 'Sick Leave') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { decrement: existing.daysCount } } });
-      } else if (existing.leaveType === 'Earned Leave') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { decrement: existing.daysCount } } });
-      } else if (existing.leaveType === 'Comp-off') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { increment: existing.daysCount } } });
-      } else if (existing.leaveType === 'Optional Holiday') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { decrement: 1 } } });
-      } else if (existing.leaveType === 'Work From Home') {
-        await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { decrement: 1 } } });
-      }
-    }
-
-    return prisma.leaveRequest.delete({ where: { id } });
+    const uEmp = (user.employeeId || user.id || '').toString().toLowerCase().trim();
+    const eEmp = (existing.employeeId || '').toLowerCase().trim();
+    if (user.role === 'Employee' && eEmp && uEmp && eEmp !== uEmp) throw new Error('Unauthorized');
+    if (existing.status === 'Approved') await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
+    const deleted = await prisma.leaveRequest.delete({ where: { id } });
+    const dMsg = `${existing.employeeName || 'Employee'} deleted a ${existing.leaveType} application.`;
+    await NotificationService.createNotification({ role: 'Super Admin', title: 'Leave Deleted', message: dMsg, type: 'leave_delete' });
+    return deleted;
   }
 
   static async approveOrRejectLeave(user: { id?: string | number; employeeId: string; fullName: string; role: string }, id: number, action: 'approve' | 'reject', remarks?: string): Promise<any> {
@@ -153,60 +121,40 @@ export class LeaveService {
     if (!existing) throw new Error('Leave request not found');
 
     if (action === 'reject') {
-      // If was previously approved, rollback quotas
-      if (existing.status === 'Approved') {
-        if (existing.leaveType === 'Casual Leave') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { decrement: existing.daysCount } } });
-        } else if (existing.leaveType === 'Sick Leave') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { decrement: existing.daysCount } } });
-        } else if (existing.leaveType === 'Earned Leave') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { decrement: existing.daysCount } } });
-        } else if (existing.leaveType === 'Comp-off') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { increment: existing.daysCount } } });
-        } else if (existing.leaveType === 'Optional Holiday') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { decrement: 1 } } });
-        } else if (existing.leaveType === 'Work From Home') {
-          await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { decrement: 1 } } });
-        }
-      }
-
-      return prisma.leaveRequest.update({
+      if (existing.status === 'Approved') await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'decrement');
+      const updated = await prisma.leaveRequest.update({
         where: { id },
-        data: {
-          status: 'Declined',
-          rejectionReason: remarks || 'Declined',
-          pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval,
-          saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval,
-        },
+        data: { status: 'Declined', rejectionReason: remarks || 'Declined', pmApproval: user.role === 'Project Manager' ? 'Rejected' : existing.pmApproval, saApproval: user.role === 'Super Admin' ? 'Rejected' : existing.saApproval },
       });
+      await NotificationService.createNotification({ userId: existing.employeeId, role: 'Employee', title: 'Leave Rejected', message: `Your ${existing.leaveType} request for ${existing.startDate} was rejected.`, type: 'leave_reject' });
+      return updated;
     }
 
-    const nextStatus = 'Approved';
+    if (existing.status !== 'Approved') await this.adjustQuota(existing.employeeId, existing.leaveType, existing.daysCount, 'increment');
     const updated = await prisma.leaveRequest.update({
       where: { id },
-      data: { status: nextStatus, pmApproval: 'Approved', saApproval: user.role === 'Super Admin' ? 'Approved' : existing.saApproval, approverName: user.fullName },
+      data: { status: 'Approved', pmApproval: 'Approved', saApproval: user.role === 'Super Admin' ? 'Approved' : existing.saApproval, approverName: user.fullName, rejectionReason: null },
     });
-
-    if (existing.leaveType === 'Casual Leave') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { casualUsed: { increment: existing.daysCount } } });
-    } else if (existing.leaveType === 'Sick Leave') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { sickUsed: { increment: existing.daysCount } } });
-    } else if (existing.leaveType === 'Earned Leave') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { earnedUsed: { increment: existing.daysCount } } });
-    } else if (existing.leaveType === 'Comp-off') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { compOffBalance: { decrement: existing.daysCount } } });
-    } else if (existing.leaveType === 'Optional Holiday') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { optionalHolidaysUsed: { increment: 1 } } });
-    } else if (existing.leaveType === 'Work From Home') {
-      await prisma.employee.update({ where: { employeeId: existing.employeeId }, data: { wfhUsedThisMonth: { increment: 1 } } });
-    }
+    await NotificationService.createNotification({ userId: existing.employeeId, role: 'Employee', title: 'Leave Approved', message: `Your ${existing.leaveType} request for ${existing.startDate} was approved.`, type: 'leave_approve' });
     return updated;
   }
 
+  private static async adjustQuota(employeeId: string, leaveType: string, daysCount: number, mode: 'increment' | 'decrement') {
+    const change = mode === 'increment' ? daysCount : -daysCount;
+    if (leaveType === 'Casual Leave') await prisma.employee.update({ where: { employeeId }, data: { casualUsed: { increment: change } } });
+    else if (leaveType === 'Sick Leave') await prisma.employee.update({ where: { employeeId }, data: { sickUsed: { increment: change } } });
+    else if (leaveType === 'Earned Leave') await prisma.employee.update({ where: { employeeId }, data: { earnedUsed: { increment: change } } });
+    else if (leaveType === 'Comp-off') await prisma.employee.update({ where: { employeeId }, data: { compOffBalance: { decrement: change } } });
+    else if (leaveType === 'Optional Holiday') await prisma.employee.update({ where: { employeeId }, data: { optionalHolidaysUsed: { increment: mode === 'increment' ? 1 : -1 } } });
+    else if (leaveType === 'Work From Home') await prisma.employee.update({ where: { employeeId }, data: { wfhUsedThisMonth: { increment: mode === 'increment' ? 1 : -1 } } });
+  }
+
   static async getAttendanceMatrix(monthYear: string = '2026-08'): Promise<any> {
-    const employees = await prisma.employee.findMany({ select: { employeeId: true, fullName: true, designation: true, role: true, department: true } });
-    const approvedLeaves = await prisma.leaveRequest.findMany({ where: { status: 'Approved', startDate: { startsWith: monthYear } } });
-    const holidays = await prisma.holiday.findMany({ where: { isPublished: true, date: { startsWith: monthYear } } });
+    const [employees, approvedLeaves, holidays] = await Promise.all([
+      prisma.employee.findMany({ select: { employeeId: true, fullName: true, designation: true, role: true, department: true } }),
+      prisma.leaveRequest.findMany({ where: { status: 'Approved', startDate: { startsWith: monthYear } } }),
+      prisma.holiday.findMany({ where: { isPublished: true, date: { startsWith: monthYear } } }),
+    ]);
     return { monthYear, employees, approvedLeaves, holidays };
   }
 
@@ -227,20 +175,13 @@ export class LeaveService {
     return configs;
   }
 
-  static async createLeaveConfig(role: string, data: { name: string; code?: string; monthlyAccrual?: number; annualQuota?: number; allowHalfDay?: boolean; maxCarryForward?: number; year?: number }): Promise<any> {
+  static async createLeaveConfig(role: string, data: any): Promise<any> {
     if (role !== 'Super Admin') throw new Error('Access Denied: Only Super Admins can add leave types.');
-    const year = data.year || 2026;
-    const name = data.name.trim();
-    const code = (data.code?.trim() || name.slice(0, 3)).toUpperCase();
+    const year = data.year || 2026; const name = data.name.trim(); const code = (data.code?.trim() || name.slice(0, 3)).toUpperCase();
     const existing = await prisma.leaveTypeConfig.findFirst({ where: { year, OR: [{ code }, { name }] } });
     if (existing) throw new Error(`Leave type "${name}" or code "${code}" already exists for ${year}.`);
     return prisma.leaveTypeConfig.create({
-      data: {
-        name, code, monthlyAccrual: Number(data.monthlyAccrual) || 1.0,
-        annualQuota: Number(data.annualQuota) || 12, allowHalfDay: data.allowHalfDay ?? true,
-        maxCarryForward: Number(data.maxCarryForward) || 0,
-        year,
-      },
+      data: { name, code, monthlyAccrual: Number(data.monthlyAccrual) || 1.0, annualQuota: Number(data.annualQuota) || 12, allowHalfDay: data.allowHalfDay ?? true, maxCarryForward: Number(data.maxCarryForward) || 0, year },
     });
   }
 

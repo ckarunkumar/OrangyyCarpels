@@ -16,8 +16,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BillingService = void 0;
 const prisma_1 = require("../lib/prisma");
-const billingCalculator_1 = require("./billingCalculator");
 const billingSummaryService_1 = require("./billingSummaryService");
+const fxRateService_1 = require("./fxRateService");
 __exportStar(require("./billingTypes"), exports);
 class BillingService {
     static getCurrentMonthYear() {
@@ -25,32 +25,10 @@ class BillingService {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     }
     static async getExchangeRates() {
-        const monthYear = this.getCurrentMonthYear();
-        const rates = await prisma_1.prisma.exchangeRate.findMany({ where: { monthYear } });
-        return rates.length === 0 ? this.syncLiveExchangeRates() : rates;
+        return fxRateService_1.FxRateService.getCurrentRates('INR');
     }
     static async syncLiveExchangeRates() {
-        const monthYear = this.getCurrentMonthYear();
-        let liveUsdRates = {};
-        try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(6000) });
-            if (res.ok)
-                liveUsdRates = (await res.json()).rates || {};
-        }
-        catch { /* Fallback to defaults */ }
-        const usdToInr = liveUsdRates['INR'] || billingCalculator_1.DEFAULT_RATES['USD'];
-        const updatedRates = [];
-        for (const curr of Object.keys(billingCalculator_1.DEFAULT_RATES)) {
-            const rateToINR = curr === 'INR' ? 1.0 : curr === 'USD' ? usdToInr : (liveUsdRates[curr] ? parseFloat((usdToInr / liveUsdRates[curr]).toFixed(4)) : billingCalculator_1.DEFAULT_RATES[curr] || 1.0);
-            const existing = await prisma_1.prisma.exchangeRate.findFirst({ where: { currency: curr, monthYear } });
-            const record = await prisma_1.prisma.exchangeRate.upsert({
-                where: { id: existing?.id || 0 },
-                update: { rateToINR, fetchedAt: new Date(), source: liveUsdRates['INR'] ? 'open.er-api.com' : 'studio-default' },
-                create: { currency: curr, rateToINR, monthYear, source: liveUsdRates['INR'] ? 'open.er-api.com' : 'studio-default' },
-            });
-            updatedRates.push(record);
-        }
-        return updatedRates;
+        return fxRateService_1.FxRateService.syncLiveExchangeRates('INR');
     }
     static async getBillingSummary(role, fy, month, periodType, clientId) {
         return billingSummaryService_1.BillingSummaryService.getSummary(role, fy, month, periodType, clientId);

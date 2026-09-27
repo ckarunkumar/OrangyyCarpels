@@ -38,9 +38,6 @@ export default function ReportsView({ activeRole }: ReportsViewProps) {
             <BarChart3 className="w-5 h-5 text-brand-orange" />
             Reports & Analytics
           </h2>
-          <p className="text-[12px] text-studio-muted mt-0.5">
-            Operational insights, team timesheets, resource allocations, and studio performance metrics.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">

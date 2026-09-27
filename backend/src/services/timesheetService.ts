@@ -23,8 +23,17 @@ function hasProjectAccess(proj: { assignedEmployees?: string | null; managerId?:
   return Boolean((cLower && assigned.includes(cLower)) || (nLower && assigned.includes(nLower)));
 }
 
-export function getMonthlyBudgetHours(project: { budgetHours?: number; budgetType?: string | null; startDate?: string | null; endDate?: string | null }): number {
+export function getMonthlyBudgetHours(project: { budgetHours?: number; budgetType?: string | null; startDate?: string | null; endDate?: string | null; monthlyBudgets?: any }, month?: string): number {
   const totalBudget = project.budgetHours || 0;
+  if (project.budgetType === 'Total Project') {
+    if (Array.isArray(project.monthlyBudgets) && project.monthlyBudgets.length > 0) {
+      if (month) {
+        const found = project.monthlyBudgets.find((b: any) => b.monthYear === month);
+        return found ? (Number(found.budgetHours) || 0) : 0;
+      }
+      return totalBudget;
+    }
+  }
   if (!project.budgetType || project.budgetType === 'Monthly') {
     return totalBudget || 100;
   }
@@ -63,8 +72,8 @@ export class TimesheetService {
     return visibleProjects.map((p) => {
       const isHourly = p.billingType === 'T&M' || p.billingType === 'Hourly Rate (T&M)';
       const monthLogged = p.dailyEntries?.reduce((acc, d) => acc + d.hours, 0) || 0;
-      const budget = getMonthlyBudgetHours(p);
-      const percentage = isHourly ? Math.min(100, Math.round((monthLogged / budget) * 100)) : 0;
+      const budget = getMonthlyBudgetHours(p, month);
+      const percentage = isHourly && budget > 0 ? Math.min(100, Math.round((monthLogged / budget) * 100)) : 0;
       const rawAssigned = (p.assignedEmployees || '').split(',').map((s) => s.trim()).filter(Boolean);
       const assignedList = rawAssigned.length > 0 ? rawAssigned.map((a) => (empById.get(a.toLowerCase())?.employeeId || a).toLowerCase()) : [];
       const submittedSet = new Set<string>();
@@ -128,6 +137,25 @@ export class TimesheetService {
       throw new Error('Access Denied: You are not assigned to this project.');
     }
 
+    const isTotalProject = project.budgetType === 'Total Project';
+    const hasMonthlyBudgets = Array.isArray(project.monthlyBudgets) && (project.monthlyBudgets as any[]).length > 0;
+    let isMonthUnallocated = false;
+    let monthlyAllocatedHours = getMonthlyBudgetHours(project, month);
+
+    if (isTotalProject && hasMonthlyBudgets) {
+      const alloc = (project.monthlyBudgets as any[]).find((b: any) => b.monthYear === month);
+      if (!alloc || (Number(alloc.budgetHours) || 0) <= 0) {
+        isMonthUnallocated = true;
+        monthlyAllocatedHours = 0;
+      } else {
+        monthlyAllocatedHours = Number(alloc.budgetHours) || 0;
+      }
+    }
+
+    const monthBurnedHours = existing.reduce((acc, d) => acc + (d.hours || 0), 0);
+    const monthlyRemainingHours = Math.max(0, monthlyAllocatedHours - monthBurnedHours);
+    const isBudgetExhausted = !isMonthUnallocated && monthlyAllocatedHours > 0 && monthBurnedHours >= monthlyAllocatedHours;
+
     const blNames = (project?.businessLine || '').split(',').map((s) => s.trim()).filter(Boolean);
     const resolvedServices = allBLs.filter((b) => blNames.includes(b.name)).flatMap((b) => b.services.map((s) => s.name));
 
@@ -184,9 +212,9 @@ export class TimesheetService {
         const eid = (e.employeeId || '').toLowerCase();
         return eid === currentEmpCode.toLowerCase() || eid === currentEmpName.toLowerCase();
       });
-      if (myEntries.some((e) => e.status === 'Approved')) myStatus = 'Approved';
-      else if (myEntries.some((e) => e.status === 'PM_Approved')) myStatus = 'PM_Approved';
-      else if (myEntries.some((e) => e.status === 'Submitted')) myStatus = 'Submitted';
+      if (myEntries.some((d) => d.status === 'Approved')) myStatus = 'Approved';
+      else if (myEntries.some((d) => d.status === 'PM_Approved')) myStatus = 'PM_Approved';
+      else if (myEntries.some((d) => d.status === 'Submitted')) myStatus = 'Submitted';
       else myStatus = 'Draft';
     }
 
@@ -205,23 +233,29 @@ export class TimesheetService {
           const eid = (e.employeeId || '').toLowerCase();
           return eid === currentEmpCode.toLowerCase() || eid === currentEmpName.toLowerCase();
         });
-        const isMyRowReadOnly = role === 'Employee' ? myStatus !== 'Draft' : false;
+        const isMyRowReadOnly = isMonthUnallocated || (role === 'Employee' ? myStatus !== 'Draft' : false);
         if (myRec) {
           entries.push({ id: myRec.id, sno: dayStr, date, dayLabel, description: myRec.description || '', task: myRec.task || '', hours: myRec.hours || 0, isBillable: myRec.isBillable !== false, isWeekend, resourceName: currentEmpName || empById.get(myRec.employeeId?.toLowerCase() || '')?.fullName || '', employeeId: myRec.employeeId || currentEmpCode, isOwner: true, isReadOnly: isMyRowReadOnly, status: myRec.status });
         } else {
           entries.push({ sno: dayStr, date, dayLabel, description: '', task: '', hours: 0, isBillable: true, isWeekend, resourceName: currentEmpName, employeeId: currentEmpCode, isOwner: true, isReadOnly: isMyRowReadOnly, status: 'Draft' });
         }
         dayRecords.filter((e) => e !== myRec && ((e.hours && e.hours > 0) || e.description || e.task || e.status !== 'Draft')).forEach((rec) => {
-          entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: false, isReadOnly: role === 'Employee', status: rec.status });
+          entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: false, isReadOnly: isMonthUnallocated || role === 'Employee', status: rec.status });
         });
       } else if (dayRecords.length > 0) {
-        dayRecords.forEach((rec) => entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: true, isReadOnly: false, status: rec.status }));
+        dayRecords.forEach((rec) => entries.push({ id: rec.id, sno: dayStr, date, dayLabel, description: rec.description || '', task: rec.task || '', hours: rec.hours || 0, isBillable: rec.isBillable !== false, isWeekend, resourceName: empById.get(rec.employeeId?.toLowerCase() || '')?.fullName || rec.employeeId || '', employeeId: rec.employeeId || '', isOwner: true, isReadOnly: isMonthUnallocated, status: rec.status }));
       } else {
-        entries.push({ sno: dayStr, date, dayLabel, description: '', task: '', hours: 0, isBillable: true, isWeekend, resourceName: '', employeeId: '', isOwner: true, isReadOnly: false, status: 'Draft' });
+        entries.push({ sno: dayStr, date, dayLabel, description: '', task: '', hours: 0, isBillable: true, isWeekend, resourceName: '', employeeId: '', isOwner: true, isReadOnly: isMonthUnallocated, status: 'Draft' });
       }
     }
     const finalServices = resolvedServices.length > 0 ? resolvedServices.join(', ') : (project?.service || '');
-    return { entries, status, overallStatus: status, myStatus, pendingResources, totalAssigned, submittedCount, services: finalServices, businessLines: project?.businessLine || '' };
+    return {
+      entries, status, overallStatus: status, myStatus, pendingResources, totalAssigned, submittedCount,
+      services: finalServices, businessLines: project?.businessLine || '',
+      isMonthUnallocated, monthlyAllocatedHours, monthlyBurnedHours: monthBurnedHours, monthlyRemainingHours, isBudgetExhausted,
+      budgetType: project.budgetType || 'Monthly', totalBudgetHours: project.budgetHours || 0,
+      monthlyBudgets: Array.isArray(project.monthlyBudgets) ? project.monthlyBudgets : [],
+    };
   }
 
   static async saveDailyEntries(projectId: string, month: string, employeeId: string | undefined, role: string, entries: DailyLogEntry[], targetStatus: string = 'Draft') {
@@ -253,6 +287,36 @@ export class TimesheetService {
       ? entries.filter((e) => e.isOwner !== false && (!e.employeeId || e.employeeId.toLowerCase() === currentEmpCode.toLowerCase()))
       : entries;
 
+    const isTotalProject = proj.budgetType === 'Total Project';
+    const hasMonthlyBudgets = Array.isArray(proj.monthlyBudgets) && (proj.monthlyBudgets as any[]).length > 0;
+    if (isTotalProject && hasMonthlyBudgets) {
+      const alloc = (proj.monthlyBudgets as any[]).find((b: any) => b.monthYear === month);
+      if (!alloc || (Number(alloc.budgetHours) || 0) <= 0) {
+        throw new Error(`Timesheet logging is disabled for ${month}: No budget hours allocated for this month.`);
+      }
+      const monthlyAllocatedHours = Number(alloc.budgetHours) || 0;
+      const allMonthEntries = await prisma.dailyTimesheetEntry.findMany({ where: { projectId, date: { startsWith: month } } });
+      const hoursMap = new Map<number | string, number>();
+      allMonthEntries.forEach((ex) => hoursMap.set(ex.id, Number(ex.hours) || 0));
+
+      for (const ue of userEntries) {
+        const targetEmpId = ue.employeeId || currentEmpCode || '';
+        const rec = ue.id
+          ? allMonthEntries.find((x) => x.id === ue.id)
+          : allMonthEntries.find((x) => x.date === ue.date && (targetEmpId ? (x.employeeId || '').toLowerCase() === targetEmpId.toLowerCase() : true));
+        const newHours = Number(ue.hours) || 0;
+        if (rec) {
+          hoursMap.set(rec.id, newHours);
+        } else if (newHours > 0 || ue.description || ue.task) {
+          hoursMap.set(`new_${ue.date}_${targetEmpId}`, newHours);
+        }
+      }
+      const projectedMonthHours = Array.from(hoursMap.values()).reduce((sum, h) => sum + h, 0);
+      if (projectedMonthHours > monthlyAllocatedHours) {
+        throw new Error(`Logged hours (${projectedMonthHours}h) exceed the monthly allocated budget of ${monthlyAllocatedHours}h for ${month}.`);
+      }
+    }
+
     for (const e of userEntries) {
       const targetEmpId = e.employeeId || currentEmpCode || '';
       const rec = e.id
@@ -282,7 +346,7 @@ export class TimesheetService {
     }
     if (targetStatus === 'Submitted') {
       const submitter = currentEmp?.fullName || currentEmpCode || 'Team Member';
-      await NotificationService.createNotification({ role: 'Project Manager', title: `Timesheet Submitted: ${proj.name || projectId}`, message: `${submitter} submitted timesheet for project "${proj.name || projectId}" (${month}).`, type: 'timesheet_submit', projectId });
+      await NotificationService.createNotification({ role: 'Project Manager', title: 'Timesheet Submitted', message: `${submitter} submitted the ${month} Timesheet for review.`, type: 'timesheet_submit', projectId });
     }
     await this.syncProjectLoggedHours(projectId);
     return { success: true };
@@ -321,7 +385,10 @@ export class TimesheetService {
 
     const proj = await prisma.project.findUnique({ where: { id: projectId } });
     const nRole = nextStatus === 'PM_Approved' ? 'Super Admin' : 'Employee';
-    await NotificationService.createNotification({ role: nRole, title: `Timesheet ${nextStatus}: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) updated to ${nextStatus}.`, type: 'timesheet_approve', projectId });
+    const msg = nextStatus === 'PM_Approved'
+      ? `${month} Timesheet approved by PM — awaiting Admin action.`
+      : `Your ${month} Timesheet for "${proj?.name || projectId}" was approved.`;
+    await NotificationService.createNotification({ role: nRole, title: `Timesheet ${nextStatus === 'PM_Approved' ? 'PM Approved' : 'Approved'}`, message: msg, type: 'timesheet_approve', projectId });
     await this.syncProjectLoggedHours(projectId);
     return { success: true, status: nextStatus };
   }
@@ -334,7 +401,7 @@ export class TimesheetService {
     }
     await prisma.dailyTimesheetEntry.updateMany({ where: { projectId, date: { startsWith: month } }, data: { status: 'Draft' } });
     const proj = await prisma.project.findUnique({ where: { id: projectId } });
-    await NotificationService.createNotification({ role: 'Employee', title: `Timesheet Reopened: ${proj?.name || projectId}`, message: `Timesheet for "${proj?.name || projectId}" (${month}) was reopened for rework by ${role}.`, type: 'timesheet_reopen', projectId });
+    await NotificationService.createNotification({ role: 'Employee', title: 'Timesheet Reopened', message: `${month} Timesheet for "${proj?.name || projectId}" was reopened for rework by ${role}.`, type: 'timesheet_reopen', projectId });
     await this.syncProjectLoggedHours(projectId);
     return { success: true, status: 'Draft' };
   }

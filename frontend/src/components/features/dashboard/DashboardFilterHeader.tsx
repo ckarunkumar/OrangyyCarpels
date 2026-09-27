@@ -1,9 +1,9 @@
 import { ChevronDown } from 'lucide-react';
 import { formatMonthShort } from '../../../utils/dateUtils';
+import UsdRateIndicator from './UsdRateIndicator';
 
 interface DashboardFilterHeaderProps {
   title: string;
-  subtitle?: string;
   isDrilldown?: boolean;
   onBackToStudio?: () => void;
   periodType: 'monthly' | 'yearly';
@@ -17,7 +17,6 @@ interface DashboardFilterHeaderProps {
 
 export default function DashboardFilterHeader({
   title,
-  subtitle = 'Live billing, multi-currency conversion, and resource metrics',
   periodType,
   onChangePeriodType,
   selectedFY,
@@ -53,13 +52,12 @@ export default function DashboardFilterHeader({
           <h1 className="text-[22px] font-bold tracking-tight text-slate-900">
             {title}
           </h1>
-          <p className="text-[12.5px] text-slate-500 mt-0.5">
-            {subtitle}
-          </p>
         </div>
 
-        {/* Filter Dropdowns: Year first (left), Month second (right) */}
+        {/* Filter & Currency Rate Controls */}
         <div className="flex items-center gap-2.5 self-end sm:self-center">
+          {/* USD Exchange Rate Indicator */}
+          <UsdRateIndicator />
           {/* 1. Year Filter (Left side) */}
           <div className="relative">
             <select

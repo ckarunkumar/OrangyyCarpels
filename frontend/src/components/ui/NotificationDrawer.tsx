@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X, Bell, CheckCircle2, RotateCcw, Send, FolderKanban, Clock, Check, ArrowRight } from 'lucide-react';
+import { X, Bell, CheckCircle2, RotateCcw, Send, FolderKanban, Clock, Check, ArrowRight, CalendarCheck, Shield } from 'lucide-react';
 
 export interface NotificationItem {
   id: number;
-  userId?: number | null;
+  userId?: number | string | null;
   role?: string | null;
   title: string;
   message: string;
@@ -37,6 +37,11 @@ export default function NotificationDrawer({
       case 'timesheet_approve': return <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />;
       case 'timesheet_reopen': return <RotateCcw className="w-3.5 h-3.5 text-amber-600" />;
       case 'project_assign': return <FolderKanban className="w-3.5 h-3.5 text-brand-orange" />;
+      case 'leave_request': return <CalendarCheck className="w-3.5 h-3.5 text-blue-600" />;
+      case 'leave_approve': return <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />;
+      case 'leave_reject': return <X className="w-3.5 h-3.5 text-red-600" />;
+      case 'leave_cancel': case 'leave_delete': return <RotateCcw className="w-3.5 h-3.5 text-amber-600" />;
+      case 'login_activity': return <Shield className="w-3.5 h-3.5 text-purple-600" />;
       default: return <Clock className="w-3.5 h-3.5 text-purple-600" />;
     }
   };
@@ -53,8 +58,8 @@ export default function NotificationDrawer({
 
   return (
     <>
-      <div onClick={onClose} className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-200" />
-      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-[360px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out">
+      <div onClick={onClose} className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300" />
+      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-[420px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-studio-border shrink-0">
           <div className="flex items-center gap-2">

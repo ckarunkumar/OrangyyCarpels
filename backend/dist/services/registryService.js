@@ -28,11 +28,13 @@ class RegistryService {
     static getNextEmployeeId = employeeService_1.EmployeeService.getNextEmployeeId;
     static createEmployee = employeeService_1.EmployeeService.createEmployee;
     static updateEmployee = employeeService_1.EmployeeService.updateEmployee;
+    static deleteEmployee = employeeService_1.EmployeeService.deleteEmployee;
     // Client methods
     static getClients = clientService_1.ClientService.getClients;
     static getNextClientId = clientService_1.ClientService.getNextClientId;
     static createClient = clientService_1.ClientService.createClient;
     static updateClient = clientService_1.ClientService.updateClient;
+    static deleteClient = clientService_1.ClientService.deleteClient;
     // Project methods
     static getAllProjects = projectService_1.ProjectService.getAllProjects;
     static getNextProjectId = projectService_1.ProjectService.getNextProjectId;

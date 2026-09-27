@@ -14,12 +14,14 @@ export class RegistryService {
   static getNextEmployeeId = EmployeeService.getNextEmployeeId;
   static createEmployee = EmployeeService.createEmployee;
   static updateEmployee = EmployeeService.updateEmployee;
+  static deleteEmployee = EmployeeService.deleteEmployee;
 
   // Client methods
   static getClients = ClientService.getClients;
   static getNextClientId = ClientService.getNextClientId;
   static createClient = ClientService.createClient;
   static updateClient = ClientService.updateClient;
+  static deleteClient = ClientService.deleteClient;
 
   // Project methods
   static getAllProjects = ProjectService.getAllProjects;

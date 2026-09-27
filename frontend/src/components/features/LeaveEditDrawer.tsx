@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Clock, AlertCircle, Save, Trash2 } from 'lucide-react';
-import ApplyTypeSelector, { ApplyMode } from './ApplyTypeSelector';
+import { X, AlertCircle, Save, Ban, Trash2, RotateCcw } from 'lucide-react';
+import { ApplyMode } from './ApplyTypeSelector';
+import LeaveEditFormFields from './LeaveEditFormFields';
 
 interface Props {
   open: boolean;
@@ -24,14 +25,7 @@ const parseToIso = (dateStr?: string) => {
 };
 
 export default function LeaveEditDrawer({
-  open,
-  item,
-  onClose,
-  onSaved,
-  onDeleted,
-  balanceData,
-  selectedYear = 2026,
-  publishedHolidays = [],
+  open, item, onClose, onSaved, onDeleted, balanceData, selectedYear = 2026, publishedHolidays = [],
 }: Props) {
   const [applyMode, setApplyMode] = useState<ApplyMode>('leave');
   const [leaveConfigs, setLeaveConfigs] = useState<any[]>([]);
@@ -43,20 +37,15 @@ export default function LeaveEditDrawer({
   const [reason, setReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && item) {
       const type = item.leaveType || '';
-      if (type === 'Work From Home' || type === 'WFH') {
-        setApplyMode('wfh');
-      } else if (type === 'Optional Holiday' || type === 'optional Holiday') {
-        setApplyMode('oh');
-      } else {
-        setApplyMode('leave');
-        setLeaveType(type || 'Casual Leave');
-      }
-
+      if (type === 'Work From Home' || type === 'WFH') setApplyMode('wfh');
+      else if (type === 'Optional Holiday' || type === 'optional Holiday') setApplyMode('oh');
+      else { setApplyMode('leave'); setLeaveType(type || 'Casual Leave'); }
       setStartDate(parseToIso(item.startDate));
       setEndDate(parseToIso(item.endDate || item.startDate));
       setIsHalfDay(!!item.isHalfDay);
@@ -70,15 +59,15 @@ export default function LeaveEditDrawer({
     if (open) {
       fetch(`/api/leaves/settings?year=${selectedYear}`)
         .then((r) => r.json())
-        .then((d) => {
-          if (Array.isArray(d)) setLeaveConfigs(d);
-        })
+        .then((d) => { if (Array.isArray(d)) setLeaveConfigs(d); })
         .catch(() => {});
     }
   }, [open, selectedYear]);
 
   if (!open || !item) return null;
 
+  const isDeclined = item.status === 'Declined' || item.status === 'Rejected';
+  const isCancelled = item.status === 'Cancelled';
   const optionalHolidaysList = publishedHolidays.filter((h) => h.type === 'Optional');
   const availableLeaveTypes = leaveConfigs.filter((c) => c.code !== 'WFH' && c.code !== 'OH');
   const activeLeaveConfig = leaveConfigs.find((c) => c.name === leaveType);
@@ -99,66 +88,48 @@ export default function LeaveEditDrawer({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) {
-      setError('Please provide a reason or notes.');
-      return;
-    }
-    setSaving(true);
-    setError(null);
+    if (!reason.trim()) { setError('Please provide a reason or notes.'); return; }
+    setSaving(true); setError(null);
     try {
-      const targetType =
-        applyMode === 'wfh'
-          ? 'Work From Home'
-          : applyMode === 'oh'
-          ? 'Optional Holiday'
-          : leaveType;
-
+      const targetType = applyMode === 'wfh' ? 'Work From Home' : applyMode === 'oh' ? 'Optional Holiday' : leaveType;
       const res = await fetch(`/api/leaves/requests/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          leaveType: targetType,
-          startDate,
+          leaveType: targetType, startDate,
           endDate: (isHalfDay && canHalfDay) || applyMode === 'oh' ? startDate : endDate,
           isHalfDay: isHalfDay && canHalfDay,
           halfDaySession: isHalfDay && canHalfDay ? halfDaySession : null,
           reason: reason.trim(),
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update leave application.');
-
-      onSaved();
-      onClose();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+      onSaved(); onClose();
+    } catch (err: any) { setError(err.message); } finally { setSaving(false); }
   };
 
   const handleCancelApplication = async () => {
-    if (!window.confirm('Are you sure you want to cancel and delete this leave application?')) {
-      return;
-    }
-    setCancelling(true);
-    setError(null);
+    if (!window.confirm('Are you sure you want to cancel this leave application?')) return;
+    setCancelling(true); setError(null);
     try {
-      const res = await fetch(`/api/leaves/requests/${item.id}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/leaves/requests/${item.id}/cancel`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to cancel application.');
+      onSaved(); onClose();
+    } catch (err: any) { setError(err.message); } finally { setCancelling(false); }
+  };
 
-      if (onDeleted) onDeleted();
-      else onSaved();
+  const handleDeleteApplication = async () => {
+    if (!window.confirm('Are you sure you want to permanently delete this leave application record?')) return;
+    setDeleting(true); setError(null);
+    try {
+      const res = await fetch(`/api/leaves/requests/${item.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete application.');
+      if (onDeleted) onDeleted(); else onSaved();
       onClose();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setCancelling(false);
-    }
+    } catch (err: any) { setError(err.message); } finally { setDeleting(false); }
   };
 
   return (
@@ -168,189 +139,47 @@ export default function LeaveEditDrawer({
         <div className="w-screen max-w-md bg-white shadow-2xl border-l border-studio-border flex flex-col justify-between animate-in slide-in-from-right duration-200">
           <div className="p-5 border-b border-studio-border flex items-center justify-between">
             <div>
-              <h3 className="text-[15px] font-bold text-studio-text">Edit Leave Application</h3>
-              <p className="text-[11.5px] text-studio-muted">Update details or cancel this application</p>
+              <h3 className="text-[15px] font-bold text-studio-text">
+                {isDeclined ? 'Re-apply / Edit Declined Leave' : 'Edit Leave Application'}
+              </h3>
+              <p className="text-[11.5px] text-studio-muted">Status: <span className="font-semibold text-studio-text">{item.status}</span></p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg text-studio-muted hover:text-studio-text cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <button onClick={onClose} className="p-1 rounded-lg text-studio-muted hover:text-studio-text cursor-pointer"><X className="w-5 h-5" /></button>
           </div>
 
-          <form onSubmit={handleSave} className="p-5 overflow-y-auto space-y-3.5 flex-1 text-[12px]">
-            {error && (
-              <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded flex items-center gap-2 text-[11px]">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                <span>{error}</span>
+          <form id="leave-edit-form" onSubmit={handleSave} className="p-5 overflow-y-auto space-y-3.5 flex-1">
+            {error && (<div className="p-2.5 bg-red-50 border border-red-200 text-red-700 rounded flex items-center gap-2 text-[11px]"><AlertCircle className="w-4 h-4 shrink-0 text-red-500" /><span>{error}</span></div>)}
+            {isDeclined && (
+              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-[11.5px] space-y-1">
+                <p className="font-bold flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5 text-amber-700" /> This application was previously declined.</p>
+                {item.rejectionReason && <p className="text-amber-800 text-[11px]">Approver Remarks: "{item.rejectionReason}"</p>}
+                <p className="text-[10.5px] text-amber-700">You can update the details and click <b>Resubmit</b> to submit for approval again.</p>
               </div>
             )}
-
-            <ApplyTypeSelector applyMode={applyMode} setApplyMode={setApplyMode} />
-
-            {applyMode === 'leave' && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[10px] font-bold text-studio-muted uppercase">
-                    Leave Category
-                  </label>
-                  {getQuotaDisplay() && (
-                    <span className="text-[10.5px] font-semibold text-brand-orange bg-orange-50 px-2 py-0.5 rounded border border-orange-100">
-                      {getQuotaDisplay()}
-                    </span>
-                  )}
-                </div>
-                <select
-                  value={leaveType}
-                  onChange={(e) => setLeaveType(e.target.value)}
-                  className="w-full px-2.5 py-1.5 border border-studio-border rounded bg-white text-studio-text focus:outline-none focus:border-brand-orange"
-                >
-                  {availableLeaveTypes.map((c) => (
-                    <option key={c.id || c.code} value={c.name}>
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                  <option value="Comp-off">Use Comp-Off Credit</option>
-                </select>
-              </div>
-            )}
-
-            {applyMode === 'oh' && (
-              <div>
-                <label className="block text-[10px] font-bold text-studio-muted uppercase mb-1">
-                  Select Published Optional Holiday
-                </label>
-                {optionalHolidaysList.length > 0 ? (
-                  <select
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setEndDate(e.target.value);
-                    }}
-                    className="w-full px-2.5 py-1.5 border border-studio-border rounded bg-white text-studio-text focus:outline-none focus:border-brand-orange"
-                  >
-                    {optionalHolidaysList.map((oh) => (
-                      <option key={oh.date} value={oh.date}>
-                        {oh.name} ({oh.date})
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="text-studio-muted text-[11px]">
-                    No optional holidays published for {selectedYear}.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {applyMode !== 'oh' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-studio-muted uppercase mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 border border-studio-border rounded bg-white text-studio-text focus:outline-none focus:border-brand-orange"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-studio-muted uppercase mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    disabled={isHalfDay}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-2.5 py-1.5 border border-studio-border rounded text-studio-text focus:outline-none focus:border-brand-orange disabled:bg-slate-50 disabled:text-studio-muted"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {applyMode === 'leave' && canHalfDay && (
-              <div className="p-2.5 bg-studio-sidebar border border-studio-border rounded space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-studio-text flex items-center gap-1.5">
-                    <Clock className="w-3 h-3 text-brand-orange" /> Half-Day (0.5 Days)
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={isHalfDay}
-                    onChange={(e) => setIsHalfDay(e.target.checked)}
-                    className="rounded text-brand-orange focus:ring-brand-orange cursor-pointer"
-                  />
-                </div>
-                {isHalfDay && (
-                  <div className="flex gap-2 pt-0.5">
-                    {(['First Half', 'Second Half'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setHalfDaySession(s)}
-                        className={`flex-1 py-1 px-2 rounded text-[10.5px] font-semibold border transition-all cursor-pointer ${
-                          halfDaySession === s
-                            ? 'bg-orange-50 border-brand-orange text-brand-orange'
-                            : 'bg-white border-studio-border text-studio-muted'
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[10px] font-bold text-studio-muted uppercase mb-1">
-                Reason / Notes
-              </label>
-              <textarea
-                rows={3}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Provide reason or context for this request..."
-                className="w-full px-2.5 py-1.5 border border-studio-border rounded text-studio-text focus:outline-none focus:border-brand-orange resize-none"
-                required
-              />
-            </div>
+            <LeaveEditFormFields
+              applyMode={applyMode} setApplyMode={setApplyMode} leaveType={leaveType} setLeaveType={setLeaveType}
+              availableLeaveTypes={availableLeaveTypes} getQuotaDisplay={getQuotaDisplay} optionalHolidaysList={optionalHolidaysList}
+              startDate={startDate} setStartDate={setStartDate} endDate={endDate} setEndDate={setEndDate}
+              isHalfDay={isHalfDay} setIsHalfDay={setIsHalfDay} halfDaySession={halfDaySession} setHalfDaySession={setHalfDaySession}
+              canHalfDay={canHalfDay} reason={reason} setReason={setReason} selectedYear={selectedYear}
+            />
           </form>
 
-          {/* Action Buttons: Cancel Application on left, Save on right */}
-          <div className="p-3.5 border-t border-studio-border flex justify-between items-center gap-2 bg-studio-sidebar/40">
-            <button
-              type="button"
-              onClick={handleCancelApplication}
-              disabled={cancelling || saving}
-              className="px-3.5 py-1.5 border border-red-200 bg-red-50 text-red-600 rounded text-[11.5px] font-semibold hover:bg-red-100 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors shadow-2xs"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              {cancelling ? 'Cancelling...' : 'Cancel Application'}
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3.5 py-1.5 border border-studio-border rounded text-[11.5px] font-medium text-studio-muted hover:bg-white cursor-pointer"
-              >
-                Close
+          <div className="p-4 px-5 border-t border-studio-border bg-studio-sidebar/40">
+            <div className="grid grid-cols-3 gap-2.5 w-full items-center">
+              <button type="button" onClick={handleCancelApplication} disabled={cancelling || saving || deleting || isCancelled} className={`w-full py-2.5 px-2 border border-amber-300 bg-amber-50/80 text-amber-800 rounded-lg text-[11.5px] font-semibold hover:bg-amber-100 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-2xs ${isCancelled ? 'opacity-40 cursor-not-allowed' : ''}`} title={isCancelled ? 'Application is already cancelled' : 'Cancel this leave application'}>
+                <Ban className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{cancelling ? 'Cancelling...' : 'Cancel Application'}</span>
               </button>
-              <button
-                type="submit"
-                onClick={handleSave}
-                disabled={saving || cancelling}
-                className="px-4 py-1.5 bg-brand-orange text-white rounded text-[11.5px] font-semibold hover:bg-opacity-90 shadow-sm flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                {saving ? 'Saving...' : 'Save'}
+
+              <button type="button" onClick={handleDeleteApplication} disabled={deleting || saving || cancelling} className="w-full py-2.5 px-2 border border-red-200 bg-red-50/80 text-red-600 rounded-lg text-[11.5px] font-semibold hover:bg-red-100 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-2xs" title="Delete leave application permanently">
+                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{deleting ? 'Deleting...' : 'Delete'}</span>
+              </button>
+
+              <button type="submit" form="leave-edit-form" onClick={handleSave} disabled={saving || cancelling || deleting} className="w-full py-2.5 px-2 bg-brand-orange text-white rounded-lg text-[11.5px] font-bold hover:bg-opacity-90 shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors" title={isDeclined ? 'Resubmit leave application' : 'Save changes to leave application'}>
+                {isDeclined ? <RotateCcw className="w-3.5 h-3.5 shrink-0" /> : <Save className="w-3.5 h-3.5 shrink-0" />}
+                <span className="truncate">{saving ? 'Saving...' : isDeclined ? 'Resubmit' : 'Save Changes'}</span>
               </button>
             </div>
           </div>

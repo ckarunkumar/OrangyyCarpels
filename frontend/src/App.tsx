@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SearchProvider } from './context/SearchContext';
 import Layout from './components/ui/Layout';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import LoginView from './components/features/LoginView';
@@ -7,7 +8,6 @@ import DashboardView from './components/features/DashboardView';
 import TimesheetsView from './components/features/TimesheetsView';
 import EmployeesView from './components/features/EmployeesView';
 import ClientsView from './components/features/ClientsView';
-import ProjectsView from './components/features/ProjectsView';
 import ReportsView from './components/features/ReportsView';
 import LeavesView from './components/features/LeavesView';
 import GeneralSettingsView from './components/features/GeneralSettingsView';
@@ -78,8 +78,9 @@ function AppContent() {
 
   return (
     <Router>
-      <Layout>
-        <ErrorBoundary>
+      <SearchProvider>
+        <Layout>
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<DashboardView activeRole={role} />} />
             <Route path="/timesheets" element={<TimesheetsView activeRole={role} />} />
@@ -99,14 +100,7 @@ function AppContent() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <ProjectsView activeRole={role} />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/projects" element={<Navigate to="/clients" replace />} />
             <Route
               path="/reports"
               element={
@@ -118,14 +112,18 @@ function AppContent() {
             <Route path="/leaves" element={<LeavesView activeRole={role} />} />
             <Route path="/settings" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/studio" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/configurations" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/config" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/services" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/leaves" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
+            <Route path="/settings/logs" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/bl-sl" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/billing" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ErrorBoundary>
       </Layout>
+      </SearchProvider>
     </Router>
   );
 }

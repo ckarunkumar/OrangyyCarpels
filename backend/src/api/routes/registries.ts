@@ -58,6 +58,18 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     }
   });
 
+  // DELETE employee
+  fastify.delete('/employees/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const role = request.user!.role;
+    try {
+      return await RegistryService.deleteEmployee(role, id);
+    } catch (err: any) {
+      const status = err.message.startsWith('Access Denied') ? 403 : 404;
+      return reply.status(status).send({ error: err.message });
+    }
+  });
+
   // GET clients list (with projects)
   fastify.get('/clients', { schema: getRegistrySchema }, async (request, reply) => {
     const role = request.user!.role;
@@ -106,11 +118,38 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
     }
   });
 
-  // GET all projects list
-  fastify.get('/projects', { schema: getRegistrySchema }, async (request, reply) => {
+  // DELETE client
+  fastify.delete('/clients/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
     const role = request.user!.role;
     try {
-      const projects = await RegistryService.getAllProjects(role);
+      return await RegistryService.deleteClient(role, id);
+    } catch (err: any) {
+      const status = err.message.startsWith('Access Denied') ? 403 : 404;
+      return reply.status(status).send({ error: err.message });
+    }
+  });
+
+  // GET projects list (optionally filtered by clientId)
+  fastify.get('/projects', { schema: getRegistrySchema }, async (request, reply) => {
+    const role = request.user!.role;
+    const { clientId } = request.query as { clientId?: string };
+    const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
+    try {
+      const projects = await RegistryService.getAllProjects(role, targetClient, request.user?.userId);
+      return projects;
+    } catch (err: any) {
+      return reply.status(403).send({ error: err.message });
+    }
+  });
+
+  // GET projects for specific client
+  fastify.get('/clients/:clientId/projects', async (request, reply) => {
+    const role = request.user!.role;
+    const { clientId } = request.params as { clientId: string };
+    const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
+    try {
+      const projects = await RegistryService.getAllProjects(role, targetClient, request.user?.userId);
       return projects;
     } catch (err: any) {
       return reply.status(403).send({ error: err.message });
@@ -129,10 +168,10 @@ const registryRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
 
   // POST create project under client
   fastify.post('/projects', { schema: createProjectSchema }, async (request, reply) => {
-    const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service } = request.body as any;
+    const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service, monthlyBudgets, clientContactPersonId, clientContactPersonName } = request.body as any;
     const role = request.user!.role;
     try {
-      const newProj = await RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType);
+      const newProj = await RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets, clientContactPersonId, clientContactPersonName);
       return newProj;
     } catch (err: any) {
       return reply.status(403).send({ error: err.message });

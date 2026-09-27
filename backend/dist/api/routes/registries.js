@@ -50,6 +50,18 @@ const registryRoutes = async (fastify) => {
             return reply.status(status).send({ error: err.message });
         }
     });
+    // DELETE employee
+    fastify.delete('/employees/:id', async (request, reply) => {
+        const { id } = request.params;
+        const role = request.user.role;
+        try {
+            return await registryService_1.RegistryService.deleteEmployee(role, id);
+        }
+        catch (err) {
+            const status = err.message.startsWith('Access Denied') ? 403 : 404;
+            return reply.status(status).send({ error: err.message });
+        }
+    });
     // GET clients list (with projects)
     fastify.get('/clients', { schema: registrySchema_1.getRegistrySchema }, async (request, reply) => {
         const role = request.user.role;
@@ -98,11 +110,38 @@ const registryRoutes = async (fastify) => {
             return reply.status(status).send({ error: err.message });
         }
     });
-    // GET all projects list
-    fastify.get('/projects', { schema: registrySchema_1.getRegistrySchema }, async (request, reply) => {
+    // DELETE client
+    fastify.delete('/clients/:id', async (request, reply) => {
+        const { id } = request.params;
         const role = request.user.role;
         try {
-            const projects = await registryService_1.RegistryService.getAllProjects(role);
+            return await registryService_1.RegistryService.deleteClient(role, id);
+        }
+        catch (err) {
+            const status = err.message.startsWith('Access Denied') ? 403 : 404;
+            return reply.status(status).send({ error: err.message });
+        }
+    });
+    // GET projects list (optionally filtered by clientId)
+    fastify.get('/projects', { schema: registrySchema_1.getRegistrySchema }, async (request, reply) => {
+        const role = request.user.role;
+        const { clientId } = request.query;
+        const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
+        try {
+            const projects = await registryService_1.RegistryService.getAllProjects(role, targetClient, request.user?.userId);
+            return projects;
+        }
+        catch (err) {
+            return reply.status(403).send({ error: err.message });
+        }
+    });
+    // GET projects for specific client
+    fastify.get('/clients/:clientId/projects', async (request, reply) => {
+        const role = request.user.role;
+        const { clientId } = request.params;
+        const targetClient = role === 'Client' ? (request.user?.clientId || clientId) : clientId;
+        try {
+            const projects = await registryService_1.RegistryService.getAllProjects(role, targetClient, request.user?.userId);
             return projects;
         }
         catch (err) {
@@ -121,10 +160,10 @@ const registryRoutes = async (fastify) => {
     });
     // POST create project under client
     fastify.post('/projects', { schema: registrySchema_1.createProjectSchema }, async (request, reply) => {
-        const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service } = request.body;
+        const { id, clientId, name, billingType, rate, budgetHours, budgetType, startDate, endDate, managerId, managerName, assignedEmployees, businessLine, service, monthlyBudgets, clientContactPersonId, clientContactPersonName } = request.body;
         const role = request.user.role;
         try {
-            const newProj = await registryService_1.RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType);
+            const newProj = await registryService_1.RegistryService.createProject(role, clientId, name, billingType, rate, budgetHours, startDate, endDate, id, managerId, managerName, assignedEmployees, businessLine, service, budgetType, monthlyBudgets, clientContactPersonId, clientContactPersonName);
             return newProj;
         }
         catch (err) {
