@@ -47,6 +47,17 @@ echo -e "${GREEN}✔ Code pulled.${NC}"
 # 3. Update Backend & Sync DB
 echo -e "\n${BLUE}[3/5] Updating Backend & Database Schema...${NC}"
 cd "$TARGET_DIR/backend"
+
+# Ensure production .env credentials are set
+cat <<EOF > .env
+DATABASE_URL="mysql://carpels_user:Orangyy@Carpels2026!@localhost:3306/orangyycarpels"
+PORT=5001
+HOST=0.0.0.0
+NODE_ENV=production
+COOKIE_SECRET="orangyy-carpels-super-secure-production-secret-key-2026-minimum-32-chars"
+ALLOWED_ORIGINS="https://carpels.orangyy.design,https://fortest.orangyy.design"
+EOF
+
 npm install --no-audit
 npx prisma generate
 npx prisma db push --accept-data-loss
