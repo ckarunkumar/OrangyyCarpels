@@ -22,10 +22,17 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
     : 'No team members assigned';
 
   return (
-    <div onClick={() => onSelect(proj)} className="group px-5 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer">
-      {/* 1. Project Code */}
+    <div onClick={() => onSelect(proj)} className="group px-5 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative">
+      {/* 1. Project Code (Green for Active, Red for Inactive) */}
       <div className="col-span-1 min-w-[70px]">
-        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">
+        <span
+          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border inline-block transition-colors cursor-pointer ${
+            proj.status === 'Active'
+              ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300'
+              : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300'
+          }`}
+          title={`Project Code: ${proj.id} (${proj.status || 'Active'})`}
+        >
           {proj.id}
         </span>
       </div>
@@ -55,41 +62,36 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
       </div>
 
       {/* 5. Billing Type */}
-      <div className="col-span-1 flex items-center">
+      <div className="col-span-2 min-w-0 flex items-center">
         <BillingBadge type={proj.billingType} />
       </div>
 
-      {/* 6. Budget / Hours */}
-      <div className="col-span-2 pr-2">
-        {isHourly ? (
-          <div className="space-y-1">
-            <div className="flex justify-between items-center text-[10.5px] font-mono text-studio-muted">
-              <span>{proj.loggedHours || 0}/{proj.budgetHours || 0}h</span>
-              <span className="font-bold text-brand-orange">{consumption}%</span>
+      {/* 6. Budget / Hours & Mouse Over Edit Action */}
+      <div className="col-span-3 flex items-center justify-between min-w-0 pr-1">
+        <div className="min-w-0 flex-1 pr-2">
+          {isHourly ? (
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-[10.5px] font-mono text-studio-muted">
+                <span>{proj.loggedHours || 0}/{proj.budgetHours || 0}h</span>
+                <span className="font-bold text-brand-orange">{consumption}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-studio-sidebar rounded-full overflow-hidden border border-studio-border/60">
+                <div className="h-full bg-brand-orange transition-all duration-300" style={{ width: `${Math.min(100, consumption)}%` }} />
+              </div>
             </div>
-            <div className="w-full h-1.5 bg-studio-sidebar rounded-full overflow-hidden border border-studio-border/60">
-              <div className="h-full bg-brand-orange transition-all duration-300" style={{ width: `${Math.min(100, consumption)}%` }} />
-            </div>
-          </div>
-        ) : (
-          <span className="text-[11.5px] font-mono text-studio-muted">{proj.loggedHours || 0}h tracked</span>
-        )}
-      </div>
+          ) : (
+            <span className="text-[11.5px] font-mono text-studio-muted">{proj.loggedHours || 0}h tracked</span>
+          )}
+        </div>
 
-      {/* 7. Status */}
-      <div className="col-span-1 flex items-center">
-        <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${proj.status === 'Active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-          {proj.status}
-        </span>
-      </div>
-
-      {/* 8. Action (Edit Icon Only) */}
-      <div className="col-span-1 text-right flex items-center justify-end" onClick={(e) => e.stopPropagation()}>
         {isAdmin && (
           <button
             type="button"
-            onClick={() => onEdit(proj)}
-            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(proj);
+            }}
+            className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-brand-orange hover:bg-orange-50 rounded transition-all cursor-pointer shrink-0"
             title="Edit Project"
           >
             <Pencil className="w-3.5 h-3.5" />

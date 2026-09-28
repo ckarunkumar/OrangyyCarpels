@@ -105,14 +105,12 @@ export default function ClientUsersListView({
 
         <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
           <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
-            <div className="col-span-1">User ID</div>
-            <div className="col-span-2">Full Name</div>
-            <div className="col-span-2">Email Address</div>
-            <div className="col-span-2">Mobile / Phone</div>
-            <div className="col-span-2">Client Name</div>
-            <div className="col-span-1">Assigned</div>
-            <div className="col-span-1">Status</div>
-            <div className="col-span-1 text-right">Actions</div>
+            <div className="col-span-1 min-w-[70px]">USER ID</div>
+            <div className="col-span-3 min-w-0">FULL NAME</div>
+            <div className="col-span-2 min-w-0">EMAIL ADDRESS</div>
+            <div className="col-span-2 min-w-0">MOBILE / PHONE</div>
+            <div className="col-span-2 min-w-0">CLIENT NAME</div>
+            <div className="col-span-2 min-w-0 flex items-center">ASSIGNED</div>
           </div>
 
           <div className="divide-y divide-studio-border bg-white">
