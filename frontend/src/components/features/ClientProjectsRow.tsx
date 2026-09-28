@@ -22,7 +22,7 @@ export default function ClientProjectsRow({ proj, employees, isAdmin, onSelect, 
     : 'No team members assigned';
 
   return (
-    <div onClick={() => onSelect(proj)} className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer">
+    <div onClick={() => onSelect(proj)} className="group px-6 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-slate-50/70 transition-colors cursor-pointer">
       {/* 1. Project Code */}
       <div className="col-span-1 min-w-[70px]">
         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">

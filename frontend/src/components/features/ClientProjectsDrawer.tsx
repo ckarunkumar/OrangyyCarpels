@@ -10,8 +10,8 @@ interface ClientProjectsDrawerProps {
   onClose: () => void;
 }
 
-export default function ClientProjectsDrawer({ open, client, initialFilter = 'all', onClose }: ClientProjectsDrawerProps) {
-  const [filter, setFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+export default function ClientProjectsDrawer({ open, client, initialFilter = 'Active', onClose }: ClientProjectsDrawerProps) {
+  const [filter, setFilter] = useState<'all' | 'Active' | 'Inactive'>('Active');
 
   useEffect(() => {
     if (open) {

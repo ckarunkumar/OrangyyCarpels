@@ -15,11 +15,11 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   const { searchQuery, setSearchPlaceholder } = useSearch();
   const [searchParams, setSearchParams] = useSearchParams();
   const [clients, setClients] = useState<Client[]>([]);
-  const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [clientStatusFilter, setClientStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('Active');
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [activeClientForProjects, setActiveClientForProjects] = useState<Client | null>(null);
   const [projectsClient, setProjectsClient] = useState<Client | null>(null);
-  const [projectsFilter, setProjectsFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [projectsFilter, setProjectsFilter] = useState<'all' | 'Active' | 'Inactive'>('Active');
   const [detailOpen, setDetailOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,11 +1,27 @@
-import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import SystemLogsMapModal from './SystemLogsMapModal';
-import SystemLogsRow, { LoginLogItem } from './SystemLogsRow';
+import { LoginLogItem } from './SystemLogsRow';
+import SystemLogsControlsHeader from './SystemLogsControlsHeader';
+import SystemAuditLogsTable from './SystemAuditLogsTable';
+import EmployeeLoginsInfoTable from './EmployeeLoginsInfoTable';
+import EmployeeDetailDrawer from './EmployeeDetailDrawer';
+import EmployeeFormView from './EmployeeFormView';
 import { useSearch } from '../../context/SearchContext';
+import { useAuth } from '../../context/AuthContext';
+import { Employee } from '../../types/registry';
 
 export default function SystemLogsView() {
+  const { role } = useAuth();
   const { searchQuery, setSearchPlaceholder } = useSearch();
+  const [activeTab, setActiveTab] = useState<'employees' | 'audit'>('employees');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [empLoading, setEmpLoading] = useState(true);
+  const [empFilter, setEmpFilter] = useState<'all' | 'Active' | 'Inactive'>('Active');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+  const [targetEmployee, setTargetEmployee] = useState<Employee | null>(null);
+
   const [logs, setLogs] = useState<LoginLogItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -13,9 +29,24 @@ export default function SystemLogsView() {
   const [loading, setLoading] = useState(true);
   const [selectedMapLog, setSelectedMapLog] = useState<LoginLogItem | null>(null);
 
+  const isAdmin = role === 'Super Admin';
+
   useEffect(() => {
-    setSearchPlaceholder('Search system logs (user, email, IP, city, OS, device)...');
-  }, [setSearchPlaceholder]);
+    setSearchPlaceholder(
+      activeTab === 'employees'
+        ? 'Search employee logins (name, Emp ID, email, role)...'
+        : 'Search system logs (user, email, IP, city, OS, device)...'
+    );
+  }, [activeTab, setSearchPlaceholder]);
+
+  const fetchEmployees = useCallback(() => {
+    setEmpLoading(true);
+    fetch('/api/employees')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setEmployees(data || []))
+      .catch(() => setEmployees([]))
+      .finally(() => setEmpLoading(false));
+  }, []);
 
   const fetchLogs = useCallback(async (targetPage = 1, query = '') => {
     setLoading(true);
@@ -40,11 +71,66 @@ export default function SystemLogsView() {
   }, []);
 
   useEffect(() => {
-    fetchLogs(page, searchQuery);
-  }, [page, searchQuery, fetchLogs]);
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  useEffect(() => {
+    if (activeTab === 'audit') {
+      fetchLogs(page, searchQuery);
+    }
+  }, [activeTab, page, searchQuery, fetchLogs]);
+
+  const counts = useMemo(() => ({
+    total: employees.length,
+    active: employees.filter((e) => e.status === 'Active').length,
+    inactive: employees.filter((e) => e.status === 'Inactive').length,
+  }), [employees]);
+
+  const filteredEmployees = employees.filter((emp) => {
+    if (empFilter === 'Active' && emp.status !== 'Active') return false;
+    if (empFilter === 'Inactive' && emp.status !== 'Inactive') return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      emp.employeeId.toLowerCase().includes(q) ||
+      emp.fullName.toLowerCase().includes(q) ||
+      (emp.email && emp.email.toLowerCase().includes(q)) ||
+      (emp.phone && emp.phone.toLowerCase().includes(q))
+    );
+  });
+
+  const handleOpenEdit = (emp: Employee) => {
+    if (!isAdmin) return;
+    setSelectedEmployee(null);
+    setDetailOpen(false);
+    setTargetEmployee(emp);
+    setViewMode('form');
+  };
+
+  if (viewMode === 'form' && isAdmin) {
+    return (
+      <EmployeeFormView
+        mode="edit"
+        employee={targetEmployee}
+        onBack={() => setViewMode('list')}
+        onSaved={() => {
+          setViewMode('list');
+          fetchEmployees();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 animate-in fade-in duration-200">
+      <EmployeeDetailDrawer
+        open={detailOpen}
+        employee={selectedEmployee}
+        isAdmin={isAdmin}
+        onClose={() => setDetailOpen(false)}
+        onEdit={handleOpenEdit}
+      />
+
       <SystemLogsMapModal
         isOpen={Boolean(selectedMapLog)}
         onClose={() => setSelectedMapLog(null)}
@@ -63,93 +149,35 @@ export default function SystemLogsView() {
         }
       />
 
-      {/* Top Controls */}
-      <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-studio-border shadow-xs">
-        <div>
-          <h3 className="text-[14px] font-bold text-studio-text">System Activity Logs</h3>
-          <p className="text-[11.5px] text-studio-muted">Live audit trail of user logins and sessions</p>
-        </div>
+      <SystemLogsControlsHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        empFilter={empFilter}
+        onEmpFilterChange={setEmpFilter}
+        counts={counts}
+        totalAuditLogs={total}
+        loading={loading}
+        onRefreshAudit={() => fetchLogs(page, searchQuery)}
+      />
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fetchLogs(page, searchQuery)}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-studio-text hover:bg-studio-hover border border-studio-border rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-studio-muted ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-          <span className="text-[11.5px] text-studio-muted px-2.5 py-1 bg-studio-bg rounded-lg border border-studio-border">
-            Total: <strong className="text-studio-text font-bold">{total}</strong> records
-          </span>
-        </div>
-      </div>
-
-      {/* Logs Table */}
-      <div className="bg-white border border-studio-border rounded-xl shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-studio-border bg-studio-bg/60 text-[11px] font-semibold text-studio-muted uppercase tracking-wider">
-                <th className="py-2.5 px-4">User</th>
-                <th className="py-2.5 px-4">Email</th>
-                <th className="py-2.5 px-4">Login Time</th>
-                <th className="py-2.5 px-4">IP & Network</th>
-                <th className="py-2.5 px-4">Approx. Location</th>
-                <th className="py-2.5 px-4">System</th>
-                <th className="py-2.5 px-4">Device</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-studio-border text-[12px]">
-              {loading && logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-studio-muted">
-                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-brand-orange" />
-                    Loading system activity logs...
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-studio-muted">
-                    <AlertCircle className="w-6 h-6 mx-auto mb-2 text-studio-muted/60" />
-                    No login activity records found.
-                  </td>
-                </tr>
-              ) : (
-                logs.map((log) => (
-                  <SystemLogsRow key={log.id} log={log} onOpenMap={setSelectedMapLog} />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-2.5 bg-studio-bg/40 border-t border-studio-border text-[11.5px] text-studio-muted">
-            <span>Page <strong className="text-studio-text">{page}</strong> of <strong className="text-studio-text">{totalPages}</strong></span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page <= 1 || loading}
-                className="px-2.5 py-1 border border-studio-border rounded-md bg-white hover:bg-studio-hover text-studio-text disabled:opacity-40 transition-colors cursor-pointer"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || loading}
-                className="px-2.5 py-1 border border-studio-border rounded-md bg-white hover:bg-studio-hover text-studio-text disabled:opacity-40 transition-colors cursor-pointer"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {activeTab === 'employees' ? (
+        <EmployeeLoginsInfoTable
+          employees={filteredEmployees}
+          loading={empLoading}
+          isAdmin={isAdmin}
+          searchQuery={searchQuery}
+          onEdit={isAdmin ? handleOpenEdit : undefined}
+        />
+      ) : (
+        <SystemAuditLogsTable
+          logs={logs}
+          loading={loading}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onOpenMap={setSelectedMapLog}
+        />
+      )}
     </div>
   );
 }

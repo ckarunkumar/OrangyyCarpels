@@ -1,4 +1,5 @@
-import { Mail, Phone, Pencil, Shield, FolderGit2 } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Phone, Pencil, Shield, FolderGit2, Copy, Check, Clock } from 'lucide-react';
 import { Employee } from '../../types/registry';
 
 interface EmployeeTableRowProps {
@@ -14,33 +15,71 @@ export default function EmployeeTableRow({
   onSelect,
   onEdit,
 }: EmployeeTableRowProps) {
+  const [copiedEmail, setCopiedEmail] = useState(false);
+  const [copiedPhone, setCopiedPhone] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent, text: string, type: 'email' | 'phone') => {
+    e.stopPropagation();
+    if (!text || text === '-') return;
+    navigator.clipboard.writeText(text);
+    if (type === 'email') {
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    } else {
+      setCopiedPhone(true);
+      setTimeout(() => setCopiedPhone(false), 2000);
+    }
+  };
+
+  const formatLoginTime = (timeStr?: string | null) => {
+    if (!timeStr) return '—';
+    try {
+      const d = new Date(timeStr);
+      if (isNaN(d.getTime())) return '—';
+      const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      return `${date}, ${time}`;
+    } catch {
+      return '—';
+    }
+  };
+
   return (
     <div
       onClick={() => onSelect(emp)}
-      className="group px-5 py-3 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative"
+      className="group grid grid-cols-12 gap-3 px-6 py-3.5 items-center hover:bg-slate-50/70 transition-colors cursor-pointer text-[12.5px] relative"
     >
-      <div className="col-span-1 min-w-0 flex items-center">
-        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text inline-block">
+      {/* 1. Employee ID (Green for Active, Red for Inactive) */}
+      <div className="col-span-1 min-w-[70px] flex items-center">
+        <span
+          className={`text-[10.5px] font-mono font-bold px-2 py-0.5 rounded border inline-block ${
+            emp.status === 'Active'
+              ? 'bg-green-50 text-green-700 border-green-200'
+              : 'bg-red-50 text-red-600 border-red-200'
+          }`}
+        >
           {emp.employeeId}
         </span>
       </div>
 
+      {/* 2. Name */}
       <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-studio-sidebar flex items-center justify-center text-[11px] font-bold text-studio-muted border border-studio-border shrink-0 overflow-hidden">
+        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 border border-slate-200 shrink-0 overflow-hidden">
           {emp.avatar ? (
             <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" />
           ) : (
             <span>{emp.fullName[0]}</span>
           )}
         </div>
-        <p className="font-semibold text-studio-text truncate group-hover:text-brand-orange transition-colors">
+        <p className="font-semibold text-slate-800 truncate group-hover:text-brand-orange transition-colors">
           {emp.fullName}
         </p>
       </div>
 
-      <div className="col-span-2 flex items-center">
+      {/* 3. System Role */}
+      <div className="col-span-2 flex items-center min-w-0">
         <span
-          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
+          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border truncate ${
             emp.role === 'Super Admin'
               ? 'bg-purple-50 text-purple-700 border-purple-200'
               : emp.role === 'Project Manager'
@@ -49,7 +88,7 @@ export default function EmployeeTableRow({
           }`}
         >
           <Shield
-            className={`w-2.5 h-2.5 ${
+            className={`w-2.5 h-2.5 shrink-0 ${
               emp.role === 'Super Admin'
                 ? 'text-purple-600'
                 : emp.role === 'Project Manager'
@@ -57,21 +96,44 @@ export default function EmployeeTableRow({
                 : 'text-slate-500'
             }`}
           />
-          {emp.role || 'Employee'}
+          <span className="truncate">{emp.role || 'Employee'}</span>
         </span>
       </div>
 
-      <div className="col-span-2 text-studio-muted flex items-center gap-2 whitespace-nowrap min-w-0">
-        <Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" />
-        <span className="text-[12px] text-studio-text font-normal truncate">{emp.email}</span>
+      {/* 4. Email ID with hover copy */}
+      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0 group/email">
+        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <span className="text-[12px] text-slate-700 truncate" title={emp.email}>{emp.email}</span>
+        {emp.email && (
+          <button
+            type="button"
+            onClick={(e) => handleCopy(e, emp.email, 'email')}
+            title={copiedEmail ? 'Copied!' : 'Copy Email'}
+            className="opacity-0 group-hover/email:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity shrink-0 cursor-pointer"
+          >
+            {copiedEmail ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+          </button>
+        )}
       </div>
 
-      <div className="col-span-1 text-studio-muted flex items-center gap-1.5 whitespace-nowrap min-w-0">
-        <Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" />
-        <span className="text-[12px] text-studio-text font-normal truncate">{emp.phone || '-'}</span>
+      {/* 5. Phone Number with hover copy */}
+      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0 group/phone">
+        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+        <span className="text-[12px] text-slate-700 truncate" title={emp.phone || '—'}>{emp.phone || '—'}</span>
+        {emp.phone && emp.phone !== '-' && (
+          <button
+            type="button"
+            onClick={(e) => handleCopy(e, emp.phone, 'phone')}
+            title={copiedPhone ? 'Copied!' : 'Copy Phone'}
+            className="opacity-0 group-hover/phone:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity shrink-0 cursor-pointer"
+          >
+            {copiedPhone ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+          </button>
+        )}
       </div>
 
-      <div className="col-span-1 flex items-center">
+      {/* 6. Projects Count */}
+      <div className="col-span-1 flex items-center min-w-0">
         <span
           className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${
             (emp.assignedProjectsCount || 0) > 0
@@ -88,28 +150,22 @@ export default function EmployeeTableRow({
         </span>
       </div>
 
-      <div className="col-span-1 flex items-center">
-        <span
-          className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-            emp.status === 'Active'
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-gray-50 text-gray-500 border-gray-200'
-          }`}
-        >
-          {emp.status}
+      {/* 7. Login Time & Hover Edit Action */}
+      <div className="col-span-1 flex items-center justify-between min-w-0 gap-1 text-slate-600 text-[11.5px]">
+        <span className="truncate flex items-center gap-1 text-slate-500 font-mono text-[11px]" title={emp.loginTime ? formatLoginTime(emp.loginTime) : 'Never logged in'}>
+          <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+          <span className="truncate">{formatLoginTime(emp.loginTime)}</span>
         </span>
-      </div>
 
-      <div
-        className="col-span-1 text-right flex items-center justify-end"
-        onClick={(e) => e.stopPropagation()}
-      >
         {isAdmin && (
           <button
             type="button"
-            onClick={() => onEdit(emp)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(emp);
+            }}
             title="Edit Team Member"
-            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
+            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-brand-orange hover:bg-orange-50 rounded transition-all cursor-pointer shrink-0"
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>

@@ -20,19 +20,18 @@ export default function EmployeeTable({
   onEdit,
 }: EmployeeTableProps) {
   return (
-    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
-        <div className="col-span-1">EMP ID</div>
-        <div className="col-span-3">NAME</div>
-        <div className="col-span-2">SYSTEM ROLE</div>
-        <div className="col-span-2">EMAIL</div>
-        <div className="col-span-1">PHONE</div>
-        <div className="col-span-1">PROJECTS</div>
-        <div className="col-span-1">STATUS</div>
-        <div className="col-span-1 text-right">ACTION</div>
+    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
+      <div className="grid grid-cols-12 gap-3 px-6 py-3.5 bg-[#fafbfc] border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider items-center">
+        <div className="col-span-1 min-w-[70px]">EMP ID</div>
+        <div className="col-span-3 min-w-0">NAME</div>
+        <div className="col-span-2 min-w-0">SYSTEM ROLE</div>
+        <div className="col-span-2 min-w-0">EMAIL</div>
+        <div className="col-span-2 min-w-0">PHONE</div>
+        <div className="col-span-1 min-w-0">PROJECTS</div>
+        <div className="col-span-1 min-w-0">LOGIN TIME</div>
       </div>
 
-      <div className="divide-y divide-studio-border bg-white">
+      <div className="divide-y divide-slate-100/80">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
         ) : employees.length === 0 ? (

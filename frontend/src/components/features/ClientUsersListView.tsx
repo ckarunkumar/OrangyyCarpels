@@ -103,8 +103,8 @@ export default function ClientUsersListView({
           </div>
         )}
 
-        <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-          <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
+        <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
+          <div className="grid grid-cols-12 gap-3 px-6 py-3.5 bg-[#fafbfc] border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider items-center">
             <div className="col-span-1">User ID</div>
             <div className="col-span-2">Full Name</div>
             <div className="col-span-2">Email Address</div>
@@ -115,7 +115,7 @@ export default function ClientUsersListView({
             <div className="col-span-1 text-right">Actions</div>
           </div>
 
-          <div className="divide-y divide-studio-border bg-white">
+          <div className="divide-y divide-slate-100/80">
             {loading ? (
               <div className="py-8 text-center text-[12px] text-studio-muted animate-pulse">Loading client users...</div>
             ) : filteredUsers.length === 0 ? (

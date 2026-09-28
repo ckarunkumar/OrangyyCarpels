@@ -5,9 +5,13 @@ import { hashPassword, validatePasswordPolicy, generateDefaultPassword } from '.
 export class EmployeeService {
   static async getEmployees(role: string): Promise<EmployeeProfile[]> {
     if (role === 'Employee') throw new Error('Access Denied: Employees cannot view the full registry.');
-    const [employees, allProjects] = await Promise.all([
+    const [employees, allProjects, loginLogs] = await Promise.all([
       prisma.employee.findMany(),
       prisma.project.findMany({ select: { id: true, name: true, status: true, managerId: true, assignedEmployees: true } }),
+      prisma.loginLog.findMany({
+        select: { employeeId: true, email: true, loginAt: true },
+        orderBy: { loginAt: 'desc' },
+      }),
     ]);
     const todayStr = new Date().toISOString().slice(0, 10);
     return employees.map((emp) => {
@@ -16,12 +20,17 @@ export class EmployeeService {
       const exp = Array.isArray(emp.experience) ? (emp.experience as any[]) : [];
       const empIdLower = emp.employeeId.toLowerCase();
       const empNameLower = emp.fullName.toLowerCase();
+      const empEmailLower = emp.email.toLowerCase();
 
       const assignedProjs = allProjects.filter((p) => {
         const pMgrLower = (p.managerId || '').toLowerCase().trim();
         const assignedList = (p.assignedEmployees || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
         return pMgrLower === empIdLower || pMgrLower === empNameLower || assignedList.includes(empIdLower) || assignedList.includes(empNameLower);
       });
+
+      const userLog = loginLogs.find(
+        (l) => (l.employeeId && l.employeeId.toLowerCase() === empIdLower) || (l.email && l.email.toLowerCase() === empEmailLower)
+      );
 
       return {
         id: emp.employeeId, employeeId: emp.employeeId, fullName: emp.fullName, dob: emp.dob || '', designation: emp.designation,
@@ -35,6 +44,7 @@ export class EmployeeService {
         education: edu.map((e) => ({ degree: e.degree || '', school: e.school || '', year: e.year || '' })),
         experience: exp.map((e) => ({ company: e.company || '', role: e.role || '', period: e.period || '' })),
         assignedProjectsCount: assignedProjs.length, assignedProjects: assignedProjs.map((p) => ({ id: p.id, name: p.name, status: p.status })),
+        loginTime: userLog ? userLog.loginAt.toISOString() : null,
       };
     });
   }

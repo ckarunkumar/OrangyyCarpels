@@ -72,6 +72,7 @@ export interface Employee {
   experience?: Array<{ company: string; role: string; period: string }>;
   assignedProjectsCount?: number;
   assignedProjects?: Array<{ id: string; name: string; status: string }>;
+  loginTime?: string | null;
 }
 
 export interface Project {

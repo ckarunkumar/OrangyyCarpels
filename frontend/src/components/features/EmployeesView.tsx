@@ -14,7 +14,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
   const { searchQuery, setSearchPlaceholder } = useSearch();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [filterType, setFilterType] = useState<TeamFilterType>('all');
+  const [filterType, setFilterType] = useState<TeamFilterType>('Active');
   const [detailOpen, setDetailOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

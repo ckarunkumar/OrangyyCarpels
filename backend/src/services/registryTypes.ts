@@ -12,6 +12,7 @@ export interface EmployeeProfile {
   experience: Array<{ company: string; role: string; period: string }>;
   assignedProjectsCount?: number;
   assignedProjects?: Array<{ id: string; name: string; status: string }>;
+  loginTime?: string | null;
 }
 
 

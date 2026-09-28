@@ -23,7 +23,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
   const [tab, setTab] = useState<'projects' | 'client-users'>('projects');
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [projectStatusFilter, setProjectStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('all');
+  const [projectStatusFilter, setProjectStatusFilter] = useState<'all' | 'Active' | 'Inactive'>('Active');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [budgetProject, setBudgetProject] = useState<Project | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -151,8 +151,8 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
         {tab === 'client-users' ? (
           <ClientUsersListView clients={allClients.length > 0 ? allClients : [client]} isAdmin={isAdmin} selectedClientId={client.id} openAddModal={openAddUserModal} onCloseAddModal={() => setOpenAddUserModal(false)} />
         ) : (
-          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-            <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
+          <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
+            <div className="grid grid-cols-12 gap-3 px-6 py-3.5 bg-[#fafbfc] border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider items-center">
               <div className="col-span-1">PROJECT CODE</div>
               <div className="col-span-3">PROJECT NAME</div>
               <div className="col-span-2">PROJECT MANAGER</div>
@@ -163,7 +163,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
               <div className="col-span-1 text-right">ACTION</div>
             </div>
 
-            <div className="divide-y divide-studio-border bg-white">
+            <div className="divide-y divide-slate-100/80">
               {loading ? (
                 Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
               ) : filteredProjects.length === 0 ? (
