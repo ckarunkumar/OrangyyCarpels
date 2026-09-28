@@ -41,31 +41,31 @@ export default function MyLeavesTable({ myRequests, onSelect, onEdit, onCancel, 
   }, []);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
-      <div className="bg-[#fafbfc] border-b border-slate-100 px-6 py-3.5 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
         <span>MY APPLICATIONS & REQUESTS</span>
-        <span className="font-mono text-[11px] text-slate-500 font-bold uppercase">{myRequests.length} RECORDS</span>
+        <span className="font-mono text-[11px] text-studio-muted font-bold uppercase">{myRequests.length} RECORDS</span>
       </div>
 
       <div className="w-full overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-100 bg-[#fafbfc] text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="py-3 px-6 font-semibold">APPLICATION TYPE</th>
-              <th className="py-3 px-6 font-semibold">LEAVE CATEGORY</th>
-              <th className="py-3 px-6 font-semibold">START DATE</th>
-              <th className="py-3 px-6 font-semibold">END DATE</th>
-              <th className="py-3 px-6 font-semibold">HALF-DAY</th>
-              <th className="py-3 px-6 font-semibold">NUMBER OF DAYS</th>
-              <th className="py-3 px-6 font-semibold">REASON / NOTES</th>
-              <th className="py-3 px-6 font-semibold text-left">STATUS</th>
-              <th className="py-3 px-6 font-semibold text-right">ACTION</th>
+            <tr className="border-b border-studio-border bg-studio-sidebar text-[10px] font-bold text-studio-muted uppercase tracking-wider">
+              <th className="py-2.5 px-5 font-bold">APPLICATION TYPE</th>
+              <th className="py-2.5 px-5 font-bold">LEAVE CATEGORY</th>
+              <th className="py-2.5 px-5 font-bold">START DATE</th>
+              <th className="py-2.5 px-5 font-bold">END DATE</th>
+              <th className="py-2.5 px-5 font-bold">HALF-DAY</th>
+              <th className="py-2.5 px-5 font-bold">NUMBER OF DAYS</th>
+              <th className="py-2.5 px-5 font-bold">REASON / NOTES</th>
+              <th className="py-2.5 px-5 font-bold text-left">STATUS</th>
+              <th className="py-2.5 px-5 font-bold text-right">ACTION</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100/80 text-[12.5px] text-slate-700">
+          <tbody className="divide-y divide-studio-border bg-white text-[12.5px] text-studio-text">
             {myRequests.length === 0 ? (
               <tr>
-                <td colSpan={9} className="py-8 text-center text-slate-500 text-[12.5px]">
+                <td colSpan={9} className="py-8 text-center text-studio-muted text-[12.5px]">
                   No applications submitted yet. Click "+ Apply" to submit time-off or WFH.
                 </td>
               </tr>
@@ -77,7 +77,7 @@ export default function MyLeavesTable({ myRequests, onSelect, onEdit, onCancel, 
                 const isCancelled = r.status === 'Cancelled';
 
                 return (
-                  <tr key={r.id} onClick={() => onSelect(r)} className="hover:bg-slate-50 transition-colors cursor-pointer group">
+                  <tr key={r.id} onClick={() => onSelect(r)} className="hover:bg-studio-hover/40 transition-colors cursor-pointer group">
                     <td className="py-3.5 px-5 font-medium text-slate-800 group-hover:text-brand-orange transition-colors">{r.leaveType}</td>
                     <td className="py-3.5 px-5 text-slate-600 font-medium">{getCategoryLabel(r)}</td>
                     <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(r.startDate)}</td>

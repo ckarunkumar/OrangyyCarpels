@@ -14,20 +14,20 @@ const formatDateDMY = (dateStr: string) => {
 
 export default function PendingCompOffTable({ compOffRequests, onReview }: PendingCompOffTableProps) {
   return (
-    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
-      <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
         <span>PENDING COMP-OFF OVERTIME CLAIMS</span>
-        <span className="font-mono text-[11px] text-slate-500 font-bold uppercase">{compOffRequests.length} RECORDS</span>
+        <span className="font-mono text-[11px] text-studio-muted font-bold uppercase">{compOffRequests.length} RECORDS</span>
       </div>
       {compOffRequests.length === 0 ? (
-        <div className="p-8 text-center text-[12.5px] text-slate-500 font-medium">
+        <div className="p-8 text-center text-[12.5px] text-studio-muted">
           No pending comp-off claims requiring authorization
         </div>
       ) : (
         <div className="w-full overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-studio-border/60 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-studio-border bg-studio-sidebar text-[10px] font-bold text-studio-muted uppercase tracking-wider">
                 <th className="py-2.5 px-5 font-bold">EMPLOYEE</th>
                 <th className="py-2.5 px-5 font-bold">WORKED DATE</th>
                 <th className="py-2.5 px-5 font-bold">HOURS WORKED</th>
@@ -36,9 +36,9 @@ export default function PendingCompOffTable({ compOffRequests, onReview }: Pendi
                 <th className="py-2.5 px-5 font-bold text-left">STATUS</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-studio-border/40 text-[12.5px] text-slate-700">
+            <tbody className="divide-y divide-studio-border bg-white text-[12.5px] text-studio-text">
               {compOffRequests.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                <tr key={c.id} className="hover:bg-studio-hover/40 transition-colors">
                   <td className="py-3.5 px-5 font-medium text-slate-800">{c.employeeName}</td>
                   <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{formatDateDMY(c.workedDate)}</td>
                   <td className="py-3.5 px-5 text-slate-700 font-medium">{c.hoursWorked} hrs</td>

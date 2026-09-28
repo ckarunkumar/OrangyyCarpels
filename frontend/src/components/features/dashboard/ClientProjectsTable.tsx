@@ -58,8 +58,8 @@ export default function ClientProjectsTable({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
-      <div className="grid grid-cols-12 gap-3 px-6 py-3.5 bg-[#fafbfc] border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider items-center">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
         <div className="col-span-2 sm:col-span-1">Project Code</div>
         <div className="col-span-2">Project Name</div>
         <div className="col-span-1">Start Date</div>
@@ -71,11 +71,11 @@ export default function ClientProjectsTable({
         <div className="col-span-2 text-right">Total Revenue (INR)</div>
       </div>
 
-      <div className="divide-y divide-slate-100/80">
+      <div className="divide-y divide-studio-border bg-white">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
         ) : projects.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-[13px]">
+          <div className="text-center py-12 text-studio-muted text-[12.5px]">
             No projects recorded for this client in the selected period.
           </div>
         ) : (
@@ -86,7 +86,7 @@ export default function ClientProjectsTable({
             return (
               <div
                 key={p.projectId}
-                className="grid grid-cols-12 gap-3 px-6 py-4 items-center hover:bg-slate-50/70 transition-colors text-[12.5px]"
+                className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors text-[12.5px]"
               >
                 {/* Project Code */}
                 <div className="col-span-2 sm:col-span-1 font-mono text-[12px] text-slate-700">

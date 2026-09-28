@@ -32,9 +32,9 @@ export default function EmployeeLoginsInfoRow({
   const assignedProjs = emp.assignedProjects || [];
 
   return (
-    <tr className="hover:bg-slate-50/70 transition-colors group">
+    <tr className="hover:bg-studio-hover/40 transition-colors group">
       {/* 1. Employee ID */}
-      <td className="py-3.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <span
           className={`text-[10.5px] font-mono font-bold px-2 py-0.5 rounded border inline-block ${
             emp.status === 'Active'
@@ -47,7 +47,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 2. Name */}
-      <td className="py-3.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 border border-slate-200 shrink-0 overflow-hidden">
             {emp.avatar ? (
@@ -63,7 +63,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 3. System Role */}
-      <td className="py-3.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <span
           className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border ${
             emp.role === 'Super Admin'
@@ -79,7 +79,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 4. Email ID */}
-      <td className="py-3.5 px-4 whitespace-nowrap group/email">
+      <td className="py-3.5 px-5 whitespace-nowrap group/email">
         <div className="flex items-center gap-1.5 text-slate-600">
           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="truncate max-w-[180px]">{emp.email}</span>
@@ -97,7 +97,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 5. Phone Number */}
-      <td className="py-3.5 px-4 whitespace-nowrap group/phone">
+      <td className="py-3.5 px-5 whitespace-nowrap group/phone">
         <div className="flex items-center gap-1.5 text-slate-600">
           <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span className="truncate">{emp.phone || '—'}</span>
@@ -115,7 +115,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 6. No. of Projects */}
-      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+      <td className="py-3.5 px-5 text-center whitespace-nowrap">
         <span
           className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded border ${
             (emp.assignedProjectsCount || 0) > 0
@@ -129,7 +129,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 7. Location */}
-      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600">
+      <td className="py-3.5 px-5 whitespace-nowrap text-slate-600">
         <div className="flex items-center gap-1 text-[11.5px]">
           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span>{emp.location || 'Remote'}</span>
@@ -137,7 +137,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 8. Date of Joining */}
-      <td className="py-3.5 px-4 whitespace-nowrap text-slate-600 font-mono text-[11.5px]">
+      <td className="py-3.5 px-5 whitespace-nowrap text-slate-600 font-mono text-[11.5px]">
         <div className="flex items-center gap-1">
           <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           <span>{emp.joiningDate || '—'}</span>
@@ -145,7 +145,7 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 9. Projects Working */}
-      <td className="py-3.5 px-4">
+      <td className="py-3.5 px-5">
         {assignedProjs.length > 0 ? (
           <div className="flex items-center gap-1 flex-wrap max-w-xs">
             {assignedProjs.map((p) => (

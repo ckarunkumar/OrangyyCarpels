@@ -65,7 +65,7 @@ export default function ClientDashboardView() {
             <span className="text-[11.5px] text-studio-muted">Showing only projects explicitly assigned to your account</span>
           </div>
 
-          <div className="border border-studio-border rounded-xl bg-white overflow-hidden shadow-sm">
+          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
             <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
               <div className="col-span-2">Project Code</div>
               <div className="col-span-4">Project Name</div>

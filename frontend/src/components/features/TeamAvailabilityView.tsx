@@ -27,42 +27,42 @@ export default function TeamAvailabilityView({ holidays }: Props) {
   const grouped = groupByMonth(holidays);
 
   return (
-    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-xs">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       {/* Top Card Header */}
-      <div className="bg-slate-50/90 border-b border-studio-border px-5 py-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
         <span className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-brand-orange" />
           PUBLISHED STUDIO HOLIDAYS
         </span>
-        <span className="font-mono text-[11px] text-slate-500 font-bold uppercase">{holidays.length} HOLIDAYS</span>
+        <span className="font-mono text-[11px] text-studio-muted font-bold uppercase">{holidays.length} HOLIDAYS</span>
       </div>
 
       {holidays.length === 0 ? (
         <div className="p-10 text-center text-[12.5px] text-studio-muted">No published holidays for this calendar year.</div>
       ) : (
-        <div className="divide-y divide-studio-border">
+        <div className="divide-y divide-studio-border bg-white">
           {grouped.map(({ month, items }) => (
             <div key={month} className="bg-white">
               {/* Month Group Header */}
-              <div className="bg-slate-100/70 px-5 py-2.5 border-b border-studio-border text-[11px] font-bold text-slate-600 uppercase tracking-wider flex justify-between items-center">
+              <div className="bg-studio-sidebar/70 px-5 py-2 border-b border-studio-border text-[10px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
                 <span>{month}</span>
-                <span className="font-mono text-[10.5px] text-slate-500 font-bold">{items.length} HOLIDAYS</span>
+                <span className="font-mono text-[10.5px] text-studio-muted font-bold">{items.length} HOLIDAYS</span>
               </div>
 
               {/* Month Table */}
               <div className="w-full overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-studio-border/60 bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    <tr className="border-b border-studio-border bg-studio-sidebar text-[10px] font-bold text-studio-muted uppercase tracking-wider">
                       <th className="py-2.5 px-5 font-bold w-1/4">DATE</th>
                       <th className="py-2.5 px-5 font-bold w-1/4">DAY</th>
                       <th className="py-2.5 px-5 font-bold w-1/3">HOLIDAY NAME</th>
                       <th className="py-2.5 px-5 font-bold text-left">HOLIDAY TYPE</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-studio-border/40 text-[12.5px] text-slate-700">
+                  <tbody className="divide-y divide-studio-border bg-white text-[12.5px] text-studio-text">
                     {items.map((h) => (
-                      <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={h.id} className="hover:bg-studio-hover/40 transition-colors">
                         <td className="py-3.5 px-5 font-mono text-[12px] text-slate-700 font-medium">{h.date}</td>
                         <td className="py-3.5 px-5 text-slate-700 font-medium">{getDayName(h.date)}</td>
                         <td className="py-3.5 px-5 font-semibold text-slate-800">{h.name}</td>

@@ -47,7 +47,7 @@ export default function EmployeeTableRow({
   return (
     <div
       onClick={() => onSelect(emp)}
-      className="group grid grid-cols-12 gap-3 px-6 py-3.5 items-center hover:bg-slate-50/70 transition-colors cursor-pointer text-[12.5px] relative"
+      className="group grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer text-[12.5px] relative"
     >
       {/* 1. Employee ID (Green for Active, Red for Inactive) */}
       <div className="col-span-1 min-w-[70px] flex items-center">

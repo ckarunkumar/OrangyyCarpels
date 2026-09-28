@@ -18,24 +18,24 @@ export default function EmployeeLoginsInfoTable({
   onEdit,
 }: EmployeeLoginsInfoTableProps) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
-            <tr className="bg-[#fafbfc] border-b border-slate-100 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="py-3.5 px-4">EMP ID</th>
-              <th className="py-3.5 px-4">NAME</th>
-              <th className="py-3.5 px-4">SYSTEM ROLE</th>
-              <th className="py-3.5 px-4">EMAIL ID</th>
-              <th className="py-3.5 px-4">PHONE NUMBER</th>
-              <th className="py-3.5 px-3 text-center">NO. OF PROJECTS</th>
-              <th className="py-3.5 px-4">LOCATION</th>
-              <th className="py-3.5 px-4">DATE OF JOINING</th>
-              <th className="py-3.5 px-4">PROJECTS WORKING</th>
-              {isAdmin && <th className="py-3.5 px-3 w-10 text-right"></th>}
+            <tr className="bg-studio-sidebar border-b border-studio-border text-[10px] font-bold text-studio-muted uppercase tracking-wider">
+              <th className="py-2.5 px-5 font-bold">EMP ID</th>
+              <th className="py-2.5 px-5 font-bold">NAME</th>
+              <th className="py-2.5 px-5 font-bold">SYSTEM ROLE</th>
+              <th className="py-2.5 px-5 font-bold">EMAIL ID</th>
+              <th className="py-2.5 px-5 font-bold">PHONE NUMBER</th>
+              <th className="py-2.5 px-5 text-center font-bold">NO. OF PROJECTS</th>
+              <th className="py-2.5 px-5 font-bold">LOCATION</th>
+              <th className="py-2.5 px-5 font-bold">DATE OF JOINING</th>
+              <th className="py-2.5 px-5 font-bold">PROJECTS WORKING</th>
+              {isAdmin && <th className="py-2.5 px-5 w-10 text-right font-bold"></th>}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100/80 text-[12px]">
+          <tbody className="divide-y divide-studio-border bg-white text-[12.5px]">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i}>

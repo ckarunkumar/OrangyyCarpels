@@ -42,8 +42,8 @@ export default function FxRateHistoryTable({ history, loading }: FxRateHistoryTa
         </span>
       </div>
 
-      <div className="border border-studio-border rounded-xl bg-white overflow-hidden shadow-2xs">
-        <div className="bg-studio-sidebar border-b border-studio-border px-4 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center">
+      <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+        <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
           <div className="col-span-2">Month / Year</div>
           <div className="col-span-2">Currency Pair</div>
           <div className="col-span-2">Monthly Average</div>
@@ -51,7 +51,7 @@ export default function FxRateHistoryTable({ history, loading }: FxRateHistoryTa
           <div className="col-span-2 text-right">Calculation Status</div>
         </div>
 
-        <div className="divide-y divide-studio-border max-h-80 overflow-y-auto">
+        <div className="divide-y divide-studio-border bg-white max-h-80 overflow-y-auto">
           {loading ? (
             <div className="py-8 text-center text-[12px] text-studio-muted animate-pulse">
               Loading exchange rate history...
@@ -69,7 +69,7 @@ export default function FxRateHistoryTable({ history, loading }: FxRateHistoryTa
               const isFinalized = (rec.observationsCount || 0) >= 3 || rec.calculationStatus?.includes('Finalized');
 
               return (
-                <div key={rec.id} className="px-4 py-3 grid grid-cols-12 gap-3 text-[12px] items-center hover:bg-studio-hover/40 transition-colors">
+                <div key={rec.id} className="px-5 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors">
                   <div className="col-span-2 flex items-center gap-2 font-semibold text-studio-text">
                     <Calendar className="w-3.5 h-3.5 text-studio-muted" />
                     <span>{rec.effectivePeriod || `${rec.month}/${rec.year}`}</span>

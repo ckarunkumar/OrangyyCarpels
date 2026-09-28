@@ -100,36 +100,36 @@ export default function LeaveSettingsView() {
 
           <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
             <table className="w-full text-left text-[12.5px]">
-              <thead className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] uppercase font-bold text-studio-muted tracking-wider">
+              <thead className="bg-studio-sidebar border-b border-studio-border text-[10px] uppercase font-bold text-studio-muted tracking-wider">
                 <tr>
-                  <th className="px-4 py-2.5">Leave Type</th>
-                  <th className="px-4 py-2.5 text-center">Monthly Accrual</th>
-                  <th className="px-4 py-2.5 text-center">Annual Cap</th>
-                  <th className="px-4 py-2.5 text-center">Half-Day (0.5)</th>
-                  <th className="px-4 py-2.5 text-center">Carry Forward Limit</th>
-                  <th className="px-4 py-2.5 text-right">Action</th>
+                  <th className="px-5 py-2.5 font-bold">Leave Type</th>
+                  <th className="px-5 py-2.5 text-center font-bold">Monthly Accrual</th>
+                  <th className="px-5 py-2.5 text-center font-bold">Annual Cap</th>
+                  <th className="px-5 py-2.5 text-center font-bold">Half-Day (0.5)</th>
+                  <th className="px-5 py-2.5 text-center font-bold">Carry Forward Limit</th>
+                  <th className="px-5 py-2.5 text-right font-bold">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-studio-border">
+              <tbody className="divide-y divide-studio-border bg-white">
                 {configs.map((c) => (
                   <tr key={c.id} className="hover:bg-studio-hover/40 transition-colors">
-                    <td className="px-4 py-3">
+                    <td className="px-5 py-3.5">
                       <input type="text" value={c.name} onChange={(e) => handleUpdate(c.id, 'name', e.target.value)} className="font-semibold text-studio-text px-1.5 py-0.5 border border-transparent hover:border-studio-border focus:border-brand-orange rounded bg-transparent focus:bg-white text-[12px]" />
                       <span className="text-[10px] text-studio-muted font-mono font-normal ml-1">({c.code})</span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-3.5 text-center">
                       <input type="number" step="0.25" min="0" max="10" value={c.monthlyAccrual} onChange={(e) => handleUpdate(c.id, 'monthlyAccrual', e.target.value)} className="w-16 px-1.5 py-0.5 border border-studio-border rounded text-center font-mono font-semibold text-studio-text focus:outline-none focus:border-brand-orange" /> <span className="text-[11px] text-studio-muted ml-0.5">d/mo</span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-3.5 text-center">
                       <input type="number" min="0" max="180" value={c.annualQuota} onChange={(e) => handleUpdate(c.id, 'annualQuota', e.target.value)} className="w-16 px-1.5 py-0.5 border border-studio-border rounded text-center font-mono font-semibold text-studio-text focus:outline-none focus:border-brand-orange" /> <span className="text-[11px] text-studio-muted ml-0.5">d/yr</span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-3.5 text-center">
                       <input type="checkbox" checked={c.allowHalfDay ?? true} onChange={(e) => handleUpdate(c.id, 'allowHalfDay', e.target.checked)} className="rounded text-brand-orange focus:ring-brand-orange cursor-pointer" />
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-3.5 text-center">
                       <input type="number" min="0" max="90" value={c.maxCarryForward ?? 0} onChange={(e) => handleUpdate(c.id, 'maxCarryForward', e.target.value)} className="w-16 px-1.5 py-0.5 border border-studio-border rounded text-center font-mono font-semibold text-studio-text focus:outline-none focus:border-brand-orange" /> <span className="text-[11px] text-studio-muted ml-0.5">days</span>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-5 py-3.5 text-right">
                       <button type="button" onClick={() => handleDeleteLeaveType(c.id, c.name)} title={`Delete ${c.name}`} className="p-1 text-studio-muted hover:text-red-600 rounded hover:bg-red-50 transition-colors cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                     </td>
                   </tr>

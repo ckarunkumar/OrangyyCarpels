@@ -125,16 +125,16 @@ export default function HolidayManager({ selectedYear, showAdd, setShowAdd, publ
         ) : holidays.length === 0 ? (
           <div className="p-8 text-center text-[12px] text-studio-muted">No holidays listed for {selectedYear}. Click "Add Holiday" to configure studio holidays.</div>
         ) : (
-          <div className="divide-y divide-studio-border">
+          <div className="divide-y divide-studio-border bg-white">
             {grouped.map(({ month, items }) => (
               <div key={month} className="bg-white">
-                <div className="bg-slate-50/70 px-5 py-1.5 border-b border-studio-border/60 text-[11px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
+                <div className="bg-studio-sidebar px-5 py-2 border-b border-studio-border text-[10px] font-bold text-studio-muted uppercase tracking-wider flex justify-between items-center">
                   <span>{month}</span>
                   <span className="font-mono text-[10px] text-studio-muted/80">{items.length} {items.length === 1 ? 'holiday' : 'holidays'}</span>
                 </div>
-                <div className="divide-y divide-studio-border/40">
+                <div className="divide-y divide-studio-border">
                   {items.map((h) => (
-                    <div key={h.id} className="px-5 py-2.5 flex items-center justify-between hover:bg-studio-hover/40 transition-colors text-[12.5px]">
+                    <div key={h.id} className="px-5 py-3.5 flex items-center justify-between hover:bg-studio-hover/40 transition-colors text-[12.5px]">
                       <div className="flex items-center gap-3">
                         <span className="text-[10.5px] font-mono font-bold px-2 py-0.5 rounded bg-studio-sidebar border border-studio-border text-studio-text">{h.date}</span>
                         <span className="text-[11px] font-semibold text-studio-muted px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200/60 min-w-16 text-center">{getDayName(h.date)}</span>

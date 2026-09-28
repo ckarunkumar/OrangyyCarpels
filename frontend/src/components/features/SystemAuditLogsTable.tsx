@@ -19,21 +19,21 @@ export default function SystemAuditLogsTable({
   onOpenMap,
 }: SystemAuditLogsTableProps) {
   return (
-    <div className="bg-white border border-slate-200/80 rounded-xl shadow-xs overflow-hidden">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-100 bg-[#fafbfc] text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              <th className="py-3 px-4">User</th>
-              <th className="py-3 px-4">Email</th>
-              <th className="py-3 px-4">Login Time</th>
-              <th className="py-3 px-4">IP & Network</th>
-              <th className="py-3 px-4">Approx. Location</th>
-              <th className="py-3 px-4">System</th>
-              <th className="py-3 px-4">Device</th>
+            <tr className="bg-studio-sidebar border-b border-studio-border text-[10px] font-bold text-studio-muted uppercase tracking-wider">
+              <th className="py-2.5 px-5 font-bold">User</th>
+              <th className="py-2.5 px-5 font-bold">Email</th>
+              <th className="py-2.5 px-5 font-bold">Login Time</th>
+              <th className="py-2.5 px-5 font-bold">IP & Network</th>
+              <th className="py-2.5 px-5 font-bold">Approx. Location</th>
+              <th className="py-2.5 px-5 font-bold">System</th>
+              <th className="py-2.5 px-5 font-bold">Device</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100/80 text-[12px]">
+          <tbody className="divide-y divide-studio-border bg-white text-[12.5px]">
             {loading && logs.length === 0 ? (
               <tr>
                 <td colSpan={7} className="py-12 text-center text-slate-400">

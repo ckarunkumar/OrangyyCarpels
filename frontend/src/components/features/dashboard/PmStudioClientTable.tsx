@@ -51,8 +51,8 @@ export default function PmStudioClientTable({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.03)] overflow-hidden">
-      <div className="grid grid-cols-12 gap-4 px-6 py-3.5 bg-[#fafbfc] border-b border-slate-100 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">
+    <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-4 items-center shrink-0">
         <div className="col-span-4 sm:col-span-3">Client Name</div>
         <div className="col-span-3 sm:col-span-2">Billing Method</div>
         <div className="col-span-2 sm:col-span-3 text-left">Total Projects</div>
@@ -60,11 +60,11 @@ export default function PmStudioClientTable({
         <div className="col-span-2 text-right">Total Logged Hours</div>
       </div>
 
-      <div className="divide-y divide-slate-100/80">
+      <div className="divide-y divide-studio-border bg-white">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => <SkeletonRow key={i} />)
         ) : clients.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-[13px]">
+          <div className="text-center py-12 text-studio-muted text-[12.5px]">
             No clients with assigned projects found for this period.
           </div>
         ) : (
@@ -72,7 +72,7 @@ export default function PmStudioClientTable({
             <div
               key={c.clientId}
               onClick={() => onSelectClient(c)}
-              className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50/70 transition-colors cursor-pointer group"
+              className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer group text-[12.5px]"
             >
               <div className="col-span-4 sm:col-span-3">
                 <span className="text-[13px] font-medium text-slate-800 group-hover:text-orange-600 transition-colors">

@@ -25,7 +25,7 @@ export default function ClientTableRow({
   return (
     <div
       onClick={() => onSelectRow(client)}
-      className="group px-6 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-slate-50/70 transition-colors cursor-pointer relative"
+      className="group px-5 py-3.5 grid grid-cols-12 gap-3 text-[12.5px] items-center hover:bg-studio-hover/40 transition-colors cursor-pointer relative"
     >
       {/* 1. Client Code (Green for Active, Red for Inactive, opens Details) */}
       <div className="col-span-1 min-w-[70px]">

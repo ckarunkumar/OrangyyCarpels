@@ -40,7 +40,7 @@ export default function SystemLogsRow({ log, onOpenMap }: RowProps) {
 
   return (
     <tr className="hover:bg-studio-hover/40 transition-colors">
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${isSA ? 'bg-orange-100 text-brand-orange' : 'bg-slate-100 text-slate-700'}`}>
             {log.fullName ? log.fullName[0].toUpperCase() : <User className="w-3 h-3" />}
@@ -53,16 +53,16 @@ export default function SystemLogsRow({ log, onOpenMap }: RowProps) {
           </div>
         </div>
       </td>
-      <td className="py-2.5 px-4 font-mono text-[11px] text-studio-muted whitespace-nowrap">{log.email}</td>
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 font-mono text-[11px] text-studio-muted whitespace-nowrap">{log.email}</td>
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="text-studio-text font-medium leading-tight">{dateStr}</div>
         <div className="text-studio-muted text-[10.5px] font-mono flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeStr}</div>
       </td>
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-700">{log.ipAddress}</span>
         {log.networkInfo && <div className="text-[10px] text-studio-muted truncate max-w-36">{log.networkInfo}</div>}
       </td>
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="flex items-center gap-1.5">
           <span className="text-[11.5px] text-studio-text">{loc}</span>
           <button type="button" onClick={() => onOpenMap(log)} className="p-1 rounded hover:bg-orange-50 text-brand-orange transition-colors" title="View map">
@@ -70,11 +70,11 @@ export default function SystemLogsRow({ log, onOpenMap }: RowProps) {
           </button>
         </div>
       </td>
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="text-[11.5px] text-studio-text font-medium">{log.os || 'Unknown OS'}</div>
         <div className="text-[10.5px] text-studio-muted flex items-center gap-1"><Globe className="w-2.5 h-2.5" />{log.browser || 'Browser'}</div>
       </td>
-      <td className="py-2.5 px-4 whitespace-nowrap">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <span className="inline-flex items-center gap-1 text-[11px] font-medium text-studio-text px-2 py-0.5 bg-studio-bg rounded-md border border-studio-border">
           {getDeviceIcon(log.deviceType)}
           {log.deviceType || 'Desktop / Web'}
