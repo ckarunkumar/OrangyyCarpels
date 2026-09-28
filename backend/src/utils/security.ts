@@ -14,13 +14,20 @@ const DEFAULT_ALLOWED_ORIGINS = [
 
 export function isAllowedOrigin(origin?: string): boolean {
   if (!origin) return true; // Allow non-browser requests (e.g. curl / server-to-server / health checks)
+  
+  const originLower = origin.toLowerCase().trim();
+
+  // Dynamically allow any local development origin on localhost or 127.0.0.1 (any port)
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(originLower)) {
+    return true;
+  }
+
   const envOrigins = (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((o) => o.trim().toLowerCase())
     .filter(Boolean);
 
   const allowed = [...DEFAULT_ALLOWED_ORIGINS, ...envOrigins].map((o) => o.toLowerCase());
-  const originLower = origin.toLowerCase().trim();
 
   return allowed.some((allowedOrigin) => {
     if (originLower === allowedOrigin) return true;
