@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, FolderGit2, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Building2, FolderGit2, Pencil, Eye, EyeOff } from 'lucide-react';
 import { ClientUser } from '../../types/registry';
 import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
@@ -7,14 +7,13 @@ interface ClientUserRowProps {
   user: ClientUser;
   isAdmin: boolean;
   onEdit: (user: ClientUser) => void;
-  onDelete: (user: ClientUser) => void;
+  onDelete?: (user: ClientUser) => void;
 }
 
 export default function ClientUserRow({
   user,
   isAdmin,
   onEdit,
-  onDelete,
 }: ClientUserRowProps) {
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
@@ -96,14 +95,9 @@ export default function ClientUserRow({
         </span>
 
         {isAdmin && (
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all shrink-0">
-            <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(user); }} title="Edit Client User" className="p-1 hover:bg-orange-50 rounded text-slate-400 hover:text-brand-orange cursor-pointer transition-colors">
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(user); }} title="Delete Client User" className="p-1 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 cursor-pointer transition-colors">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(user); }} title="Edit Client User" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-orange-50 rounded text-slate-400 hover:text-brand-orange cursor-pointer transition-colors shrink-0">
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
         )}
       </div>
     </div>

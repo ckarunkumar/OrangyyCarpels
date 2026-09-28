@@ -167,8 +167,10 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
           </div>
         </div>
 
+        <EmployeeFormBankSection form={form} set={set} inputCls={inputCls} labelCls={labelCls} />
+
         <div className="space-y-3">
-          <div className="border-b border-studio-border/70 pb-1.5"><h3 className="text-[13px] font-bold text-studio-text uppercase tracking-wider">3. Access, Role & Password</h3></div>
+          <div className="border-b border-studio-border/70 pb-1.5"><h3 className="text-[13px] font-bold text-studio-text uppercase tracking-wider">4. Access, Role &amp; Password</h3></div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-3.5">
             <div><label className={labelCls}>Date of Joining</label><input type="date" value={form.joiningDate} onChange={set('joiningDate')} className={inputCls()} /></div>
             <div><label className={labelCls}>Date of Relieving</label><input type="date" value={form.relievingDate} onChange={set('relievingDate')} className={inputCls()} /></div>
@@ -184,8 +186,6 @@ export default function EmployeeFormView({ mode, employee, onBack, onSaved }: Em
             </div>
           </div>
         </div>
-
-        <EmployeeFormBankSection form={form} set={set} inputCls={inputCls} labelCls={labelCls} />
 
         <div className="pt-4 border-t border-studio-border/80 flex items-center justify-end gap-3">
           <button type="button" onClick={onBack} className="px-4 py-2 border border-studio-border bg-white text-studio-text rounded-lg text-[12px] font-semibold hover:bg-studio-sidebar shadow-2xs transition-colors cursor-pointer">Cancel</button>

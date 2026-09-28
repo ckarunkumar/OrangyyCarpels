@@ -57,7 +57,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
     inactive: projects.filter((p) => p.status === 'Inactive').length,
   }), [projects]);
 
-  const isAdmin = activeRole === 'Super Admin' || activeRole === 'Project Manager';
+  const isSuperAdmin = activeRole === 'Super Admin';
 
   const handleOpenEdit = (proj: Project) => {
     setSelectedProject(null); setDetailOpen(false);
@@ -84,8 +84,8 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
 
   return (
     <>
-      <ProjectDetailDrawer open={detailOpen} project={selectedProject} isAdmin={isAdmin} onClose={() => setDetailOpen(false)} onEdit={handleOpenEdit} />
-      <MonthlyBudgetDrawer open={!!budgetProject} projectId={budgetProject?.id || ''} projectName={budgetProject?.name || ''} isAdmin={isAdmin} onClose={() => setBudgetProject(null)} onSaved={fetchClientProjects} />
+      <ProjectDetailDrawer open={detailOpen} project={selectedProject} isAdmin={isSuperAdmin} onClose={() => setDetailOpen(false)} onEdit={handleOpenEdit} />
+      <MonthlyBudgetDrawer open={!!budgetProject} projectId={budgetProject?.id || ''} projectName={budgetProject?.name || ''} isAdmin={isSuperAdmin} onClose={() => setBudgetProject(null)} onSaved={fetchClientProjects} />
 
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         {successToast && (
@@ -132,7 +132,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
             </div>
 
             {/* 3. Action button: Add Project / Add Client User */}
-            {isAdmin && (
+            {isSuperAdmin && (
               tab === 'projects' ? (
                 <button type="button" onClick={() => { setTargetProject(null); setFormMode('add'); setViewMode('form'); }} className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 shadow-sm transition-all shrink-0 cursor-pointer">
                   <Plus className="w-4 h-4" /> Add Project
@@ -149,7 +149,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
         {error && <div className="p-3 bg-red-50 text-red-700 rounded text-[12px] font-medium border border-red-200">{error}</div>}
 
         {tab === 'client-users' ? (
-          <ClientUsersListView clients={allClients.length > 0 ? allClients : [client]} isAdmin={isAdmin} selectedClientId={client.id} openAddModal={openAddUserModal} onCloseAddModal={() => setOpenAddUserModal(false)} />
+          <ClientUsersListView clients={allClients.length > 0 ? allClients : [client]} isAdmin={isSuperAdmin} selectedClientId={client.id} openAddModal={openAddUserModal} onCloseAddModal={() => setOpenAddUserModal(false)} />
         ) : (
           <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
             <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
@@ -174,7 +174,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
                     key={proj.id}
                     proj={proj}
                     employees={employees}
-                    isAdmin={isAdmin}
+                    isAdmin={isSuperAdmin}
                     onSelect={(p) => { setSelectedProject(p); setDetailOpen(true); }}
                     onEdit={handleOpenEdit}
                   />

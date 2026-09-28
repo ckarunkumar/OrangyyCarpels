@@ -1,5 +1,4 @@
 import React from 'react';
-import { Landmark } from 'lucide-react';
 
 interface EmployeeFormBankSectionProps {
   form: {
@@ -20,9 +19,8 @@ export default function EmployeeFormBankSection({ form, set, inputCls, labelCls 
   return (
     <div className="space-y-3">
       <div className="border-b border-studio-border/70 pb-1.5 flex items-center justify-between">
-        <h3 className="text-[13px] font-bold text-studio-text uppercase tracking-wider flex items-center gap-1.5">
-          <Landmark className="w-3.5 h-3.5 text-brand-orange" />
-          4. Bank & Payout Details
+        <h3 className="text-[13px] font-bold text-studio-text uppercase tracking-wider">
+          3. Bank &amp; Payout Details
         </h3>
         <span className="text-[11px] text-studio-muted">Official company salary & reimbursement account</span>
       </div>
