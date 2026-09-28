@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Mail, Phone, Shield, FolderGit2, MapPin, Calendar, Copy, Check, Pencil } from 'lucide-react';
+import { Shield, FolderGit2, MapPin, Calendar, Pencil, Eye, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/registry';
+import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
 interface EmployeeLoginsInfoRowProps {
   emp: Employee;
@@ -13,21 +14,8 @@ export default function EmployeeLoginsInfoRow({
   isAdmin,
   onEdit,
 }: EmployeeLoginsInfoRowProps) {
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedPhone, setCopiedPhone] = useState(false);
-
-  const handleCopy = (e: React.MouseEvent, text: string, type: 'email' | 'phone') => {
-    e.stopPropagation();
-    if (!text || text === '-') return;
-    navigator.clipboard.writeText(text);
-    if (type === 'email') {
-      setCopiedEmail(true);
-      setTimeout(() => setCopiedEmail(false), 2000);
-    } else {
-      setCopiedPhone(true);
-      setTimeout(() => setCopiedPhone(false), 2000);
-    }
-  };
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
 
   const assignedProjs = emp.assignedProjects || [];
 
@@ -79,36 +67,44 @@ export default function EmployeeLoginsInfoRow({
       </td>
 
       {/* 4. Email ID */}
-      <td className="py-3.5 px-5 whitespace-nowrap group/email">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="flex items-center gap-1.5 text-slate-600">
-          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate max-w-[180px]">{emp.email}</span>
-          {emp.email && (
+          <span className="truncate max-w-[180px]" title={showEmail ? emp.email : 'Click eye icon to reveal'}>
+            {showEmail ? emp.email : maskEmail(emp.email)}
+          </span>
+          {emp.email && emp.email !== '-' && (
             <button
               type="button"
-              onClick={(e) => handleCopy(e, emp.email, 'email')}
-              title={copiedEmail ? 'Copied!' : 'Copy Email'}
-              className="opacity-0 group-hover/email:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEmail(!showEmail);
+              }}
+              title={showEmail ? 'Hide Email' : 'Reveal Email'}
+              className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
             >
-              {copiedEmail ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+              {showEmail ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           )}
         </div>
       </td>
 
       {/* 5. Phone Number */}
-      <td className="py-3.5 px-5 whitespace-nowrap group/phone">
+      <td className="py-3.5 px-5 whitespace-nowrap">
         <div className="flex items-center gap-1.5 text-slate-600">
-          <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span className="truncate">{emp.phone || '—'}</span>
+          <span className="truncate" title={showPhone ? (emp.phone || '—') : 'Click eye icon to reveal'}>
+            {showPhone ? (emp.phone || '—') : maskPhone(emp.phone)}
+          </span>
           {emp.phone && emp.phone !== '-' && (
             <button
               type="button"
-              onClick={(e) => handleCopy(e, emp.phone, 'phone')}
-              title={copiedPhone ? 'Copied!' : 'Copy Phone'}
-              className="opacity-0 group-hover/phone:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPhone(!showPhone);
+              }}
+              title={showPhone ? 'Hide Phone' : 'Reveal Phone'}
+              className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
             >
-              {copiedPhone ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+              {showPhone ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
             </button>
           )}
         </div>

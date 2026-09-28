@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Mail, Phone, Pencil, Shield, FolderGit2, Copy, Check, Clock } from 'lucide-react';
+import { Pencil, Shield, FolderGit2, Clock, Eye, EyeOff } from 'lucide-react';
 import { Employee } from '../../types/registry';
+import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
 interface EmployeeTableRowProps {
   emp: Employee;
@@ -15,21 +16,8 @@ export default function EmployeeTableRow({
   onSelect,
   onEdit,
 }: EmployeeTableRowProps) {
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedPhone, setCopiedPhone] = useState(false);
-
-  const handleCopy = (e: React.MouseEvent, text: string, type: 'email' | 'phone') => {
-    e.stopPropagation();
-    if (!text || text === '-') return;
-    navigator.clipboard.writeText(text);
-    if (type === 'email') {
-      setCopiedEmail(true);
-      setTimeout(() => setCopiedEmail(false), 2000);
-    } else {
-      setCopiedPhone(true);
-      setTimeout(() => setCopiedPhone(false), 2000);
-    }
-  };
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
 
   const formatLoginTime = (timeStr?: string | null) => {
     if (!timeStr) return '—';
@@ -100,34 +88,42 @@ export default function EmployeeTableRow({
         </span>
       </div>
 
-      {/* 4. Email ID with hover copy */}
-      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0 group/email">
-        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="text-[12px] text-slate-700 truncate" title={emp.email}>{emp.email}</span>
-        {emp.email && (
+      {/* 4. Email ID with eye mask (no email icon, no copy button) */}
+      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0">
+        <span className="text-[12px] text-slate-700 truncate" title={showEmail ? emp.email : 'Click eye icon to reveal'}>
+          {showEmail ? emp.email : maskEmail(emp.email)}
+        </span>
+        {emp.email && emp.email !== '-' && (
           <button
             type="button"
-            onClick={(e) => handleCopy(e, emp.email, 'email')}
-            title={copiedEmail ? 'Copied!' : 'Copy Email'}
-            className="opacity-0 group-hover/email:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity shrink-0 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowEmail(!showEmail);
+            }}
+            title={showEmail ? 'Hide Email' : 'Reveal Email'}
+            className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
           >
-            {copiedEmail ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+            {showEmail ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
         )}
       </div>
 
-      {/* 5. Phone Number with hover copy */}
-      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0 group/phone">
-        <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-        <span className="text-[12px] text-slate-700 truncate" title={emp.phone || '—'}>{emp.phone || '—'}</span>
+      {/* 5. Phone Number with eye mask (no phone icon, no copy button) */}
+      <div className="col-span-2 text-slate-600 flex items-center gap-1.5 whitespace-nowrap min-w-0">
+        <span className="text-[12px] text-slate-700 truncate" title={showPhone ? (emp.phone || '—') : 'Click eye icon to reveal'}>
+          {showPhone ? (emp.phone || '—') : maskPhone(emp.phone)}
+        </span>
         {emp.phone && emp.phone !== '-' && (
           <button
             type="button"
-            onClick={(e) => handleCopy(e, emp.phone, 'phone')}
-            title={copiedPhone ? 'Copied!' : 'Copy Phone'}
-            className="opacity-0 group-hover/phone:opacity-100 p-0.5 text-slate-400 hover:text-brand-orange rounded transition-opacity shrink-0 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPhone(!showPhone);
+            }}
+            title={showPhone ? 'Hide Phone' : 'Reveal Phone'}
+            className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
           >
-            {copiedPhone ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+            {showPhone ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
         )}
       </div>

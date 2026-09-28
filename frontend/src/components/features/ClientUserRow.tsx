@@ -1,5 +1,7 @@
-import { Building2, Mail, Phone, FolderGit2, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Building2, FolderGit2, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { ClientUser } from '../../types/registry';
+import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
 interface ClientUserRowProps {
   user: ClientUser;
@@ -14,6 +16,8 @@ export default function ClientUserRow({
   onEdit,
   onDelete,
 }: ClientUserRowProps) {
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
   const assignedCount = user.projects?.length || 0;
 
   const getStatusBadge = (status: string) => {
@@ -38,14 +42,38 @@ export default function ClientUserRow({
         <span className="font-semibold text-studio-text truncate">{user.name}</span>
       </div>
 
-      <div className="col-span-2 text-studio-muted text-[11.5px] truncate flex items-center gap-1.5" title={user.email}>
-        <Mail className="w-3.5 h-3.5 shrink-0 text-studio-muted/70" />
-        <span className="truncate">{user.email}</span>
+      <div className="col-span-2 text-studio-muted text-[11.5px] truncate flex items-center gap-1.5" title={showEmail ? user.email : 'Click eye icon to reveal'}>
+        <span className="truncate max-w-[140px] text-slate-700">{showEmail ? user.email : maskEmail(user.email)}</span>
+        {user.email && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowEmail(!showEmail);
+            }}
+            title={showEmail ? 'Hide Email' : 'Reveal Email'}
+            className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
+          >
+            {showEmail ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        )}
       </div>
 
       <div className="col-span-2 text-studio-muted text-[11.5px] truncate flex items-center gap-1.5">
-        <Phone className="w-3.5 h-3.5 shrink-0 text-studio-muted/70" />
-        <span className="truncate">{user.phone || '—'}</span>
+        <span className="truncate text-slate-700">{showPhone ? (user.phone || '—') : maskPhone(user.phone)}</span>
+        {user.phone && user.phone !== '-' && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPhone(!showPhone);
+            }}
+            title={showPhone ? 'Hide Phone' : 'Reveal Phone'}
+            className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
+          >
+            {showPhone ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        )}
       </div>
 
       <div className="col-span-2 flex items-center gap-1.5 text-[12px] font-medium text-studio-text truncate">

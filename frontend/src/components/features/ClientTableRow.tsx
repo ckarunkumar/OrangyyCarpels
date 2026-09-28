@@ -1,5 +1,7 @@
-import { Pencil, Mail, Phone, User } from 'lucide-react';
+import { useState } from 'react';
+import { Pencil, User, Eye, EyeOff } from 'lucide-react';
 import { Client } from '../../types/registry';
+import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
 interface ClientTableRowProps {
   client: Client;
@@ -18,6 +20,7 @@ export default function ClientTableRow({
   onOpenProjectsDrawer,
   onOpenEdit,
 }: ClientTableRowProps) {
+  const [showContact, setShowContact] = useState(false);
   const activeCount = client.projects?.filter((p) => p.status === 'Active').length || 0;
   const inactiveCount = client.projects?.filter((p) => p.status === 'Inactive').length || 0;
   const clientUsersCount = client.clientUsers?.length || 0;
@@ -67,20 +70,31 @@ export default function ClientTableRow({
         </span>
       </div>
 
-      {/* 4. Contact Details */}
-      <div className="col-span-2 text-studio-muted truncate flex items-center gap-2 min-w-0">
+      {/* 4. Contact Details (No mail/phone icon) */}
+      <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5 min-w-0">
         {client.email ? (
-          <span className="flex items-center gap-1 truncate" title={client.email}>
-            <Mail className="w-3.5 h-3.5 text-studio-muted shrink-0" />
-            <span className="truncate">{client.email}</span>
+          <span className="truncate min-w-0 text-slate-700" title={showContact ? client.email : 'Click eye icon to reveal'}>
+            {showContact ? client.email : maskEmail(client.email)}
           </span>
         ) : client.phone ? (
-          <span className="flex items-center gap-1 truncate" title={client.phone}>
-            <Phone className="w-3.5 h-3.5 text-studio-muted shrink-0" />
-            <span className="truncate">{client.phone}</span>
+          <span className="truncate min-w-0 text-slate-700" title={showContact ? client.phone : 'Click eye icon to reveal'}>
+            {showContact ? client.phone : maskPhone(client.phone)}
           </span>
         ) : (
           <span className="text-studio-muted/60 italic text-[11px]">No contact details</span>
+        )}
+        {(client.email || client.phone) && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowContact(!showContact);
+            }}
+            title={showContact ? 'Hide Contact Details' : 'Reveal Contact Details'}
+            className="p-0.5 text-slate-400 hover:text-brand-orange rounded transition-colors shrink-0 cursor-pointer"
+          >
+            {showContact ? <EyeOff className="w-3.5 h-3.5 text-brand-orange" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
         )}
       </div>
 
