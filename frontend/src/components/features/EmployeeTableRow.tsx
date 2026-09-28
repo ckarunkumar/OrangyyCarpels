@@ -40,10 +40,10 @@ export default function EmployeeTableRow({
       {/* 1. Employee ID (Green for Active, Red for Inactive) */}
       <div className="col-span-1 min-w-[70px] flex items-center">
         <span
-          className={`text-[10.5px] font-mono font-bold px-2 py-0.5 rounded border inline-block ${
+          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border inline-block transition-colors cursor-pointer ${
             emp.status === 'Active'
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-red-50 text-red-600 border-red-200'
+              ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300'
+              : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-300'
           }`}
         >
           {emp.employeeId}

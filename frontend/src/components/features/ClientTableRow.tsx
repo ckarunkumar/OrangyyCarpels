@@ -103,45 +103,44 @@ export default function ClientTableRow({
         <span className="truncate">{client.billingCurrency}</span>
       </div>
 
-      {/* 6. Projects Badges */}
-      <div className="col-span-2 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenProjectsDrawer(client, 'Active');
-          }}
-          title={`Active Projects: ${activeCount}`}
-          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[11px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
-          <span>{activeCount}</span>
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenProjectsDrawer(client, 'Inactive');
-          }}
-          title={`Inactive Projects: ${inactiveCount}`}
-          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[11px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0"></span>
-          <span>{inactiveCount}</span>
-        </button>
-      </div>
+      {/* 6. Projects Badges & Mouse Over Edit Icon */}
+      <div className="col-span-3 flex items-center justify-between min-w-0 pr-1">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenProjectsDrawer(client, 'Active');
+            }}
+            title={`Active Projects: ${activeCount}`}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 font-bold text-[11px] hover:bg-green-100 hover:border-green-300 transition-all cursor-pointer shadow-2xs"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"></span>
+            <span>{activeCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenProjectsDrawer(client, 'Inactive');
+            }}
+            title={`Inactive Projects: ${inactiveCount}`}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 font-bold text-[11px] hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer shadow-2xs"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0"></span>
+            <span>{inactiveCount}</span>
+          </button>
+        </div>
 
-      {/* 7. Action Column (Edit Icon Only) */}
-      <div
-        className="col-span-1 text-right flex items-center justify-end"
-        onClick={(e) => e.stopPropagation()}
-      >
         {isAdmin && (
           <button
             type="button"
-            onClick={() => onOpenEdit(client)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenEdit(client);
+            }}
             title="Edit Client"
-            className="p-1.5 text-studio-muted hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer"
+            className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-brand-orange hover:bg-orange-50 rounded transition-all cursor-pointer shrink-0"
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>

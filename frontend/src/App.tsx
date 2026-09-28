@@ -57,6 +57,25 @@ function AppContent() {
     return children;
   };
 
+  const TeamProtectedRoute = ({ children }: ProtectedRouteProps) => {
+    if (role !== 'Super Admin' && role !== 'Project Manager' && role !== 'Employee') {
+      return (
+        <div className="max-w-md mx-auto mt-12 bg-white border border-studio-border rounded-lg p-6 text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-[14px] font-bold text-studio-text">Restricted Access</h3>
+            <p className="text-[12px] text-studio-muted mt-1 leading-relaxed">
+              Your account role ({role}) does not have permission to view this page. Contact your administrator if you need registry access.
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return children;
+  };
+
   const SuperAdminRoute = ({ children }: ProtectedRouteProps) => {
     if (role !== 'Super Admin') {
       return (
@@ -87,9 +106,9 @@ function AppContent() {
             <Route
               path="/employees"
               element={
-                <ProtectedRoute>
+                <TeamProtectedRoute>
                   <EmployeesView activeRole={role} />
-                </ProtectedRoute>
+                </TeamProtectedRoute>
               }
             />
             <Route

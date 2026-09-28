@@ -77,7 +77,7 @@ export default function StudioClientTable({
               className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer group text-[12.5px]"
             >
               <div className="col-span-4 sm:col-span-3">
-                <span className="text-[13px] font-medium text-slate-800 group-hover:text-orange-600 transition-colors">
+                <span className="font-semibold text-slate-800 group-hover:text-brand-orange transition-colors">
                   {c.clientName}
                 </span>
               </div>
@@ -85,7 +85,7 @@ export default function StudioClientTable({
                 {getBillingPill(c.billingMethod)}
               </div>
               <div className="col-span-2 sm:col-span-3 flex items-center gap-1.5">
-                <span className="text-[13px] font-medium text-slate-700">
+                <span className="font-medium text-slate-700">
                   {c.billingCurrency || 'USD'}
                 </span>
                 <button
@@ -100,10 +100,10 @@ export default function StudioClientTable({
                   <History className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div className="col-span-1 sm:col-span-2 text-[13px] text-slate-700">
+              <div className="col-span-1 sm:col-span-2 text-slate-700 font-medium">
                 {c.totalProjects}
               </div>
-              <div className="col-span-2 text-right text-[13px] font-medium text-slate-900">
+              <div className="col-span-2 text-right font-medium text-slate-900">
                 ₹{c.totalRevenueINR.toLocaleString()}
               </div>
             </div>

@@ -66,7 +66,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Super Admin', 'Project Manager', 'Employee', 'Client'] },
     { label: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Super Admin', 'Project Manager', 'Employee'] },
-    { label: 'Team', path: '/employees', icon: Users, roles: ['Super Admin', 'Project Manager'] },
+    { label: 'Team', path: '/employees', icon: Users, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Clientele', path: '/clients', icon: Building2, roles: ['Super Admin', 'Project Manager'] },
     { label: 'Leaves', path: '/leaves', icon: CalendarCheck, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Reports', path: '/reports', icon: BarChart3, roles: ['Super Admin', 'Project Manager'] },

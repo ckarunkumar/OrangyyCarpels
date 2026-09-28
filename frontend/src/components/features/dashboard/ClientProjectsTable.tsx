@@ -89,22 +89,24 @@ export default function ClientProjectsTable({
                 className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors text-[12.5px]"
               >
                 {/* Project Code */}
-                <div className="col-span-2 sm:col-span-1 font-mono text-[12px] text-slate-700">
-                  {p.projectCode || p.projectId}
+                <div className="col-span-2 sm:col-span-1">
+                  <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-700 inline-block">
+                    {p.projectCode || p.projectId}
+                  </span>
                 </div>
 
                 {/* Project Name */}
-                <div className="col-span-2 font-medium text-slate-800 truncate">
+                <div className="col-span-2 font-semibold text-slate-800 truncate">
                   {p.projectName}
                 </div>
 
                 {/* Start Date */}
-                <div className="col-span-1 text-slate-600 text-[12px]">
+                <div className="col-span-1 text-slate-600">
                   {p.startDate || '—'}
                 </div>
 
                 {/* End Date */}
-                <div className="col-span-1 text-slate-600 text-[12px]">
+                <div className="col-span-1 text-slate-600">
                   {p.endDate || '—'}
                 </div>
 
@@ -146,7 +148,7 @@ export default function ClientProjectsTable({
                       </div>
                     </div>
                   ) : (
-                    <span className="font-mono text-[12px] text-slate-600">
+                    <span className="font-mono text-slate-600">
                       {p.loggedHours}h tracked
                     </span>
                   )}
@@ -160,7 +162,7 @@ export default function ClientProjectsTable({
                 </div>
 
                 {/* Total Revenue */}
-                <div className="col-span-2 text-right font-medium text-[13px] text-slate-900">
+                <div className="col-span-2 text-right font-medium text-slate-900">
                   ₹{p.inrAmountBilled.toLocaleString()}
                 </div>
               </div>

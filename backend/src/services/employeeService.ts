@@ -4,7 +4,6 @@ import { hashPassword, validatePasswordPolicy, generateDefaultPassword } from '.
 
 export class EmployeeService {
   static async getEmployees(role: string): Promise<EmployeeProfile[]> {
-    if (role === 'Employee') throw new Error('Access Denied: Employees cannot view the full registry.');
     const [employees, allProjects, loginLogs] = await Promise.all([
       prisma.employee.findMany(),
       prisma.project.findMany({ select: { id: true, name: true, status: true, managerId: true, assignedEmployees: true } }),
