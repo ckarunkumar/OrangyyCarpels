@@ -54,18 +54,9 @@ export default function ClientProjectsDrawer({ open, client, initialFilter = 'Ac
         <div className="px-6 pt-3 pb-2 border-b border-studio-border/70 flex items-center gap-2 bg-studio-sidebar/40">
           <button
             type="button"
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-              filter === 'all' ? 'bg-white border border-studio-border text-studio-text shadow-xs' : 'text-studio-muted hover:text-studio-text'
-            }`}
-          >
-            All ({allProjects.length})
-          </button>
-          <button
-            type="button"
             onClick={() => setFilter('Active')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-              filter === 'Active' ? 'bg-green-50 border border-green-200 text-green-700 shadow-xs' : 'text-studio-muted hover:text-green-700'
+              filter === 'Active' ? 'bg-green-50 border border-green-200 text-green-700 shadow-xs font-bold' : 'text-studio-muted hover:text-green-700'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
@@ -75,11 +66,20 @@ export default function ClientProjectsDrawer({ open, client, initialFilter = 'Ac
             type="button"
             onClick={() => setFilter('Inactive')}
             className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
-              filter === 'Inactive' ? 'bg-red-50 border border-red-200 text-red-700 shadow-xs' : 'text-studio-muted hover:text-red-700'
+              filter === 'Inactive' ? 'bg-red-50 border border-red-200 text-red-700 shadow-xs font-bold' : 'text-studio-muted hover:text-red-700'
             }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
             Inactive ({inactiveCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
+              filter === 'all' ? 'bg-white border border-studio-border text-studio-text shadow-xs font-bold' : 'text-studio-muted hover:text-studio-text'
+            }`}
+          >
+            All ({allProjects.length})
           </button>
         </div>
 

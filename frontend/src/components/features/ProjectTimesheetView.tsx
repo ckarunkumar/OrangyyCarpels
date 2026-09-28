@@ -12,8 +12,8 @@ import { getCurrentMonthIso } from '../../utils/dateUtils';
 import { AlertTriangle } from 'lucide-react';
 
 export default function ProjectTimesheetView({
-  project, month = getCurrentMonthIso(), activeRole, onBack, onRefresh,
-}: { project: ProjectTimesheetItem; month?: string; activeRole?: UserRole; onBack: (msg?: string) => void; onRefresh: () => void; }) {
+  project, month = getCurrentMonthIso(), activeRole, onBack, onBackToRoot, onRefresh,
+}: { project: ProjectTimesheetItem; month?: string; activeRole?: UserRole; onBack: (msg?: string) => void; onBackToRoot?: () => void; onRefresh: () => void; }) {
   const { role: authRole, user } = useAuth();
   const role = activeRole || authRole || 'Employee';
   const isEmp = role === 'Employee'; const isPM = role === 'Project Manager'; const isSA = role === 'Super Admin';
@@ -136,7 +136,7 @@ export default function ProjectTimesheetView({
   if (fetchError) {
     return (
       <div className="w-full space-y-4">
-        <Breadcrumbs items={[{ label: 'Time Sheet', onClick: () => onBack() }, { label: project.projectName }]} />
+        <Breadcrumbs items={[{ label: 'Time Sheet', onClick: () => (onBackToRoot ? onBackToRoot() : onBack()) }, { label: project.projectName }]} />
         <div className="p-6 border border-red-200 bg-red-50/70 rounded-xl text-center space-y-3 shadow-sm">
           <AlertTriangle className="w-8 h-8 text-red-600 mx-auto" />
           <h3 className="text-[15px] font-bold text-red-900">Access Restricted</h3>
@@ -153,7 +153,7 @@ export default function ProjectTimesheetView({
         <SlideToActionDrawer open={!!pendingAction} actionType={pendingAction} project={project} month={currentMonth} totalHours={totalHours} billableHours={totalHours} isPM={isPM} submitting={actionLoading} onClose={() => setPendingAction(null)} onConfirm={handleConfirmAction} />
       )}
       <div className="w-full h-[calc(100vh-6.5rem)] flex flex-col justify-between space-y-3 pb-0">
-        <Breadcrumbs items={[{ label: 'Time Sheet', onClick: () => onBack() }, { label: project.client || project.clientName || 'Client', onClick: () => onBack() }, { label: project.projectName }]} />
+        <Breadcrumbs items={[{ label: 'Time Sheet', onClick: () => (onBackToRoot ? onBackToRoot() : onBack()) }, { label: project.client || project.clientName || 'Client', onClick: () => onBack() }, { label: project.projectName }]} />
 
         <ProjectTimesheetHeader
           project={project} currentMonth={currentMonth} onMonthChange={setCurrentMonth} status={status} myStatus={myStatus}

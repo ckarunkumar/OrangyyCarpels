@@ -38,18 +38,26 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
         const clientList = data || [];
-        setClients(clientList); setError(null);
-        const clientId = searchParams.get('clientId');
-        if (clientId) {
-          const match = clientList.find((c: Client) => c.id === clientId);
-          if (match) setActiveClientForProjects(match);
-        }
+        setClients(clientList);
+        setError(null);
       })
       .catch((err) => { setError(err.message); setClients([]); })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchClients(); }, [activeRole]);
+
+  useEffect(() => {
+    const clientId = searchParams.get('clientId');
+    if (clientId && clients.length > 0) {
+      const match = clients.find((c) => c.id === clientId);
+      if (match && (!activeClientForProjects || activeClientForProjects.id !== clientId)) {
+        setActiveClientForProjects(match);
+      }
+    } else if (!clientId && activeClientForProjects) {
+      setActiveClientForProjects(null);
+    }
+  }, [searchParams, clients]);
 
   const clientCounts = useMemo(() => ({
     total: clients.length,
@@ -79,7 +87,17 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
   });
 
   if (activeClientForProjects) {
-    return <ClientProjectsView client={activeClientForProjects} activeRole={activeRole} allClients={clients} onBack={() => { setActiveClientForProjects(null); setSearchParams({}); fetchClients(); }} />;
+    return (
+      <ClientProjectsView
+        client={activeClientForProjects}
+        activeRole={activeRole}
+        allClients={clients}
+        onBack={() => {
+          setActiveClientForProjects(null);
+          setSearchParams({}, { replace: true });
+        }}
+      />
+    );
   }
   if (viewMode === 'form') {
     return <ClientFormView mode={formMode} client={formMode === 'edit' ? targetClient : null} onBack={() => setViewMode('list')} onSaved={handleSaved} />;
@@ -98,21 +116,21 @@ export default function ClientsView({ activeRole }: { activeRole: UserRole }) {
           </div>
         )}
 
-        <Breadcrumbs items={[{ label: 'Client Management' }]} />
+        <Breadcrumbs items={[{ label: 'Clientele' }]} />
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-studio-border pb-3">
           <div className="flex items-center gap-3">
-            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Client Management</h2>
+            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Clientele</h2>
           </div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <button type="button" onClick={() => setClientStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.total}</span>
-              </button>
               <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
                 <span>Active</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.active}</span>
               </button>
               <button type="button" onClick={() => setClientStatusFilter(clientStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'Inactive' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
                 <span>Inactive</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.inactive}</span>
+              </button>
+              <button type="button" onClick={() => setClientStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${clientStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{clientCounts.total}</span>
               </button>
             </div>
             {isAdmin && (

@@ -52,16 +52,6 @@ export default function SystemLogsControlsHeader({
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             type="button"
-            onClick={() => onEmpFilterChange('all')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
-              empFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'
-            }`}
-          >
-            <span>All</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{counts.total}</span>
-          </button>
-          <button
-            type="button"
             onClick={() => onEmpFilterChange(empFilter === 'Active' ? 'all' : 'Active')}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
               empFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'
@@ -79,6 +69,16 @@ export default function SystemLogsControlsHeader({
           >
             <span>Inactive</span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{counts.inactive}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onEmpFilterChange('all')}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${
+              empFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'
+            }`}
+          >
+            <span>All</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{counts.total}</span>
           </button>
         </div>
       ) : (

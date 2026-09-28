@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { UserRole } from '../ui/Layout';
-import { Clock, CheckCircle2 } from 'lucide-react';
+import { Clock, CheckCircle2, ArrowLeft } from 'lucide-react';
 import QuickTimeDrawer from './QuickTimeDrawer';
 import ProjectTimesheetView from './ProjectTimesheetView';
 import Breadcrumbs from '../ui/Breadcrumbs';
@@ -66,8 +66,14 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
     if (successMsg) { setSuccessToast(successMsg); setTimeout(() => setSuccessToast(null), 5000); fetchProjects(); }
   };
 
+  const handleBackToRoot = () => {
+    setSelectedProjectForDetail(null);
+    setSelectedClient(null);
+    if (targetProjectId) setSearchParams({});
+  };
+
   if (selectedProjectForDetail) {
-    return <ProjectTimesheetView project={selectedProjectForDetail} month={selectedMonth} activeRole={activeRole} onBack={handleBackFromDetail} onRefresh={fetchProjects} />;
+    return <ProjectTimesheetView project={selectedProjectForDetail} month={selectedMonth} activeRole={activeRole} onBack={handleBackFromDetail} onBackToRoot={handleBackToRoot} onRefresh={fetchProjects} />;
   }
 
   const totalLoggedAll = projects.reduce((sum, p) => sum + p.timeLogged, 0);
@@ -121,7 +127,12 @@ export default function TimesheetsView({ activeRole }: { activeRole: UserRole })
         <div className="shrink-0 space-y-3">
           <Breadcrumbs items={selectedClient ? [{ label: 'Time Sheet', onClick: () => setSelectedClient(null) }, { label: selectedClient }] : [{ label: 'Time Sheet' }]} />
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
-            <div>
+            <div className="flex items-center gap-3">
+              {selectedClient && (
+                <button type="button" onClick={() => setSelectedClient(null)} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back to Time Sheet">
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
               <h2 className="text-[20px] font-bold tracking-tight text-studio-text">{selectedClient || 'Time Sheet'}</h2>
             </div>
             <div className="flex items-center gap-3">

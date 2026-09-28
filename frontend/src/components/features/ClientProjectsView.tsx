@@ -79,7 +79,7 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
   });
 
   if (viewMode === 'form') {
-    return <ProjectFormView mode={formMode} project={formMode === 'edit' ? targetProject : null} clients={allClients.length > 0 ? allClients : [client]} employees={employees} activeRole={activeRole} defaultClientId={client.id} clientContextName={clientName} onBack={() => setViewMode('list')} onSaved={handleSaved} />;
+    return <ProjectFormView mode={formMode} project={formMode === 'edit' ? targetProject : null} clients={allClients.length > 0 ? allClients : [client]} employees={employees} activeRole={activeRole} defaultClientId={client.id} clientContextName={clientName} onNavigateToClientele={onBack} onBack={() => setViewMode('list')} onSaved={handleSaved} />;
   }
 
   return (
@@ -95,28 +95,28 @@ export default function ClientProjectsView({ client, activeRole, allClients, onB
           </div>
         )}
 
-        <Breadcrumbs items={[{ label: 'Client Management', onClick: onBack }, { label: clientName }, { label: tab === 'projects' ? 'Projects' : 'Client Users' }]} />
+        <Breadcrumbs items={[{ label: 'Clientele', onClick: onBack }, { label: clientName, onClick: tab === 'client-users' ? () => setTab('projects') : undefined }, { label: tab === 'projects' ? 'Projects' : 'Client Users' }]} />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-studio-border pb-3">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={onBack} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back to Client Management">
+            <button type="button" onClick={onBack} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back to Clientele">
               <ArrowLeft className="w-4 h-4" />
             </button>
             <h2 className="text-[20px] font-bold tracking-tight text-studio-text">{clientName}</h2>
           </div>
 
           <div className="flex items-center gap-2.5 flex-wrap">
-            {/* 1. Filters: All / Active / Inactive */}
+            {/* 1. Filters: Active / Inactive / All */}
             {tab === 'projects' && (
               <div className="flex items-center gap-1.5 flex-wrap">
-                <button type="button" onClick={() => setProjectStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
-                  <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.total}</span>
-                </button>
                 <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Active' ? 'all' : 'Active')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Active' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
                   <span>Active</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.active}</span>
                 </button>
                 <button type="button" onClick={() => setProjectStatusFilter(projectStatusFilter === 'Inactive' ? 'all' : 'Inactive')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'Inactive' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
                   <span>Inactive</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.inactive}</span>
+                </button>
+                <button type="button" onClick={() => setProjectStatusFilter('all')} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] border transition-all cursor-pointer shadow-2xs ${projectStatusFilter === 'all' ? 'bg-white text-studio-text border-slate-300 font-bold' : 'bg-studio-sidebar/60 border-studio-border text-studio-muted hover:text-studio-text hover:bg-studio-sidebar font-medium'}`}>
+                  <span>All</span><span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700">{projectCounts.total}</span>
                 </button>
               </div>
             )}

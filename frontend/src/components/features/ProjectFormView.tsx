@@ -10,10 +10,11 @@ import ProjectFormBLSection from './ProjectFormBLSection';
 interface ProjectFormViewProps {
   mode: 'add' | 'edit'; project: Project | null; clients: Client[]; employees?: Employee[];
   activeRole?: UserRole; defaultClientId?: string; clientContextName?: string;
+  onNavigateToClientele?: () => void;
   onBack: () => void; onSaved: (msg?: string) => void;
 }
 
-export default function ProjectFormView({ mode, project, clients, employees = [], activeRole, defaultClientId, clientContextName, onBack, onSaved }: ProjectFormViewProps) {
+export default function ProjectFormView({ mode, project, clients, employees = [], activeRole, defaultClientId, clientContextName, onNavigateToClientele, onBack, onSaved }: ProjectFormViewProps) {
   const isSA = activeRole === 'Super Admin';
   const [projectId, setProjectId] = useState(''); const [name, setName] = useState(''); const [clientId, setClientId] = useState('');
   const [clientUsers, setClientUsers] = useState<ClientUser[]>([]);
@@ -138,7 +139,7 @@ export default function ProjectFormView({ mode, project, clients, employees = []
 
   return (
     <div className="w-full space-y-5 animate-in fade-in duration-200">
-      <Breadcrumbs items={[{ label: 'Clientele', onClick: onBack }, ...(clientContextName ? [{ label: clientContextName, onClick: onBack }, { label: 'Projects', onClick: onBack }] : []), { label: mode === 'edit' ? `Edit Project (${project?.name || ''})` : 'New Project' }]} />
+      <Breadcrumbs items={[{ label: 'Clientele', onClick: onNavigateToClientele || onBack }, ...(clientContextName ? [{ label: clientContextName, onClick: onBack }, { label: 'Projects', onClick: onBack }] : []), { label: mode === 'edit' ? `Edit Project (${project?.name || ''})` : 'New Project' }]} />
       <div className="flex items-center justify-between border-b border-studio-border pb-3">
         <div className="flex items-center gap-3">
           <button type="button" onClick={onBack} className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer" title="Back"><ArrowLeft className="w-4 h-4" /></button>
