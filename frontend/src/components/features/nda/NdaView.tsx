@@ -5,7 +5,7 @@ import Breadcrumbs, { BreadcrumbItem } from '../../ui/Breadcrumbs';
 import NdaClientsGrid, { ClientNDASummary } from './NdaClientsGrid';
 import NdaClientListView, { ClientNDAItem } from './NdaClientListView';
 import NdaDetailView from './NdaDetailView';
-import CreateNdaModal, { EditingNDAData } from './CreateNdaModal';
+import CreateNdaFormView, { EditingNDAData } from './CreateNdaFormView';
 import EmployeeNdaView from './EmployeeNdaView';
 import { Client, Employee } from '../../../types/registry';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
@@ -24,16 +24,16 @@ export default function NdaView({ activeRole }: NdaViewProps) {
   const [selectedClientName, setSelectedClientName] = useState<string>('');
   const [selectedNdaId, setSelectedNdaId] = useState<string | null>(null);
 
+  // Full-page Create / Edit Form State
+  const [isCreatingOrEditing, setIsCreatingOrEditing] = useState(false);
+  const [editingNdaItem, setEditingNdaItem] = useState<EditingNDAData | null>(null);
+
   // Data states
   const [clientSummaries, setClientSummaries] = useState<ClientNDASummary[]>([]);
   const [clientNdas, setClientNdas] = useState<ClientNDAItem[]>([]);
   const [allClients, setAllClients] = useState<Client[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Modal states
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editingNdaItem, setEditingNdaItem] = useState<EditingNDAData | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
       .finally(() => setLoading(false));
   };
 
-  // Fetch registries for modal creation
+  // Fetch registries for creation view
   useEffect(() => {
     if (isSuperAdminOrPM) {
       fetchClientSummaries();
@@ -85,6 +85,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
     setSelectedClientId(cId);
     setSelectedClientName(cName);
     setSelectedNdaId(null);
+    setIsCreatingOrEditing(false);
   };
 
   const handleNdaCreated = (msg: string) => {
@@ -109,7 +110,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
           documentContent: detail.documentContent || ndaItem.documentContent || '',
           employeeIds: empIds,
         });
-        setCreateModalOpen(true);
+        setIsCreatingOrEditing(true);
       }
     } catch {
       setEditingNdaItem({
@@ -118,7 +119,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
         ndaName: ndaItem.ndaName,
         documentContent: ndaItem.documentContent || '',
       });
-      setCreateModalOpen(true);
+      setIsCreatingOrEditing(true);
     }
   };
 
@@ -142,92 +143,103 @@ export default function NdaView({ activeRole }: NdaViewProps) {
     );
   }
 
-  // Super Admin / PM View
-  // Breadcrumb items
+  // Breadcrumb items calculation
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Non Disclosure Agreement', onClick: () => { setSelectedClientId(null); setSelectedNdaId(null); } },
+    {
+      label: 'Non Disclosure Agreement',
+      onClick: () => {
+        setSelectedClientId(null);
+        setSelectedNdaId(null);
+        setIsCreatingOrEditing(false);
+      },
+    },
   ];
 
   if (selectedClientId) {
     breadcrumbItems.push({
       label: selectedClientName || selectedClientId,
-      onClick: () => setSelectedNdaId(null),
+      onClick: () => {
+        setSelectedNdaId(null);
+        setIsCreatingOrEditing(false);
+      },
     });
   }
 
-  if (selectedNdaId) {
+  if (isCreatingOrEditing) {
+    breadcrumbItems.push({
+      label: editingNdaItem ? `Edit NDA (${editingNdaItem.ndaCode})` : 'Create New NDA',
+    });
+  } else if (selectedNdaId) {
     breadcrumbItems.push({
       label: 'NDA Details & Audit Trail',
     });
   }
 
   return (
-    <>
-      <CreateNdaModal
-        open={createModalOpen}
-        clientId={selectedClientId || undefined}
-        clients={allClients}
-        employees={allEmployees}
-        editingNda={editingNdaItem}
-        onClose={() => {
-          setCreateModalOpen(false);
-          setEditingNdaItem(null);
-        }}
-        onCreated={handleNdaCreated}
-      />
-
-      <div className="w-full space-y-5 animate-in fade-in duration-200">
-        {successToast && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in shadow-2xs">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-              <span>{successToast}</span>
-            </div>
-            <button onClick={() => setSuccessToast(null)} className="text-green-600 hover:text-green-800 text-[11px] font-bold cursor-pointer">
-              Dismiss
-            </button>
+    <div className="w-full space-y-5 animate-in fade-in duration-200">
+      {successToast && (
+        <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in shadow-2xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+            <span>{successToast}</span>
           </div>
-        )}
+          <button onClick={() => setSuccessToast(null)} className="text-green-600 hover:text-green-800 text-[11px] font-bold cursor-pointer">
+            Dismiss
+          </button>
+        </div>
+      )}
 
-        <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs items={breadcrumbItems} />
 
-        {/* Level 3: NDA Detail View */}
-        {selectedNdaId ? (
-          <NdaDetailView ndaId={selectedNdaId} isSuperAdmin={isSuperAdmin} onBack={() => setSelectedNdaId(null)} />
-        ) : selectedClientId ? (
-          /* Level 2: Client's NDA List */
-          <NdaClientListView
-            clientId={selectedClientId}
-            clientName={selectedClientName}
+      {/* Full Page View: Create / Edit NDA View */}
+      {isCreatingOrEditing ? (
+        <CreateNdaFormView
+          clientId={selectedClientId || undefined}
+          clients={allClients}
+          employees={allEmployees}
+          editingNda={editingNdaItem}
+          onCancel={() => {
+            setIsCreatingOrEditing(false);
+            setEditingNdaItem(null);
+          }}
+          onCreated={handleNdaCreated}
+        />
+      ) : selectedNdaId ? (
+        /* Level 3: NDA Detail View */
+        <NdaDetailView ndaId={selectedNdaId} isSuperAdmin={isSuperAdmin} onBack={() => setSelectedNdaId(null)} />
+      ) : selectedClientId ? (
+        /* Level 2: Client's NDA List */
+        <NdaClientListView
+          clientId={selectedClientId}
+          clientName={selectedClientName}
+          loading={loading}
+          ndas={clientNdas}
+          searchQuery={searchQuery}
+          isSuperAdmin={isSuperAdmin}
+          onBack={() => setSelectedClientId(null)}
+          onCreateNew={() => {
+            setEditingNdaItem(null);
+            setIsCreatingOrEditing(true);
+          }}
+          onEditNDA={handleOpenEdit}
+          onSelectNDA={(ndaId) => setSelectedNdaId(ndaId)}
+          onRefresh={() => fetchClientNdas(selectedClientId)}
+        />
+      ) : (
+        /* Level 1: Client List Summary */
+        <div className="space-y-4">
+          <div className="border-b border-studio-border pb-3">
+            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
+          </div>
+
+          <NdaClientsGrid
             loading={loading}
-            ndas={clientNdas}
+            clients={clientSummaries}
             searchQuery={searchQuery}
-            isSuperAdmin={isSuperAdmin}
-            onBack={() => setSelectedClientId(null)}
-            onCreateNew={() => {
-              setEditingNdaItem(null);
-              setCreateModalOpen(true);
-            }}
-            onEditNDA={handleOpenEdit}
-            onSelectNDA={(ndaId) => setSelectedNdaId(ndaId)}
-            onRefresh={() => fetchClientNdas(selectedClientId)}
+            onSelectClient={handleSelectClient}
           />
-        ) : (
-          /* Level 1: Client List Summary */
-          <div className="space-y-4">
-            <div className="border-b border-studio-border pb-3">
-              <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
-            </div>
-
-            <NdaClientsGrid
-              loading={loading}
-              clients={clientSummaries}
-              searchQuery={searchQuery}
-              onSelectClient={handleSelectClient}
-            />
-          </div>
-        )}
-      </div>
-    </>
+        </div>
+      )}
+    </div>
   );
 }

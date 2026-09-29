@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, FileText, CheckCircle2, Clock, Lock, ShieldCheck, Download } from 'lucide-react';
+import NdaPaperDocument from './NdaPaperDocument';
 
 export interface NDAAssignmentDetail {
   id: string;
@@ -283,12 +284,12 @@ export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: N
       <div className="border border-studio-border rounded-xl bg-white p-5 shadow-sm space-y-3">
         <div className="flex justify-between items-center border-b border-slate-100 pb-2">
           <h4 className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-studio-muted" /> Agreement Terms Document
+            <FileText className="w-4 h-4 text-brand-orange" /> Official Agreement Document Format
           </h4>
           <span className="text-[11px] text-slate-500 font-mono">Immutable Content</span>
         </div>
-        <div className="p-4 bg-slate-50/70 border border-slate-200 rounded-lg font-mono text-[11.5px] text-slate-700 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto">
-          {data.documentContent}
+        <div className="max-h-[500px] overflow-y-auto rounded-lg border border-slate-200">
+          <NdaPaperDocument documentContent={data.documentContent} />
         </div>
       </div>
     </div>

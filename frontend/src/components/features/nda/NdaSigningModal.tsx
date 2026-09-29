@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, KeyRound, CheckCircle2, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+import NdaPaperDocument from './NdaPaperDocument';
 
 interface NdaSigningModalProps {
   open: boolean;
@@ -164,13 +165,17 @@ export default function NdaSigningModal({
             </div>
           )}
 
-          {/* 1. Review Agreement Terms */}
+          {/* 1. Review Agreement Terms in Paper Document Format */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted">
-              1. Review Agreement Terms
+              1. Review Official Agreement Document (Paper Format)
             </label>
-            <div className="p-4 bg-studio-sidebar/40 border border-studio-border rounded-xl font-mono text-[11.5px] text-slate-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-              {documentContent || 'Terms of Confidentiality & Non-Disclosure Agreement...'}
+            <div className="max-h-[350px] overflow-y-auto border border-studio-border rounded-xl">
+              <NdaPaperDocument
+                documentContent={documentContent}
+                recipientName={personalEmail ? personalEmail.split('@')[0] : 'Recipient'}
+                signedDate={null}
+              />
             </div>
           </div>
 
