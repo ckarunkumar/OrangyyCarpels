@@ -71,7 +71,7 @@ export default function ClientTableRow({
       </div>
 
       {/* 4. Contact Details (No mail/phone icon) */}
-      <div className="col-span-2 text-studio-muted truncate flex items-center gap-1.5 min-w-0">
+      <div className="col-span-3 text-studio-muted truncate flex items-center gap-1.5 min-w-0">
         {client.email ? (
           <span className="truncate min-w-0 text-slate-700" title={showContact ? client.email : 'Click eye icon to reveal'}>
             {showContact ? client.email : maskEmail(client.email)}
@@ -104,7 +104,7 @@ export default function ClientTableRow({
       </div>
 
       {/* 6. Projects Badges & Mouse Over Edit Icon */}
-      <div className="col-span-3 flex items-center justify-between min-w-0 pr-1">
+      <div className="col-span-2 flex items-center justify-between min-w-0 pr-1">
         <div className="flex items-center gap-2">
           <button
             type="button"

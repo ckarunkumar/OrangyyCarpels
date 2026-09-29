@@ -51,7 +51,7 @@ export default function EmployeeTableRow({
       </div>
 
       {/* 2. Name */}
-      <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
+      <div className="col-span-2 min-w-0 pr-2 flex items-center gap-2.5">
         <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 border border-slate-200 shrink-0 overflow-hidden">
           {emp.avatar ? (
             <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" />
@@ -147,7 +147,7 @@ export default function EmployeeTableRow({
       </div>
 
       {/* 7. Login Time & Hover Edit Action */}
-      <div className="col-span-1 flex items-center justify-between min-w-0 gap-1 text-slate-600 text-[11.5px]">
+      <div className="col-span-2 flex items-center justify-between min-w-0 gap-1 text-slate-600 text-[11.5px]">
         <span className="truncate flex items-center gap-1 text-slate-500 font-mono text-[11px]" title={emp.loginTime ? formatLoginTime(emp.loginTime) : 'Never logged in'}>
           <Clock className="w-2.5 h-2.5 text-slate-400 shrink-0" />
           <span className="truncate">{formatLoginTime(emp.loginTime)}</span>

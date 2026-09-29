@@ -54,12 +54,12 @@ export default function StudioClientTable({
 
   return (
     <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
-      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-4 items-center shrink-0">
-        <div className="col-span-4 sm:col-span-3">Client Name</div>
-        <div className="col-span-3 sm:col-span-2">Billing Method</div>
-        <div className="col-span-2 sm:col-span-3">Billing Currency</div>
-        <div className="col-span-1 sm:col-span-2 text-left">Total Projects</div>
-        <div className="col-span-2 text-right">Total Revenue (INR)</div>
+      <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
+        <div className="col-span-3">CLIENT NAME</div>
+        <div className="col-span-2">BILLING METHOD</div>
+        <div className="col-span-3">BILLING CURRENCY</div>
+        <div className="col-span-2 text-left">TOTAL PROJECTS</div>
+        <div className="col-span-2 text-right">TOTAL REVENUE (INR)</div>
       </div>
 
       <div className="divide-y divide-studio-border bg-white">
@@ -74,17 +74,17 @@ export default function StudioClientTable({
             <div
               key={c.clientId}
               onClick={() => onSelectClient(c)}
-              className="grid grid-cols-12 gap-4 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer group text-[12.5px]"
+              className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer group text-[12.5px]"
             >
-              <div className="col-span-4 sm:col-span-3">
+              <div className="col-span-3">
                 <span className="font-semibold text-slate-800 group-hover:text-brand-orange transition-colors">
                   {c.clientName}
                 </span>
               </div>
-              <div className="col-span-3 sm:col-span-2">
+              <div className="col-span-2">
                 {getBillingPill(c.billingMethod)}
               </div>
-              <div className="col-span-2 sm:col-span-3 flex items-center gap-1.5">
+              <div className="col-span-3 flex items-center gap-1.5">
                 <span className="font-medium text-slate-700">
                   {c.billingCurrency || 'USD'}
                 </span>
@@ -100,7 +100,7 @@ export default function StudioClientTable({
                   <History className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <div className="col-span-1 sm:col-span-2 text-slate-700 font-medium">
+              <div className="col-span-2 text-slate-700 font-medium">
                 {c.totalProjects}
               </div>
               <div className="col-span-2 text-right font-medium text-slate-900">

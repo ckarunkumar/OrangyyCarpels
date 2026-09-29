@@ -60,8 +60,8 @@ export default function ClientProjectsTable({
   return (
     <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
       <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
-        <div className="col-span-2 sm:col-span-1">Project Code</div>
-        <div className="col-span-2">Project Name</div>
+        <div className="col-span-1 min-w-[70px]">PROJECT CODE</div>
+        <div className="col-span-2 min-w-0">PROJECT NAME</div>
         <div className="col-span-1">Start Date</div>
         <div className="col-span-1">End Date</div>
         <div className="col-span-1">Billing Currency</div>
@@ -89,7 +89,7 @@ export default function ClientProjectsTable({
                 className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors text-[12.5px]"
               >
                 {/* Project Code */}
-                <div className="col-span-2 sm:col-span-1">
+                <div className="col-span-1 min-w-[70px]">
                   <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-700 inline-block">
                     {p.projectCode || p.projectId}
                   </span>

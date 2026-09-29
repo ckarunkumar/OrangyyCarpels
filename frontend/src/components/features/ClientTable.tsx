@@ -29,9 +29,9 @@ export default function ClientTable({
         <div className="col-span-1 min-w-[70px]">CLIENT ID</div>
         <div className="col-span-3 min-w-0">COMPANY NAME</div>
         <div className="col-span-1 min-w-0">CLIENT USERS</div>
-        <div className="col-span-2 min-w-0">CONTACT DETAILS</div>
+        <div className="col-span-3 min-w-0">CONTACT DETAILS</div>
         <div className="col-span-2 whitespace-nowrap min-w-0">BILLING CURRENCY</div>
-        <div className="col-span-3 min-w-0 flex items-center">PROJECTS</div>
+        <div className="col-span-2 min-w-0 flex items-center">PROJECTS</div>
       </div>
 
       <div className="divide-y divide-studio-border bg-white">

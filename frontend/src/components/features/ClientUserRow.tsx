@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Building2, FolderGit2, Pencil, Eye, EyeOff } from 'lucide-react';
+import { Building2, FolderGit2, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
 import { ClientUser } from '../../types/registry';
 import { maskEmail, maskPhone } from '../../utils/maskUtils';
 
@@ -14,6 +14,7 @@ export default function ClientUserRow({
   user,
   isAdmin,
   onEdit,
+  onDelete,
 }: ClientUserRowProps) {
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
@@ -38,7 +39,7 @@ export default function ClientUserRow({
       </div>
 
       {/* 2. Full Name */}
-      <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2">
+      <div className="col-span-2 min-w-0 pr-2 flex items-center gap-2">
         <div className="w-6 h-6 rounded-full bg-orange-50 flex items-center justify-center text-brand-orange border border-orange-200 shrink-0 font-bold text-[10px]">
           {user.name[0]}
         </div>
@@ -82,7 +83,7 @@ export default function ClientUserRow({
       </div>
 
       {/* 5. Client Name */}
-      <div className="col-span-2 flex items-center gap-1.5 text-[12px] font-medium text-studio-text truncate">
+      <div className="col-span-3 flex items-center gap-1.5 text-[12px] font-medium text-studio-text truncate">
         <Building2 className="w-3.5 h-3.5 text-studio-muted shrink-0" />
         <span className="truncate">{user.client?.displayName || user.client?.name || user.clientId}</span>
       </div>
@@ -95,9 +96,32 @@ export default function ClientUserRow({
         </span>
 
         {isAdmin && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(user); }} title="Edit Client User" className="opacity-0 group-hover:opacity-100 p-1 hover:bg-orange-50 rounded text-slate-400 hover:text-brand-orange cursor-pointer transition-colors shrink-0">
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(user);
+              }}
+              title="Edit Client User"
+              className="p-1 text-slate-400 hover:text-brand-orange hover:bg-orange-50 rounded transition-colors cursor-pointer shrink-0"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(user);
+                }}
+                title="Delete Client User"
+                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
