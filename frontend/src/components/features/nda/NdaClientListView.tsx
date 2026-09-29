@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, ArrowLeft, FileText, CheckCircle2, Clock, Lock, Users, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ArrowLeft, CheckCircle2, Clock, Lock, Users, Pencil, Trash2 } from 'lucide-react';
 
 export interface ClientNDAItem {
   id: string;
@@ -261,8 +261,7 @@ export default function NdaClientListView({
                   </div>
 
                   {/* 2. NDA Name */}
-                  <div className="col-span-3 font-semibold text-slate-800 flex items-center gap-2 group-hover:text-brand-orange transition-colors truncate">
-                    <FileText className="w-4 h-4 text-studio-muted shrink-0" />
+                  <div className="col-span-3 font-semibold text-slate-800 group-hover:text-brand-orange transition-colors truncate">
                     <span className="truncate">{nda.ndaName}</span>
                   </div>
 
