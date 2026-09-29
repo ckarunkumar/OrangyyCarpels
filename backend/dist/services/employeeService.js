@@ -5,8 +5,6 @@ const prisma_1 = require("../lib/prisma");
 const passwordUtils_1 = require("../utils/passwordUtils");
 class EmployeeService {
     static async getEmployees(role) {
-        if (role === 'Employee')
-            throw new Error('Access Denied: Employees cannot view the full registry.');
         const [employees, allProjects, loginLogs] = await Promise.all([
             prisma_1.prisma.employee.findMany(),
             prisma_1.prisma.project.findMany({ select: { id: true, name: true, status: true, managerId: true, assignedEmployees: true } }),

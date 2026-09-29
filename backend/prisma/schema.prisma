@@ -90,6 +90,7 @@ model Client {
   status             String       @default("Active") // Active, Inactive
   projects           Project[]
   clientUsers        ClientUser[]
+  ndas               NDA[]
 }
 
 model ClientUser {
@@ -268,8 +269,9 @@ model Notification {
   role      String?   // 'Employee', 'Project Manager', 'Super Admin', or 'All'
   title     String
   message   String
-  type      String    // 'timesheet_submit', 'timesheet_approve', 'timesheet_reopen', 'project_assign', 'deadline_reminder'
+  type      String    // 'timesheet_submit', 'timesheet_approve', 'timesheet_reopen', 'project_assign', 'deadline_reminder', 'nda_signature_request'
   projectId String?   @default("")
+  ndaId     String?   @default("")
   isRead    Boolean   @default(false)
   readAt    DateTime?
   createdAt DateTime  @default(now())
@@ -343,5 +345,52 @@ model LoginLog {
   @@index([email])
   @@index([ipAddress])
   @@index([employeeId])
+}
+
+model NDA {
+  id              String          @id @default(uuid())
+  ndaCode         String          @unique
+  ndaName         String
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  documentContent String?         @db.LongText
+  documentFileUrl String?         @db.LongText
+  status          String          @default("Draft") // Draft, Partially Submitted, Submitted, Closed
+  createdBy       String
+  createdByName   String?         @default("")
+  createdAt       DateTime        @default(now())
+  submittedAt     DateTime?
+  closedAt        DateTime?
+  closedBy        String?         @default("")
+
+  assignments     NDAAssignment[]
+
+  @@index([clientId])
+  @@index([status])
+}
+
+model NDAAssignment {
+  id             String    @id @default(uuid())
+  ndaId          String
+  nda            NDA       @relation(fields: [ndaId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employeeName   String
+  personalEmail  String
+  otpCodeHash    String?   @default("")
+  otpSentAt      DateTime?
+  otpExpiresAt   DateTime?
+  otpAttempts    Int       @default(0)
+  otpVerifiedAt  DateTime?
+  signedAt       DateTime?
+  status         String    @default("Pending") // Pending, Signed
+  ipAddress      String?   @default("")
+  userAgent      String?   @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@unique([ndaId, employeeId])
+  @@index([ndaId])
+  @@index([employeeId])
+  @@index([personalEmail])
 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText, SlidersHorizontal, X } from 'lucide-react';
+import { LayoutDashboard, Clock, Users, Building2, BarChart3, CalendarCheck, Settings, Layers, LogOut, ChevronDown, Bell, FileText, SlidersHorizontal, X, ShieldCheck } from 'lucide-react';
 import UserProfileDrawer from './UserProfileDrawer';
 import NotificationDrawer, { NotificationItem } from './NotificationDrawer';
 import GlobalSearchBar from './GlobalSearchBar';
@@ -59,15 +59,22 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     if (!item.isRead) handleMarkAsRead(item.id);
     setActiveToast(null);
     setIsNotificationOpen(false);
-    if (item.projectId) navigate(`/timesheets?projectId=${item.projectId}`);
+    if (item.type === 'nda_signature_request') {
+      navigate('/nda');
+    } else if (item.projectId) {
+      navigate(`/timesheets?projectId=${item.projectId}`);
+    }
   };
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const hasPendingNdaRequest = notifications.some((n) => !n.isRead && n.type === 'nda_signature_request');
 
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Super Admin', 'Project Manager', 'Employee', 'Client'] },
     { label: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Team', path: '/employees', icon: Users, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Clientele', path: '/clients', icon: Building2, roles: ['Super Admin', 'Project Manager'] },
+    { label: 'NDA', path: '/nda', icon: ShieldCheck, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Leaves', path: '/leaves', icon: CalendarCheck, roles: ['Super Admin', 'Project Manager', 'Employee'] },
     { label: 'Reports', path: '/reports', icon: BarChart3, roles: ['Super Admin', 'Project Manager'] },
   ];
@@ -77,6 +84,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen max-h-screen overflow-hidden bg-studio-bg flex flex-col font-sans">
+      <UserProfileDrawer open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <NotificationDrawer open={isNotificationOpen} notifications={notifications} onClose={() => setIsNotificationOpen(false)} onSelectNotification={handleSelectNotification} onMarkAllAsRead={handleMarkAllAsRead} />
+
+      {/* Persistent NDA Signature Action Required Top Banner */}
+      {hasPendingNdaRequest && (
+        <div className="bg-amber-600 text-white px-6 py-2 flex items-center justify-between text-[12px] font-bold z-50 shrink-0 shadow-sm">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 shrink-0 text-white" />
+            <span>Action Required: You have a pending Non-Disclosure Agreement (NDA) waiting for your OTP e-signature.</span>
+          </div>
+          <button
+            onClick={() => navigate('/nda')}
+            className="px-3.5 py-1 bg-white text-amber-900 rounded font-bold hover:bg-slate-100 transition-colors text-[11.5px] cursor-pointer shadow-2xs"
+          >
+            Sign NDA Now
+          </button>
+        </div>
+      )}
       <UserProfileDrawer open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <NotificationDrawer open={isNotificationOpen} notifications={notifications} onClose={() => setIsNotificationOpen(false)} onSelectNotification={handleSelectNotification} onMarkAllAsRead={handleMarkAllAsRead} />
 

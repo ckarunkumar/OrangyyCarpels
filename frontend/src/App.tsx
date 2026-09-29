@@ -11,6 +11,7 @@ import ClientsView from './components/features/ClientsView';
 import ReportsView from './components/features/ReportsView';
 import LeavesView from './components/features/LeavesView';
 import GeneralSettingsView from './components/features/GeneralSettingsView';
+import NdaView from './components/features/nda/NdaView';
 import { ShieldAlert } from 'lucide-react';
 
 function AppContent() {
@@ -129,6 +130,7 @@ function AppContent() {
               }
             />
             <Route path="/leaves" element={<LeavesView activeRole={role} />} />
+            <Route path="/nda" element={<NdaView activeRole={role} />} />
             <Route path="/settings" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/studio" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
             <Route path="/settings/configurations" element={<SuperAdminRoute><GeneralSettingsView /></SuperAdminRoute>} />
