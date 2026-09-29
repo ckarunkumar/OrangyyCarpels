@@ -5,7 +5,7 @@ import Breadcrumbs, { BreadcrumbItem } from '../../ui/Breadcrumbs';
 import NdaClientsGrid, { ClientNDASummary } from './NdaClientsGrid';
 import NdaClientListView, { ClientNDAItem } from './NdaClientListView';
 import NdaDetailView from './NdaDetailView';
-import CreateNdaModal from './CreateNdaModal';
+import CreateNdaModal, { EditingNDAData } from './CreateNdaModal';
 import EmployeeNdaView from './EmployeeNdaView';
 import { Client, Employee } from '../../../types/registry';
 import { CheckCircle2, ShieldCheck } from 'lucide-react';
@@ -17,6 +17,7 @@ interface NdaViewProps {
 export default function NdaView({ activeRole }: NdaViewProps) {
   const { searchQuery, setSearchPlaceholder } = useSearch();
   const isSuperAdminOrPM = activeRole === 'Super Admin' || activeRole === 'Project Manager';
+  const isSuperAdmin = activeRole === 'Super Admin';
 
   // Navigation states for SA flow
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
 
   // Modal states
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingNdaItem, setEditingNdaItem] = useState<EditingNDAData | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,19 +96,44 @@ export default function NdaView({ activeRole }: NdaViewProps) {
     setTimeout(() => setSuccessToast(null), 5000);
   };
 
+  const handleOpenEdit = async (ndaItem: ClientNDAItem) => {
+    try {
+      const res = await fetch(`/api/ndas/${ndaItem.id}`);
+      if (res.ok) {
+        const detail = await res.json();
+        const empIds = detail.assignments ? detail.assignments.map((a: any) => a.employeeId) : [];
+        setEditingNdaItem({
+          id: ndaItem.id,
+          ndaCode: ndaItem.ndaCode,
+          ndaName: ndaItem.ndaName,
+          documentContent: detail.documentContent || ndaItem.documentContent || '',
+          employeeIds: empIds,
+        });
+        setCreateModalOpen(true);
+      }
+    } catch {
+      setEditingNdaItem({
+        id: ndaItem.id,
+        ndaCode: ndaItem.ndaCode,
+        ndaName: ndaItem.ndaName,
+        documentContent: ndaItem.documentContent || '',
+      });
+      setCreateModalOpen(true);
+    }
+  };
+
   // Employee View
   if (!isSuperAdminOrPM) {
     return (
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         <Breadcrumbs items={[{ label: 'NDA E-Signing History' }]} />
-        <div className="flex items-center justify-between border-b border-studio-border pb-3">
+        <div className="border-b border-studio-border pb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-orange-50 text-brand-orange border border-orange-100">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non-Disclosure Agreements</h2>
-              <p className="text-[12px] text-studio-muted">View your assigned NDA documents and complete OTP e-signature</p>
+              <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
             </div>
           </div>
         </div>
@@ -118,7 +145,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
   // Super Admin / PM View
   // Breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'NDA Module', onClick: () => { setSelectedClientId(null); setSelectedNdaId(null); } },
+    { label: 'Non Disclosure Agreement', onClick: () => { setSelectedClientId(null); setSelectedNdaId(null); } },
   ];
 
   if (selectedClientId) {
@@ -141,7 +168,11 @@ export default function NdaView({ activeRole }: NdaViewProps) {
         clientId={selectedClientId || undefined}
         clients={allClients}
         employees={allEmployees}
-        onClose={() => setCreateModalOpen(false)}
+        editingNda={editingNdaItem}
+        onClose={() => {
+          setCreateModalOpen(false);
+          setEditingNdaItem(null);
+        }}
         onCreated={handleNdaCreated}
       />
 
@@ -162,7 +193,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
 
         {/* Level 3: NDA Detail View */}
         {selectedNdaId ? (
-          <NdaDetailView ndaId={selectedNdaId} onBack={() => setSelectedNdaId(null)} />
+          <NdaDetailView ndaId={selectedNdaId} isSuperAdmin={isSuperAdmin} onBack={() => setSelectedNdaId(null)} />
         ) : selectedClientId ? (
           /* Level 2: Client's NDA List */
           <NdaClientListView
@@ -171,25 +202,21 @@ export default function NdaView({ activeRole }: NdaViewProps) {
             loading={loading}
             ndas={clientNdas}
             searchQuery={searchQuery}
+            isSuperAdmin={isSuperAdmin}
             onBack={() => setSelectedClientId(null)}
-            onCreateNew={() => setCreateModalOpen(true)}
+            onCreateNew={() => {
+              setEditingNdaItem(null);
+              setCreateModalOpen(true);
+            }}
+            onEditNDA={handleOpenEdit}
             onSelectNDA={(ndaId) => setSelectedNdaId(ndaId)}
+            onRefresh={() => fetchClientNdas(selectedClientId)}
           />
         ) : (
           /* Level 1: Client List Summary */
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
-              <div>
-                <h2 className="text-[20px] font-bold tracking-tight text-studio-text">NDA Module</h2>
-                <p className="text-[12px] text-studio-muted">Select a client to view, create, or audit Non-Disclosure Agreements</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCreateModalOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 transition-colors shadow-sm cursor-pointer shrink-0"
-              >
-                + Create New NDA
-              </button>
+            <div className="border-b border-studio-border pb-3">
+              <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
             </div>
 
             <NdaClientsGrid

@@ -38,6 +38,7 @@ const ndaRoutes = async (fastify) => {
                     clientId: c.id,
                     clientCode: c.id,
                     clientName: c.name,
+                    status: c.status || 'Active',
                     assignedEmployeesCount: uniqueAssignedEmployees,
                     ndasCount,
                 };
@@ -102,6 +103,9 @@ const ndaRoutes = async (fastify) => {
     fastify.post('/ndas', async (request, reply) => {
         try {
             const body = request.body;
+            if (request.user?.role && request.user.role !== 'Super Admin') {
+                return reply.status(403).send({ error: 'Only Super Admin has edit access inside the NDA module' });
+            }
             if (!body.clientId || !body.ndaName || !body.employeeIds || body.employeeIds.length === 0) {
                 return reply.status(400).send({ error: 'Client, NDA name, and assigned employees are required' });
             }
@@ -245,6 +249,7 @@ const ndaRoutes = async (fastify) => {
                 data: {
                     status: 'Closed',
                     closedAt: new Date(),
+                    submittedAt: nda.submittedAt || new Date(),
                     closedBy: request.user?.email || 'Super Admin',
                 },
             });
@@ -252,6 +257,67 @@ const ndaRoutes = async (fastify) => {
         }
         catch (err) {
             return reply.status(500).send({ error: err.message || 'Failed to close NDA' });
+        }
+    });
+    // 5b. Update NDA (SA endpoint)
+    fastify.put('/ndas/:id', async (request, reply) => {
+        try {
+            const { id } = request.params;
+            const body = request.body;
+            if (request.user?.role && request.user.role !== 'Super Admin') {
+                return reply.status(403).send({ error: 'Only Super Admin can edit NDAs' });
+            }
+            const existing = await prisma_1.prisma.nDA.findUnique({ where: { id } });
+            if (!existing) {
+                return reply.status(404).send({ error: 'NDA not found' });
+            }
+            if (existing.status === 'Closed') {
+                return reply.status(400).send({ error: 'Closed NDAs cannot be edited' });
+            }
+            const updated = await prisma_1.prisma.nDA.update({
+                where: { id },
+                data: {
+                    ndaName: body.ndaName || existing.ndaName,
+                    documentContent: body.documentContent || existing.documentContent,
+                },
+            });
+            if (body.employeeIds && Array.isArray(body.employeeIds)) {
+                await prisma_1.prisma.nDAAssignment.deleteMany({ where: { ndaId: id } });
+                for (const empId of body.employeeIds) {
+                    const emp = await prisma_1.prisma.employee.findUnique({ where: { employeeId: empId } });
+                    const empName = emp ? emp.fullName : empId;
+                    const pEmail = emp?.personalEmail || emp?.email || `${empId.toLowerCase()}@personal.com`;
+                    await prisma_1.prisma.nDAAssignment.create({
+                        data: {
+                            ndaId: id,
+                            employeeId: empId,
+                            employeeName: empName,
+                            personalEmail: pEmail,
+                            status: 'Pending',
+                        },
+                    });
+                }
+            }
+            return updated;
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message || 'Failed to update NDA' });
+        }
+    });
+    // 5c. Delete NDA (SA endpoint)
+    fastify.delete('/ndas/:id', async (request, reply) => {
+        try {
+            const { id } = request.params;
+            if (request.user?.role && request.user.role !== 'Super Admin') {
+                return reply.status(403).send({ error: 'Only Super Admin can delete NDAs' });
+            }
+            await prisma_1.prisma.nDAAssignment.deleteMany({ where: { ndaId: id } });
+            await prisma_1.prisma.notification.deleteMany({ where: { ndaId: id } });
+            await prisma_1.prisma.nDA.delete({ where: { id } });
+            return { success: true, message: 'NDA deleted successfully' };
+        }
+        catch (err) {
+            return reply.status(500).send({ error: err.message || 'Failed to delete NDA' });
         }
     });
     // 6. Send OTP to personal email (Employee / SA)

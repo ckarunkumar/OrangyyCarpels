@@ -39,6 +39,7 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
             clientId: c.id,
             clientCode: c.id,
             clientName: c.name,
+            status: c.status || 'Active',
             assignedEmployeesCount: uniqueAssignedEmployees,
             ndasCount,
           };
@@ -112,6 +113,10 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         documentContent?: string;
         employeeIds: string[];
       };
+
+      if (request.user?.role && request.user.role !== 'Super Admin') {
+        return reply.status(403).send({ error: 'Only Super Admin has edit access inside the NDA module' });
+      }
 
       if (!body.clientId || !body.ndaName || !body.employeeIds || body.employeeIds.length === 0) {
         return reply.status(400).send({ error: 'Client, NDA name, and assigned employees are required' });
@@ -272,6 +277,7 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         data: {
           status: 'Closed',
           closedAt: new Date(),
+          submittedAt: nda.submittedAt || new Date(),
           closedBy: request.user?.email || 'Super Admin',
         },
       });
@@ -279,6 +285,81 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
       return updated;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message || 'Failed to close NDA' });
+    }
+  });
+
+  // 5b. Update NDA (SA endpoint)
+  fastify.put('/ndas/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const body = request.body as {
+        ndaName?: string;
+        documentContent?: string;
+        employeeIds?: string[];
+      };
+
+      if (request.user?.role && request.user.role !== 'Super Admin') {
+        return reply.status(403).send({ error: 'Only Super Admin can edit NDAs' });
+      }
+
+      const existing = await prisma.nDA.findUnique({ where: { id } });
+      if (!existing) {
+        return reply.status(404).send({ error: 'NDA not found' });
+      }
+
+      if (existing.status === 'Closed') {
+        return reply.status(400).send({ error: 'Closed NDAs cannot be edited' });
+      }
+
+      const updated = await prisma.nDA.update({
+        where: { id },
+        data: {
+          ndaName: body.ndaName || existing.ndaName,
+          documentContent: body.documentContent || existing.documentContent,
+        },
+      });
+
+      if (body.employeeIds && Array.isArray(body.employeeIds)) {
+        await prisma.nDAAssignment.deleteMany({ where: { ndaId: id } });
+        for (const empId of body.employeeIds) {
+          const emp = await prisma.employee.findUnique({ where: { employeeId: empId } });
+          const empName = emp ? emp.fullName : empId;
+          const pEmail = emp?.personalEmail || emp?.email || `${empId.toLowerCase()}@personal.com`;
+
+          await prisma.nDAAssignment.create({
+            data: {
+              ndaId: id,
+              employeeId: empId,
+              employeeName: empName,
+              personalEmail: pEmail,
+              status: 'Pending',
+            },
+          });
+        }
+      }
+
+      return updated;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message || 'Failed to update NDA' });
+    }
+  });
+
+  // 5c. Delete NDA (SA endpoint)
+  fastify.delete('/ndas/:id', async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+
+      if (request.user?.role && request.user.role !== 'Super Admin') {
+        return reply.status(403).send({ error: 'Only Super Admin can delete NDAs' });
+      }
+
+      await prisma.nDAAssignment.deleteMany({ where: { ndaId: id } });
+      await prisma.notification.deleteMany({ where: { ndaId: id } });
+      await prisma.nDA.delete({ where: { id } });
+
+      return { success: true, message: 'NDA deleted successfully' };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message || 'Failed to delete NDA' });
     }
   });
 

@@ -34,10 +34,11 @@ export interface NDADetailData {
 
 interface NdaDetailViewProps {
   ndaId: string;
+  isSuperAdmin?: boolean;
   onBack: () => void;
 }
 
-export default function NdaDetailView({ ndaId, onBack }: NdaDetailViewProps) {
+export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: NdaDetailViewProps) {
   const [data, setData] = useState<NDADetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,12 +160,12 @@ export default function NdaDetailView({ ndaId, onBack }: NdaDetailViewProps) {
               <Download className="w-3.5 h-3.5 text-red-600" /> Export PDF
             </button>
 
-            {/* Close NDA button */}
+            {/* Close NDA button (Super Admin only) */}
             {data.isClosed ? (
               <span className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[12px] font-bold">
                 <Lock className="w-3.5 h-3.5 text-slate-600" /> Closed & Locked
               </span>
-            ) : (
+            ) : isSuperAdmin ? (
               <button
                 type="button"
                 onClick={handleCloseNDA}
@@ -179,7 +180,7 @@ export default function NdaDetailView({ ndaId, onBack }: NdaDetailViewProps) {
                 <Lock className="w-3.5 h-3.5" />
                 {closing ? 'Closing NDA...' : 'Close NDA'}
               </button>
-            )}
+            ) : null}
           </div>
         </div>
 

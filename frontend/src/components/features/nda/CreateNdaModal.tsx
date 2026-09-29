@@ -2,11 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { X, FileText, AlertCircle } from 'lucide-react';
 import { Employee, Client } from '../../../types/registry';
 
+export interface EditingNDAData {
+  id: string;
+  ndaCode: string;
+  ndaName: string;
+  documentContent?: string;
+  employeeIds?: string[];
+}
+
 interface CreateNdaModalProps {
   open: boolean;
   clientId?: string;
   clients: Client[];
   employees: Employee[];
+  editingNda?: EditingNDAData | null;
   onClose: () => void;
   onCreated: (msg: string) => void;
 }
@@ -16,6 +25,7 @@ export default function CreateNdaModal({
   clientId,
   clients,
   employees,
+  editingNda,
   onClose,
   onCreated,
 }: CreateNdaModalProps) {
@@ -27,28 +37,36 @@ export default function CreateNdaModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (clientId) {
-      setSelectedClientId(clientId);
-    } else if (clients.length > 0) {
-      setSelectedClientId(clients[0].id);
+    if (editingNda) {
+      setNdaName(editingNda.ndaName);
+      if (editingNda.documentContent) setDocumentContent(editingNda.documentContent);
+      if (editingNda.employeeIds) setSelectedEmployees(editingNda.employeeIds);
+    } else {
+      if (clientId) {
+        setSelectedClientId(clientId);
+      } else if (clients.length > 0) {
+        setSelectedClientId(clients[0].id);
+      }
     }
-  }, [clientId, clients]);
+  }, [editingNda, clientId, clients]);
 
   useEffect(() => {
-    const selectedClientObj = clients.find((c) => c.id === selectedClientId);
-    const clientName = selectedClientObj?.name || 'Client';
-    setNdaName(`Mutual Non-Disclosure Agreement - ${clientName}`);
-    setDocumentContent(
-      `MUTUAL NON-DISCLOSURE AGREEMENT (NDA)\n\n` +
-      `This Non-Disclosure Agreement ("Agreement") is made effective as of the date of e-signature, by and between Orangyy Design Private Limited ("Company") and ${clientName} ("Client").\n\n` +
-      `1. CONFIDENTIAL INFORMATION\n` +
-      `The recipient agrees to hold and maintain in strict confidence all proprietary technical, financial, and business information disclosed in connection with project deliverables.\n\n` +
-      `2. OBLIGATIONS OF EMPLOYEES\n` +
-      `Assigned team members shall not duplicate, transmit, or disclose any confidential information to unauthorized third parties without prior written consent.\n\n` +
-      `3. E-SIGNATURE AUTHENTICATION\n` +
-      `Signature verification is executed via 6-digit OTP delivered to the employee's verified personal email address on record. OTP verification constitutes a binding electronic signature.`
-    );
-  }, [selectedClientId, clients]);
+    if (!editingNda && selectedClientId) {
+      const selectedClientObj = clients.find((c) => c.id === selectedClientId);
+      const clientName = selectedClientObj?.name || 'Client';
+      setNdaName(`Mutual Non-Disclosure Agreement - ${clientName}`);
+      setDocumentContent(
+        `MUTUAL NON-DISCLOSURE AGREEMENT (NDA)\n\n` +
+        `This Non-Disclosure Agreement ("Agreement") is made effective as of the date of e-signature, by and between Orangyy Design Private Limited ("Company") and ${clientName} ("Client").\n\n` +
+        `1. CONFIDENTIAL INFORMATION\n` +
+        `The recipient agrees to hold and maintain in strict confidence all proprietary technical, financial, and business information disclosed in connection with project deliverables.\n\n` +
+        `2. OBLIGATIONS OF EMPLOYEES\n` +
+        `Assigned team members shall not duplicate, transmit, or disclose any confidential information to unauthorized third parties without prior written consent.\n\n` +
+        `3. E-SIGNATURE AUTHENTICATION\n` +
+        `Signature verification is executed via 6-digit OTP delivered to the employee's verified personal email address on record. OTP verification constitutes a binding electronic signature.`
+      );
+    }
+  }, [selectedClientId, clients, editingNda]);
 
   if (!open) return null;
 
@@ -68,7 +86,7 @@ export default function CreateNdaModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedClientId) {
+    if (!selectedClientId && !editingNda) {
       setError('Please select a client.');
       return;
     }
@@ -85,8 +103,11 @@ export default function CreateNdaModal({
     setError(null);
 
     try {
-      const res = await fetch('/api/ndas', {
-        method: 'POST',
+      const url = editingNda ? `/api/ndas/${editingNda.id}` : '/api/ndas';
+      const method = editingNda ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: selectedClientId,
@@ -97,12 +118,16 @@ export default function CreateNdaModal({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create NDA');
+      if (!res.ok) throw new Error(data.error || `Failed to ${editingNda ? 'update' : 'create'} NDA`);
 
-      onCreated(`New NDA "${data.ndaCode}" created successfully and assigned to ${selectedEmployees.length} employee(s).`);
+      onCreated(
+        editingNda
+          ? `NDA "${editingNda.ndaCode}" updated successfully.`
+          : `New NDA "${data.ndaCode}" created successfully and assigned to ${selectedEmployees.length} employee(s).`
+      );
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Error creating NDA');
+      setError(err.message || 'Error saving NDA');
     } finally {
       setSubmitting(false);
     }
