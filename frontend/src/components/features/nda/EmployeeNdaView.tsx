@@ -79,6 +79,9 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
       n.clientName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const pendingNdas = ndas.filter((n) => n.status === 'Pending Signature');
+  const firstPendingNda = pendingNdas[0];
+
   return (
     <>
       {signingItem && (
@@ -96,6 +99,26 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
       )}
 
       <div className="space-y-4">
+        {pendingNdas.length > 0 && (
+          <div className="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-xl flex items-center justify-between text-[12.5px] font-medium animate-in fade-in shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-amber-100 text-amber-800 shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-bold text-amber-950">Action Required:</span> You have {pendingNdas.length} Non-Disclosure Agreement document(s) pending your OTP e-signature.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleOpenSigning(firstPendingNda)}
+              className="px-3.5 py-1.5 bg-brand-orange hover:bg-opacity-90 text-white rounded-lg font-bold text-[11.5px] transition-colors cursor-pointer shadow-2xs shrink-0"
+            >
+              Sign NDA Now
+            </button>
+          </div>
+        )}
+
         {toast && (
           <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center justify-between text-[12.5px] font-semibold animate-in fade-in shadow-2xs">
             <div className="flex items-center gap-2">

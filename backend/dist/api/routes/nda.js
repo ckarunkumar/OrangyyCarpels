@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ndaRoutes = void 0;
 const prisma_1 = require("../../lib/prisma");
 const crypto_1 = __importDefault(require("crypto"));
+const emailService_1 = require("../../utils/emailService");
 function maskPersonalEmail(email) {
     if (!email || !email.includes('@'))
         return '—';
@@ -295,12 +296,23 @@ const ndaRoutes = async (fastify) => {
                     otpAttempts: 0,
                 },
             });
-            console.log(`[NDA OTP SERVICE] Sent OTP "${otpCode}" to personal email: ${targetEmail} for NDA ${assignment.nda.ndaCode}`);
+            // Dispatch email via Nodemailer
+            const emailResult = await (0, emailService_1.sendNdaOtpEmail)({
+                toEmail: targetEmail,
+                employeeName: assignment.employeeName,
+                otpCode,
+                ndaCode: assignment.nda.ndaCode,
+                ndaName: assignment.nda.ndaName,
+                clientName: '',
+            });
             return {
                 success: true,
-                message: `OTP code successfully sent to personal email ${maskPersonalEmail(targetEmail)}. (Valid for 10 mins)`,
+                message: emailResult.success
+                    ? `OTP code successfully sent to personal email ${targetEmail}. (Valid for 10 mins)`
+                    : `OTP generated for ${targetEmail}. (${emailResult.message})`,
                 maskedEmail: maskPersonalEmail(targetEmail),
-                devOtp: otpCode, // Provided in response for easy developer/testing verification
+                targetEmail,
+                devOtp: otpCode,
             };
         }
         catch (err) {

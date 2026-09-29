@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { prisma } from '../../lib/prisma';
 import crypto from 'crypto';
+import { sendNdaOtpEmail } from '../../utils/emailService';
 
 function maskPersonalEmail(email?: string | null): string {
   if (!email || !email.includes('@')) return '—';
@@ -331,13 +332,24 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         },
       });
 
-      console.log(`[NDA OTP SERVICE] Sent OTP "${otpCode}" to personal email: ${targetEmail} for NDA ${assignment.nda.ndaCode}`);
+      // Dispatch email via Nodemailer
+      const emailResult = await sendNdaOtpEmail({
+        toEmail: targetEmail,
+        employeeName: assignment.employeeName,
+        otpCode,
+        ndaCode: assignment.nda.ndaCode,
+        ndaName: assignment.nda.ndaName,
+        clientName: '',
+      });
 
       return {
         success: true,
-        message: `OTP code successfully sent to personal email ${maskPersonalEmail(targetEmail)}. (Valid for 10 mins)`,
+        message: emailResult.success
+          ? `OTP code successfully sent to personal email ${targetEmail}. (Valid for 10 mins)`
+          : `OTP generated for ${targetEmail}. (${emailResult.message})`,
         maskedEmail: maskPersonalEmail(targetEmail),
-        devOtp: otpCode, // Provided in response for easy developer/testing verification
+        targetEmail,
+        devOtp: otpCode,
       };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message || 'Failed to send OTP' });

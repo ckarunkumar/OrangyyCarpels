@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, FileText, AlertCircle } from 'lucide-react';
 import { Employee, Client } from '../../../types/registry';
 
@@ -109,30 +109,37 @@ export default function CreateNdaModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white border border-studio-border rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+    <>
+      {/* Slide-over Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] transition-opacity duration-300"
+      />
+
+      {/* Slide-over Drawer Panel */}
+      <div className="fixed top-0 right-0 z-50 h-full w-full max-w-[560px] bg-white shadow-2xl flex flex-col transition-transform duration-300 animate-in slide-in-from-right">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-studio-border flex justify-between items-center bg-studio-sidebar/50">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-studio-border bg-studio-sidebar shrink-0">
+          <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-orange-50 text-brand-orange border border-orange-100">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-[15px] font-bold text-slate-900">Create New NDA</h3>
-              <p className="text-[11.5px] text-slate-500 font-medium">Assign NDA document to employees for OTP e-signing</p>
+              <h3 className="text-[15px] font-bold text-studio-text">Create New NDA</h3>
+              <p className="text-[11.5px] text-studio-muted font-medium">Assign NDA document to employees for OTP e-signing</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className="p-1 rounded text-studio-muted hover:text-studio-text hover:bg-studio-bg transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-[12.5px]">
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 text-[12.5px]">
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2 font-semibold text-[12px]">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -142,13 +149,13 @@ export default function CreateNdaModal({
 
           {/* Select Client */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-1">
               Select Client <span className="text-red-500">*</span>
             </label>
             <select
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-orange bg-white text-slate-800 font-medium"
+              className="w-full px-3 py-2 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange bg-white text-studio-text font-medium text-[12.5px]"
             >
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -160,7 +167,7 @@ export default function CreateNdaModal({
 
           {/* NDA Name */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-1">
               NDA Document Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -168,48 +175,48 @@ export default function CreateNdaModal({
               value={ndaName}
               onChange={(e) => setNdaName(e.target.value)}
               placeholder="e.g. Mutual Non-Disclosure Agreement - Client"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-orange font-medium text-slate-800"
+              className="w-full px-3 py-2 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange font-medium text-studio-text text-[12.5px]"
             />
           </div>
 
           {/* Document Content */}
           <div>
-            <label className="block text-[11.5px] font-bold uppercase text-slate-600 mb-1">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-1">
               Agreement Terms & Text Content <span className="text-red-500">*</span>
             </label>
             <textarea
-              rows={5}
+              rows={6}
               value={documentContent}
               onChange={(e) => setDocumentContent(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-orange font-mono text-[11.5px] text-slate-700 bg-slate-50/50"
+              className="w-full px-3 py-2 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange font-mono text-[11.5px] text-slate-700 bg-studio-sidebar/30 leading-relaxed"
             />
           </div>
 
           {/* Assign Employees */}
           <div>
             <div className="flex justify-between items-center mb-1.5">
-              <label className="block text-[11.5px] font-bold uppercase text-slate-600">
-                Assign Employees for E-Signing ({selectedEmployees.length}) <span className="text-red-500">*</span>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted">
+                Assign Employees ({selectedEmployees.length}) <span className="text-red-500">*</span>
               </label>
               <button
                 type="button"
                 onClick={handleSelectAllEmployees}
                 className="text-[11px] font-semibold text-brand-orange hover:underline cursor-pointer"
               >
-                {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All Employees'}
+                {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
-            <div className="border border-slate-200 rounded-lg p-2.5 max-h-40 overflow-y-auto divide-y divide-slate-100 bg-slate-50/40 space-y-1">
+            <div className="border border-studio-border rounded-lg p-2 max-h-48 overflow-y-auto divide-y divide-studio-border/50 bg-studio-sidebar/20 space-y-1">
               {employees.length === 0 ? (
-                <p className="text-[11.5px] text-slate-400 italic p-2 text-center">No active employees found.</p>
+                <p className="text-[11.5px] text-studio-muted italic p-2 text-center">No active employees found.</p>
               ) : (
                 employees.map((emp) => {
                   const isChecked = selectedEmployees.includes(emp.employeeId);
                   return (
                     <label
                       key={emp.employeeId}
-                      className="flex items-center justify-between py-1.5 px-2 hover:bg-white rounded cursor-pointer transition-colors"
+                      className="flex items-center justify-between py-1.5 px-2.5 hover:bg-white rounded cursor-pointer transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         <input
@@ -218,12 +225,12 @@ export default function CreateNdaModal({
                           onChange={() => toggleEmployee(emp.employeeId)}
                           className="rounded text-brand-orange focus:ring-brand-orange cursor-pointer"
                         />
-                        <span className="font-semibold text-slate-800">{emp.fullName}</span>
-                        <span className="text-[10px] font-mono font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-200">
+                        <span className="font-semibold text-studio-text">{emp.fullName}</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-500 px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200">
                           {emp.employeeId}
                         </span>
                       </div>
-                      <span className="text-[11px] text-slate-500 font-mono">
+                      <span className="text-[11px] text-studio-muted font-mono truncate max-w-[180px]">
                         {emp.personalEmail || emp.email || 'No email'}
                       </span>
                     </label>
@@ -232,26 +239,27 @@ export default function CreateNdaModal({
               )}
             </div>
           </div>
-
-          {/* Footer buttons */}
-          <div className="pt-3 border-t border-slate-200 flex justify-end gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 transition-colors shadow-sm disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
-            >
-              {submitting ? 'Creating NDA...' : 'Save & Assign NDA'}
-            </button>
-          </div>
         </form>
+
+        {/* Footer */}
+        <div className="px-6 py-3 border-t border-studio-border bg-studio-sidebar flex justify-end gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-studio-muted hover:text-studio-text hover:bg-studio-bg rounded-lg text-[12px] font-semibold transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="px-5 py-2 bg-brand-orange text-white rounded-lg text-[12px] font-bold hover:bg-opacity-90 transition-colors shadow-sm disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+          >
+            {submitting ? 'Creating NDA...' : 'Save & Assign NDA'}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

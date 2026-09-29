@@ -37,8 +37,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetchNotifications();
+    const handleNotificationsUpdated = () => fetchNotifications();
+    window.addEventListener('notifications-updated', handleNotificationsUpdated);
     const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -67,8 +72,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const hasPendingNdaRequest = notifications.some((n) => !n.isRead && n.type === 'nda_signature_request');
-
   const navItems = [
     { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Super Admin', 'Project Manager', 'Employee', 'Client'] },
     { label: 'Timesheets', path: '/timesheets', icon: Clock, roles: ['Super Admin', 'Project Manager', 'Employee'] },
@@ -84,24 +87,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="h-screen max-h-screen overflow-hidden bg-studio-bg flex flex-col font-sans">
-      <UserProfileDrawer open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
-      <NotificationDrawer open={isNotificationOpen} notifications={notifications} onClose={() => setIsNotificationOpen(false)} onSelectNotification={handleSelectNotification} onMarkAllAsRead={handleMarkAllAsRead} />
-
-      {/* Persistent NDA Signature Action Required Top Banner */}
-      {hasPendingNdaRequest && (
-        <div className="bg-amber-600 text-white px-6 py-2 flex items-center justify-between text-[12px] font-bold z-50 shrink-0 shadow-sm">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 shrink-0 text-white" />
-            <span>Action Required: You have a pending Non-Disclosure Agreement (NDA) waiting for your OTP e-signature.</span>
-          </div>
-          <button
-            onClick={() => navigate('/nda')}
-            className="px-3.5 py-1 bg-white text-amber-900 rounded font-bold hover:bg-slate-100 transition-colors text-[11.5px] cursor-pointer shadow-2xs"
-          >
-            Sign NDA Now
-          </button>
-        </div>
-      )}
       <UserProfileDrawer open={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       <NotificationDrawer open={isNotificationOpen} notifications={notifications} onClose={() => setIsNotificationOpen(false)} onSelectNotification={handleSelectNotification} onMarkAllAsRead={handleMarkAllAsRead} />
 
