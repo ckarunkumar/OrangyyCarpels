@@ -129,6 +129,7 @@ export default function EmployeesView({ activeRole }: { activeRole: UserRole }) 
             loading={loading}
             employees={filteredEmployees}
             isAdmin={isAdmin}
+            activeRole={activeRole}
             searchQuery={searchQuery}
             onSelect={(emp) => { setSelectedEmployee(emp); setDetailOpen(true); }}
             onEdit={handleOpenEdit}
