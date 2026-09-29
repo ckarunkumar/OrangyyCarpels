@@ -1,5 +1,4 @@
 import React from 'react';
-import { ShieldCheck } from 'lucide-react';
 
 interface NdaPaperDocumentProps {
   documentContent?: string | null;
@@ -12,7 +11,6 @@ export default function NdaPaperDocument({
   documentContent,
   recipientName,
   signedDate,
-  isSigned = false,
 }: NdaPaperDocumentProps) {
   if (!documentContent) {
     return (
@@ -28,8 +26,28 @@ export default function NdaPaperDocument({
     : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
 
   const replacePlaceholders = (text: string) => {
-    // 1. Split text by placeholders to render bold dynamic tags
     let result: (string | React.ReactNode)[] = [text];
+
+    // Replace Orangyy Design LLP with bold
+    const boldResult: (string | React.ReactNode)[] = [];
+    result.forEach((chunk) => {
+      if (typeof chunk === 'string') {
+        const parts = chunk.split('Orangyy Design LLP');
+        parts.forEach((p, idx) => {
+          boldResult.push(p);
+          if (idx < parts.length - 1) {
+            boldResult.push(
+              <strong key={`company-${idx}`} className="font-bold text-slate-900">
+                Orangyy Design LLP
+              </strong>
+            );
+          }
+        });
+      } else {
+        boldResult.push(chunk);
+      }
+    });
+    result = boldResult;
 
     // Replace _____________________ with recipient name
     if (recipientName) {
@@ -83,44 +101,38 @@ export default function NdaPaperDocument({
     return finalResult;
   };
 
+  // If documentContent is HTML markup
+  if (documentContent.includes('<p>') || documentContent.includes('<div>') || documentContent.includes('<strong>')) {
+    return (
+      <div className="bg-[#f1f5f9] p-6 sm:p-10 rounded-xl border border-slate-200 flex justify-center max-h-[650px] overflow-y-auto">
+        <div className="w-full max-w-[800px] bg-white shadow-md border border-slate-200/90 rounded-sm p-10 sm:p-16 text-slate-900 font-sans leading-[1.7] text-[13.5px]">
+          <div
+            className="space-y-4"
+            dangerouslySetInnerHTML={{ __html: documentContent }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   const lines = documentContent.split('\n');
 
   return (
-    <div className="bg-slate-300/40 p-4 sm:p-8 rounded-xl border border-slate-300 flex justify-center overflow-x-auto">
-      <div className="w-full max-w-[800px] bg-white shadow-xl border border-slate-200/90 rounded-sm p-8 sm:p-14 text-slate-900 font-serif leading-relaxed text-[13.5px] relative">
-        {/* Top Legal Document Header */}
-        <div className="flex items-center justify-between pb-6 border-b border-slate-200 mb-8">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-brand-orange" />
-            <span className="font-sans font-bold text-[13px] text-slate-900 tracking-tight">
-              ORANGYY DESIGN LLP
-            </span>
-          </div>
-          <div className="text-right">
-            <span className="font-sans font-bold text-[10px] uppercase tracking-widest text-slate-500 block">
-              OFFICIAL NDA DOCUMENT
-            </span>
-            {isSigned && (
-              <span className="inline-block mt-0.5 px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded font-sans text-[10px] font-bold">
-                ✓ OTP E-SIGNED
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Content Paragraphs */}
-        <div className="space-y-4 text-justify">
+    <div className="bg-[#f1f5f9] p-6 sm:p-10 rounded-xl border border-slate-200 flex justify-center max-h-[650px] overflow-y-auto">
+      <div className="w-full max-w-[800px] bg-white shadow-md border border-slate-200/90 rounded-sm p-10 sm:p-16 text-slate-900 font-sans leading-[1.7] text-[13.5px] relative">
+        {/* Content Paragraphs matching Image 1 layout */}
+        <div className="space-y-3.5 text-left">
           {lines.map((line, idx) => {
             const trimmed = line.trim();
 
             if (!trimmed) {
-              return <div key={idx} className="h-2" />;
+              return <div key={idx} className="h-1.5" />;
             }
 
             // Main Title
             if (trimmed === 'NON DISCLOSURE AGREEMENT' || trimmed === 'MUTUAL NON-DISCLOSURE AGREEMENT') {
               return (
-                <h1 key={idx} className="text-center font-bold text-[17px] tracking-wide text-slate-900 my-6">
+                <h1 key={idx} className="text-center font-bold text-[15px] tracking-wide text-slate-900 mb-6">
                   {trimmed}
                 </h1>
               );
@@ -129,7 +141,7 @@ export default function NdaPaperDocument({
             // Section titles (1. Confidential Information..., 2. Restrictions..., etc.)
             if (/^\d+\.\s+/.test(trimmed)) {
               return (
-                <h3 key={idx} className="font-bold text-[14px] text-slate-900 mt-6 mb-2 underline">
+                <h3 key={idx} className="font-bold text-[13.5px] text-slate-900 mt-5 mb-1.5 underline">
                   {replacePlaceholders(trimmed)}
                 </h3>
               );
@@ -137,9 +149,11 @@ export default function NdaPaperDocument({
 
             // Subsections (a), (b), etc.
             if (/^\([a-z]\)\s+/.test(trimmed)) {
+              const letter = trimmed.substring(0, 3);
+              const rest = trimmed.substring(3);
               return (
-                <p key={idx} className="pl-4 text-slate-800 leading-relaxed">
-                  {replacePlaceholders(trimmed)}
+                <p key={idx} className="text-slate-900 leading-relaxed">
+                  <strong className="font-bold text-slate-900">{letter}</strong> {replacePlaceholders(rest)}
                 </p>
               );
             }
@@ -147,7 +161,7 @@ export default function NdaPaperDocument({
             // Bold labels like "Project Reference:"
             if (trimmed.startsWith('Project Reference:')) {
               return (
-                <p key={idx} className="text-slate-900 leading-relaxed font-normal">
+                <p key={idx} className="text-slate-900 leading-relaxed">
                   <strong className="font-bold text-slate-900">Project Reference:</strong>{' '}
                   {replacePlaceholders(trimmed.replace('Project Reference:', ''))}
                 </p>
@@ -157,24 +171,18 @@ export default function NdaPaperDocument({
             // Closing signatory line
             if (trimmed.startsWith('IN WITNESS WHEREOF') || trimmed === 'Orangyy Design LLP') {
               return (
-                <div key={idx} className="pt-4 font-bold text-slate-900">
+                <div key={idx} className="pt-3 font-bold text-slate-900">
                   {replacePlaceholders(trimmed)}
                 </div>
               );
             }
 
             return (
-              <p key={idx} className="text-slate-800 leading-relaxed">
+              <p key={idx} className="text-slate-900 leading-relaxed">
                 {replacePlaceholders(trimmed)}
               </p>
             );
           })}
-        </div>
-
-        {/* Bottom Document Footer */}
-        <div className="pt-10 border-t border-slate-200 mt-10 flex justify-between items-center text-[10.5px] font-sans text-slate-500 font-medium">
-          <span>Orangyy Design LLP — Legal Confidentiality Record</span>
-          <span>Security Authentication: OTP E-Sign Verified</span>
         </div>
       </div>
     </div>
