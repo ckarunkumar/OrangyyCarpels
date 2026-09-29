@@ -58,8 +58,8 @@ export default function EmployeeTableRow({
         </div>
 
         {/* 2. NAME */}
-        <div className="col-span-3 min-w-0 pr-2 flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-600 border border-slate-200 shrink-0 overflow-hidden">
+        <div className="col-span-2 min-w-0 pr-2 flex items-center gap-2 font-semibold">
+          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 border border-slate-200 shrink-0 overflow-hidden">
             {emp.avatar ? (
               <img src={emp.avatar} alt={emp.fullName} className="w-full h-full object-cover" />
             ) : (
@@ -153,8 +153,8 @@ export default function EmployeeTableRow({
           </span>
         </div>
 
-        {/* 7. LOGIN TIME (Hug content, text-right, no clipping) */}
-        <div className="col-span-1 min-w-0 text-slate-700 font-medium text-[12px] flex items-center justify-end gap-1.5 text-right whitespace-nowrap">
+        {/* 7. LOGIN TIME (Aligned straight under LOGIN TIME header) */}
+        <div className="col-span-2 min-w-0 text-slate-700 font-medium text-[12px] flex items-center justify-between text-left whitespace-nowrap">
           <span className="whitespace-nowrap font-mono text-[11.5px]" title={emp.loginTime ? formatLoginTime(emp.loginTime) : 'Never logged in'}>
             {formatLoginTime(emp.loginTime)}
           </span>

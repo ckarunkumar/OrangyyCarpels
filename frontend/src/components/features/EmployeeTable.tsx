@@ -29,12 +29,12 @@ export default function EmployeeTable({
       {isSuperAdminOrPM ? (
         <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
           <div className="col-span-1 min-w-[65px]">EMP ID</div>
-          <div className="col-span-3 min-w-0">NAME</div>
+          <div className="col-span-2 min-w-0">NAME</div>
           <div className="col-span-2 min-w-0">SYSTEM ROLE</div>
           <div className="col-span-2 min-w-0">EMAIL</div>
           <div className="col-span-2 min-w-0">PHONE</div>
           <div className="col-span-1 min-w-0">PROJECTS</div>
-          <div className="col-span-1 min-w-0 text-right whitespace-nowrap">LOGIN TIME</div>
+          <div className="col-span-2 min-w-0 whitespace-nowrap">LOGIN TIME</div>
         </div>
       ) : (
         <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
