@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, FileText, CheckCircle2, Clock, Lock, ShieldCheck, Download } from 'lucide-react';
-import NdaPaperDocument from './NdaPaperDocument';
+import { ArrowLeft, CheckCircle2, Clock, Lock, Download } from 'lucide-react';
+import { DEFAULT_OFFICIAL_NDA_HTML } from './CreateNdaFormView';
 
 export interface NDAAssignmentDetail {
   id: string;
@@ -37,6 +37,36 @@ interface NdaDetailViewProps {
   ndaId: string;
   isSuperAdmin?: boolean;
   onBack: () => void;
+}
+
+function personalizeHtmlForPreview(rawHtml: string, assignments: NDAAssignmentDetail[]): string {
+  if (!assignments || assignments.length === 0) {
+    return rawHtml;
+  }
+
+  return assignments.map((a, idx) => {
+    let html = rawHtml;
+    const signedDateStr = a.signedAt || a.otpVerifiedAt
+      ? new Date(a.signedAt || a.otpVerifiedAt!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+
+    const firstPlaceholderRegex = /(and\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
+    if (firstPlaceholderRegex.test(html)) {
+      html = html.replace(firstPlaceholderRegex, `$1<strong style="color: #0F172A;">${a.employeeName}</strong>`);
+    } else {
+      html = html.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong style="color: #0F172A;">${a.employeeName}</strong>`);
+    }
+
+    const secondPlaceholderRegex = /(effective\s+as\s+of\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
+    if (secondPlaceholderRegex.test(html)) {
+      html = html.replace(secondPlaceholderRegex, `$1<strong style="color: #0F172A;">${signedDateStr || '___________'}</strong>`);
+    } else {
+      html = html.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong style="color: #0F172A;">${signedDateStr || '___________'}</strong>`);
+    }
+
+    const separator = idx > 0 ? `<hr style="margin: 32px 0; border: none; border-top: 2px dashed #CBD5E1;" /><div style="margin-bottom: 16px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Recipient Document Copy #${idx + 1} &mdash; ${a.employeeName}</div>` : '';
+    return separator + html;
+  }).join('');
 }
 
 export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: NdaDetailViewProps) {
@@ -223,81 +253,92 @@ export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: N
         </div>
       )}
 
-      {/* Assigned Employees Signature Audit Table */}
-      <div className="border border-studio-border rounded-xl bg-white overflow-hidden shadow-sm space-y-0">
-        <div className="px-5 py-3 bg-slate-50 border-b border-studio-border flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-brand-orange" />
-            <h4 className="text-[13px] font-bold text-slate-900">E-Signature Audit Trail & OTP Delivery Transparency</h4>
-          </div>
-          <span className="text-[11px] text-slate-500 font-medium">
-            Super Admin Audit View (Personal Emails Masked)
-          </span>
-        </div>
-
-        <div className="divide-y divide-studio-border bg-white">
-          <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
-            <div className="col-span-3">EMPLOYEE NAME</div>
-            <div className="col-span-3">OTP PERSONAL EMAIL (MASKED)</div>
-            <div className="col-span-2">OTP SENT AT</div>
-            <div className="col-span-2">OTP VERIFIED / SIGNED AT</div>
-            <div className="col-span-2 text-right">SIGNATURE STATUS</div>
+      {/* Main Single Card Container */}
+      <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs space-y-6">
+        {/* SECTION 1: E-SIGNATURE AUDIT TRAIL */}
+        <div className="space-y-4">
+          {/* Section Heading (Matching Official Agreement Document Format Heading Style) */}
+          <div className="flex justify-between items-center border-b border-studio-border pb-2.5">
+            <h4 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider">
+              E-SIGNATURE AUDIT TRAIL & OTP DELIVERY TRANSPARENCY
+            </h4>
+            <span className="text-[11px] text-slate-500 font-medium">
+              Super Admin Audit View (Personal Emails Masked)
+            </span>
           </div>
 
-          {data.assignments.map((a) => (
-            <div
-              key={a.id}
-              className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors text-[12.5px]"
-            >
-              {/* 1. Employee Name */}
-              <div className="col-span-3 font-semibold text-slate-900 truncate">
-                {a.employeeName} <span className="text-[10px] font-mono text-slate-500">({a.employeeId})</span>
-              </div>
-
-              {/* 2. Masked Email */}
-              <div className="col-span-3 font-mono text-[11.5px] text-slate-700 truncate" title={`OTP delivered to: ${a.maskedEmail}`}>
-                {a.maskedEmail}
-              </div>
-
-              {/* 3. OTP Sent At */}
-              <div className="col-span-2 text-slate-600 font-mono text-[11.5px]">
-                {formatDate(a.otpSentAt)}
-              </div>
-
-              {/* 4. OTP Verified / Signed At */}
-              <div className="col-span-2 text-slate-600 font-mono text-[11.5px]">
-                {formatDate(a.signedAt || a.otpVerifiedAt)}
-              </div>
-
-              {/* 5. Status */}
-              <div className="col-span-2 text-right">
-                {a.status === 'Signed' ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-green-50 text-green-700 border border-green-200">
-                    <CheckCircle2 className="w-3 h-3 text-green-600" />
-                    <span>Signed</span>
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-                    <Clock className="w-3 h-3 text-amber-600" />
-                    <span>Pending OTP</span>
-                  </span>
-                )}
-              </div>
+          {/* Timesheet-Style Table Grid Container (Aligned with Document Width) */}
+          <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-2xs">
+            <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
+              <div className="col-span-3">EMPLOYEE NAME</div>
+              <div className="col-span-3">OTP PERSONAL EMAIL (MASKED)</div>
+              <div className="col-span-2">OTP SENT AT</div>
+              <div className="col-span-2">OTP VERIFIED / SIGNED AT</div>
+              <div className="col-span-2 text-right">SIGNATURE STATUS</div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* NDA Document Preview Box */}
-      <div className="border border-studio-border rounded-xl bg-white p-5 shadow-sm space-y-3">
-        <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-          <h4 className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-brand-orange" /> Official Agreement Document Format
-          </h4>
-          <span className="text-[11px] text-slate-500 font-mono">Immutable Content</span>
+            <div className="divide-y divide-studio-border bg-white">
+              {data.assignments.map((a) => (
+                <div
+                  key={a.id}
+                  className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors text-[12.5px]"
+                >
+                  {/* 1. Employee Name */}
+                  <div className="col-span-3 font-semibold text-slate-900 truncate">
+                    {a.employeeName} <span className="text-[10px] font-mono text-slate-500">({a.employeeId})</span>
+                  </div>
+
+                  {/* 2. Masked Email */}
+                  <div className="col-span-3 font-mono text-[11.5px] text-slate-700 truncate" title={`OTP delivered to: ${a.maskedEmail}`}>
+                    {a.maskedEmail}
+                  </div>
+
+                  {/* 3. OTP Sent At */}
+                  <div className="col-span-2 text-slate-600 font-mono text-[11.5px]">
+                    {formatDate(a.otpSentAt)}
+                  </div>
+
+                  {/* 4. OTP Verified / Signed At */}
+                  <div className="col-span-2 text-slate-600 font-mono text-[11.5px]">
+                    {formatDate(a.signedAt || a.otpVerifiedAt)}
+                  </div>
+
+                  {/* 5. Status */}
+                  <div className="col-span-2 text-right">
+                    {a.status === 'Signed' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-green-50 text-green-700 border border-green-200">
+                        <CheckCircle2 className="w-3 h-3 text-green-600" />
+                        <span>Signed</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>Pending OTP</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="max-h-[500px] overflow-y-auto rounded-lg border border-slate-200">
-          <NdaPaperDocument documentContent={data.documentContent} />
+
+        {/* SECTION 2: OFFICIAL AGREEMENT DOCUMENT FORMAT */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-center border-b border-studio-border pb-2.5">
+            <h4 className="text-[13px] font-bold text-slate-900 uppercase tracking-wider">
+              OFFICIAL AGREEMENT DOCUMENT FORMAT
+            </h4>
+            <span className="text-[12px] font-mono text-slate-600 font-medium">
+              {formatDate(data.createdAt)}
+            </span>
+          </div>
+
+          {/* Read-Only Document Container */}
+          <div
+            className="w-full bg-white border border-studio-border rounded-lg p-7 sm:p-10 text-slate-900 font-sans leading-[1.7] text-[13px] focus:outline-none overflow-y-auto max-h-[460px] min-h-[460px] select-text shadow-2xs"
+            dangerouslySetInnerHTML={{ __html: personalizeHtmlForPreview(data.documentContent || DEFAULT_OFFICIAL_NDA_HTML, data.assignments) }}
+          />
         </div>
       </div>
     </div>

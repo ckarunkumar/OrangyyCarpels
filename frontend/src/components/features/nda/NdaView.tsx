@@ -16,7 +16,6 @@ interface NdaViewProps {
 
 export default function NdaView({ activeRole }: NdaViewProps) {
   const { searchQuery, setSearchPlaceholder } = useSearch();
-  const isSuperAdminOrPM = activeRole === 'Super Admin' || activeRole === 'Project Manager';
   const isSuperAdmin = activeRole === 'Super Admin';
 
   // Navigation states for SA flow
@@ -62,7 +61,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
 
   // Fetch registries for creation view
   useEffect(() => {
-    if (isSuperAdminOrPM) {
+    if (isSuperAdmin) {
       fetchClientSummaries();
       fetch('/api/clients')
         .then((r) => (r.ok ? r.json() : []))
@@ -124,7 +123,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
   };
 
   // Employee View
-  if (!isSuperAdminOrPM) {
+  if (!isSuperAdmin) {
     return (
       <div className="w-full space-y-5 animate-in fade-in duration-200">
         <Breadcrumbs items={[{ label: 'NDA E-Signing History' }]} />

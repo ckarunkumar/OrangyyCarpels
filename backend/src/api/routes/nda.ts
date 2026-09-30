@@ -578,7 +578,36 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
     }
   });
 
-  // 9. Export NDA as Word / PDF with Signature Audit Trail
+function formatDateSimple(dStr?: Date | string | null): string {
+  if (!dStr) return '';
+  const d = new Date(dStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function personalizeDocumentHtml(html: string, recipientName: string, signedDateStr: string): string {
+  let personalized = html || '';
+
+  // 1. Replace first placeholder after "and" with recipientName
+  const firstPlaceholderRegex = /(and\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
+  if (firstPlaceholderRegex.test(personalized)) {
+    personalized = personalized.replace(firstPlaceholderRegex, `$1<strong>${recipientName}</strong>`);
+  } else {
+    personalized = personalized.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong>${recipientName}</strong>`);
+  }
+
+  // 2. Replace second placeholder after "effective as of" with signedDateStr
+  const secondPlaceholderRegex = /(effective\s+as\s+of\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
+  if (secondPlaceholderRegex.test(personalized)) {
+    personalized = personalized.replace(secondPlaceholderRegex, `$1<strong>${signedDateStr}</strong>`);
+  } else {
+    personalized = personalized.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong>${signedDateStr}</strong>`);
+  }
+
+  return personalized;
+}
+
+  // 9. Export NDA as Word / PDF with Dynamic Signature Audit Trail
   fastify.get('/ndas/:id/export/:format', async (request, reply) => {
     try {
       const { id, format } = request.params as { id: string; format: string };
@@ -591,16 +620,59 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
         return reply.status(404).send({ error: 'NDA not found' });
       }
 
-      const auditRows = nda.assignments.map((a) => `
-        <tr>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${a.employeeName} (${a.employeeId})</td>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${maskPersonalEmail(a.personalEmail)}</td>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${a.status}</td>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${a.otpVerifiedAt ? new Date(a.otpVerifiedAt).toLocaleString() : '—'}</td>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${a.signedAt ? new Date(a.signedAt).toLocaleString() : '—'}</td>
-          <td style="padding: 8px; border: 1px solid #CBD5E1;">${a.ipAddress || '—'}</td>
-        </tr>
-      `).join('');
+      const targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+
+      let documentPagesHtml = '';
+
+      if (targetAssignments.length > 0) {
+        documentPagesHtml = targetAssignments.map((a, idx) => {
+          const signedTimestamp = a.signedAt || a.otpVerifiedAt || a.createdAt;
+          const signedDateStr = formatDateSimple(signedTimestamp);
+          const personalizedContent = personalizeDocumentHtml(
+            nda.documentContent || '',
+            a.employeeName,
+            signedDateStr
+          );
+
+          const isSigned = a.status === 'Signed' || Boolean(a.signedAt);
+          const pageBreak = idx > 0 ? 'style="page-break-before: always; margin-top: 40px; padding-top: 40px; border-top: 2px dashed #CBD5E1;"' : '';
+
+          return `
+            <div class="nda-page" ${pageBreak}>
+              <div class="doc-header">
+                <h2>OFFICIAL NON-DISCLOSURE AGREEMENT</h2>
+                <p><strong>Document Code:</strong> ${nda.ndaCode} &nbsp;|&nbsp; <strong>Client:</strong> ${nda.client?.name || ''}</p>
+                <p><strong>Assigned Recipient:</strong> ${a.employeeName} (${a.employeeId}) &nbsp;|&nbsp; <strong>Status:</strong> <span class="badge ${isSigned ? 'badge-signed' : 'badge-pending'}">${isSigned ? 'Signed' : 'Pending Signature'}</span></p>
+              </div>
+              <div class="document-body">
+                ${personalizedContent}
+              </div>
+              <div class="certificate-box">
+                <h3>E-SIGNATURE COMPLETION CERTIFICATE</h3>
+                <table>
+                  <tr><th>Recipient Name</th><td>${a.employeeName} (${a.employeeId})</td></tr>
+                  <tr><th>Personal Email (Masked)</th><td>${maskPersonalEmail(a.personalEmail)}</td></tr>
+                  <tr><th>OTP Verified / Signed At</th><td>${a.signedAt || a.otpVerifiedAt ? new Date(a.signedAt || a.otpVerifiedAt!).toLocaleString('en-GB') : '—'}</td></tr>
+                  <tr><th>IP Address</th><td>${a.ipAddress || '—'}</td></tr>
+                  <tr><th>Verification Protocol</th><td>SHA-256 Hashed 6-Digit OTP Authentication</td></tr>
+                </table>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        documentPagesHtml = `
+          <div class="nda-page">
+            <div class="doc-header">
+              <h2>OFFICIAL NON-DISCLOSURE AGREEMENT</h2>
+              <p><strong>Document Code:</strong> ${nda.ndaCode} &nbsp;|&nbsp; <strong>Client:</strong> ${nda.client?.name || ''}</p>
+            </div>
+            <div class="document-body">
+              ${nda.documentContent || 'N/A'}
+            </div>
+          </div>
+        `;
+      }
 
       const exportHtml = `
         <!DOCTYPE html>
@@ -609,42 +681,24 @@ export const ndaRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) =>
           <meta charset="utf-8"/>
           <title>${nda.ndaCode} - ${nda.ndaName}</title>
           <style>
-            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1E293B; line-height: 1.6; }
-            h1 { color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px; }
-            .badge { display: inline-block; padding: 4px 12px; background: #EFF6FF; color: #1D4ED8; border-radius: 4px; font-weight: bold; }
-            .content-box { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 20px; border-radius: 8px; margin: 20px 0; white-space: pre-wrap; font-family: monospace; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
-            th { background: #F1F5F9; text-align: left; padding: 8px; border: 1px solid #CBD5E1; font-weight: bold; }
+            @media print {
+              body { padding: 0; }
+              .nda-page { page-break-after: always; }
+            }
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1E293B; line-height: 1.6; background: #fff; }
+            h2 { color: #0F172A; border-bottom: 2px solid #EA580C; padding-bottom: 8px; font-size: 18px; margin-top: 0; }
+            h3 { color: #0F172A; font-size: 14px; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #E2E8F0; padding-bottom: 4px; }
+            .badge { display: inline-block; padding: 2px 8px; background: #DCFCE7; color: #15803D; border-radius: 4px; font-weight: bold; font-size: 11px; }
+            .doc-header { margin-bottom: 20px; font-size: 12px; color: #64748B; background: #F8FAFC; padding: 16px; border-radius: 8px; border: 1px solid #E2E8F0; }
+            .document-body { background: #FFFFFF; border: 1px solid #E2E8F0; padding: 30px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #0F172A; line-height: 1.7; }
+            .certificate-box { margin-top: 30px; padding: 20px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+            th { background: #F1F5F9; text-align: left; padding: 8px 12px; border: 1px solid #CBD5E1; font-weight: bold; color: #334155; }
+            td { padding: 8px 12px; border: 1px solid #CBD5E1; color: #1E293B; }
           </style>
         </head>
         <body>
-          <h1>NON-DISCLOSURE AGREEMENT (NDA)</h1>
-          <p><strong>Document Code:</strong> ${nda.ndaCode}</p>
-          <p><strong>Document Name:</strong> ${nda.ndaName}</p>
-          <p><strong>Client:</strong> ${nda.client?.name || ''}</p>
-          <p><strong>Status:</strong> <span class="badge">${nda.status}</span></p>
-          <p><strong>Creation Date:</strong> ${new Date(nda.createdAt).toLocaleString()}</p>
-          
-          <h2>AGREEMENT CONTENT</h2>
-          <div class="content-box">${nda.documentContent || 'N/A'}</div>
-
-          <h2>E-SIGNATURE AUDIT TRAIL & COMPLETION CERTIFICATE</h2>
-          <p>Verified via OTP authentication to personal email address on record.</p>
-          <table>
-            <thead>
-              <tr>
-                <th>Employee Name</th>
-                <th>Personal Email (Masked)</th>
-                <th>Status</th>
-                <th>OTP Verified At</th>
-                <th>Signed Timestamp</th>
-                <th>IP Address</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${auditRows}
-            </tbody>
-          </table>
+          ${documentPagesHtml}
         </body>
         </html>
       `;
