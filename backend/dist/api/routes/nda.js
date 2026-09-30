@@ -547,12 +547,19 @@ const ndaRoutes = async (fastify) => {
             if (!nda) {
                 return reply.status(404).send({ error: 'NDA not found' });
             }
-            let targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+            // Export ONLY documents for employees who have signed
+            const signedAssignments = nda.assignments.filter((a) => a.status === 'Signed' || Boolean(a.signedAt));
+            let targetAssignments = signedAssignments;
             if (assignmentId) {
                 targetAssignments = targetAssignments.filter((a) => a.id === assignmentId);
             }
             else if (employeeId) {
                 targetAssignments = targetAssignments.filter((a) => a.employeeId === employeeId);
+            }
+            if (targetAssignments.length === 0) {
+                return reply.status(400).send({
+                    error: 'No signed NDA documents available to export. Only signed documents can be exported.',
+                });
             }
             let documentPagesHtml = '';
             if (targetAssignments.length > 0) {

@@ -39,35 +39,7 @@ interface NdaDetailViewProps {
   onBack: () => void;
 }
 
-function personalizeHtmlForPreview(rawHtml: string, assignments: NDAAssignmentDetail[]): string {
-  if (!assignments || assignments.length === 0) {
-    return rawHtml;
-  }
 
-  return assignments.map((a, idx) => {
-    let html = rawHtml;
-    const signedDateStr = a.signedAt || a.otpVerifiedAt
-      ? new Date(a.signedAt || a.otpVerifiedAt!).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-      : '';
-
-    const firstPlaceholderRegex = /(and\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
-    if (firstPlaceholderRegex.test(html)) {
-      html = html.replace(firstPlaceholderRegex, `$1<strong style="color: #0F172A;">${a.employeeName}</strong>`);
-    } else {
-      html = html.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong style="color: #0F172A;">${a.employeeName}</strong>`);
-    }
-
-    const secondPlaceholderRegex = /(effective\s+as\s+of\s*(?:<[^>]+>)*\s*)(_{2,}|-{2,}|—+|–+|<u[^>]*>[\s\S]*?<\/u>)/i;
-    if (secondPlaceholderRegex.test(html)) {
-      html = html.replace(secondPlaceholderRegex, `$1<strong style="color: #0F172A;">${signedDateStr || '___________'}</strong>`);
-    } else {
-      html = html.replace(/(_{3,}|-{3,}|—+|–+)/i, `<strong style="color: #0F172A;">${signedDateStr || '___________'}</strong>`);
-    }
-
-    const separator = idx > 0 ? `<hr style="margin: 32px 0; border: none; border-top: 2px dashed #CBD5E1;" /><div style="margin-bottom: 16px; font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase;">Recipient Document Copy #${idx + 1} &mdash; ${a.employeeName}</div>` : '';
-    return separator + html;
-  }).join('');
-}
 
 export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: NdaDetailViewProps) {
   const [data, setData] = useState<NDADetailData | null>(null);
@@ -337,7 +309,7 @@ export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: N
           {/* Read-Only Document Container */}
           <div
             className="w-full bg-white border border-studio-border rounded-lg p-7 sm:p-10 text-slate-900 font-sans leading-[1.7] text-[13px] focus:outline-none overflow-y-auto max-h-[460px] min-h-[460px] select-text shadow-2xs"
-            dangerouslySetInnerHTML={{ __html: personalizeHtmlForPreview(data.documentContent || DEFAULT_OFFICIAL_NDA_HTML, data.assignments) }}
+            dangerouslySetInnerHTML={{ __html: data.documentContent || DEFAULT_OFFICIAL_NDA_HTML }}
           />
         </div>
       </div>
