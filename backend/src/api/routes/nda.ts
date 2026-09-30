@@ -611,6 +611,8 @@ function personalizeDocumentHtml(html: string, recipientName: string, signedDate
   fastify.get('/ndas/:id/export/:format', async (request, reply) => {
     try {
       const { id, format } = request.params as { id: string; format: string };
+      const { assignmentId, employeeId } = request.query as { assignmentId?: string; employeeId?: string };
+
       const nda = await prisma.nDA.findUnique({
         where: { id },
         include: { client: true, assignments: true },
@@ -620,7 +622,13 @@ function personalizeDocumentHtml(html: string, recipientName: string, signedDate
         return reply.status(404).send({ error: 'NDA not found' });
       }
 
-      const targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+      let targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+
+      if (assignmentId) {
+        targetAssignments = targetAssignments.filter((a) => a.id === assignmentId);
+      } else if (employeeId) {
+        targetAssignments = targetAssignments.filter((a) => a.employeeId === employeeId);
+      }
 
       let documentPagesHtml = '';
 

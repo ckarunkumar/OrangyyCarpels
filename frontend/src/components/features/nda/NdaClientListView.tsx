@@ -93,30 +93,30 @@ export default function NdaClientListView({
   const getStatusBadge = (status: string, rawStatus: string) => {
     if (rawStatus === 'Closed' || status.includes('Closed')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
-          <Lock className="w-3 h-3 text-slate-600" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-100 text-slate-700 border border-slate-300 whitespace-nowrap shrink-0">
+          <Lock className="w-3 h-3 text-slate-600 shrink-0" />
           <span>Closed</span>
         </span>
       );
     }
     if (status.includes('Submitted') && !status.includes('Partially')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-          <CheckCircle2 className="w-3 h-3 text-blue-600" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap shrink-0">
+          <CheckCircle2 className="w-3 h-3 text-blue-600 shrink-0" />
           <span>{status}</span>
         </span>
       );
     }
     if (status.includes('Partially')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-300">
-          <Clock className="w-3 h-3 text-amber-600" />
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-800 border border-amber-300 whitespace-nowrap shrink-0">
+          <Clock className="w-3 h-3 text-amber-600 shrink-0" />
           <span>{status}</span>
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-50 text-slate-600 border border-slate-200">
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-slate-50 text-slate-600 border border-slate-200 whitespace-nowrap shrink-0">
         <span>Draft</span>
       </span>
     );
@@ -218,12 +218,12 @@ export default function NdaClientListView({
       {/* NDA Grid */}
       <div className="border border-studio-border rounded-lg bg-white overflow-hidden shadow-sm">
         <div className="bg-studio-sidebar border-b border-studio-border px-5 py-2.5 text-[10px] font-bold text-studio-muted uppercase tracking-wider grid grid-cols-12 gap-3 items-center shrink-0">
-          <div className="col-span-2">NDA CODE</div>
+          <div className="col-span-1 min-w-[70px]">NDA CODE</div>
           <div className="col-span-3">NDA NAME</div>
           <div className="col-span-2">CREATION DATE</div>
           <div className="col-span-2">SUBMITTED DATE</div>
           <div className="col-span-1 text-center">ASSIGNED</div>
-          <div className="col-span-2">STATUS</div>
+          <div className="col-span-3">STATUS</div>
         </div>
 
         <div className="divide-y divide-studio-border bg-white">
@@ -254,8 +254,8 @@ export default function NdaClientListView({
                   className="group grid grid-cols-12 gap-3 px-5 py-3.5 items-center hover:bg-studio-hover/40 transition-colors cursor-pointer text-[12.5px]"
                 >
                   {/* 1. NDA Code */}
-                  <div className="col-span-2">
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-orange-200 bg-orange-50 text-brand-orange inline-block">
+                  <div className="col-span-1 min-w-[70px]">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-orange-200 bg-orange-50 text-brand-orange inline-block whitespace-nowrap">
                       {nda.ndaCode}
                     </span>
                   </div>
@@ -283,9 +283,9 @@ export default function NdaClientListView({
                     </span>
                   </div>
 
-                  {/* 6. STATUS (Aligned under STATUS header, with hover Edit/Delete icons) */}
-                  <div className="col-span-2 flex items-center justify-between min-w-0 pr-1">
-                    <div>
+                  {/* 6. STATUS (Expanded to col-span-3 to hug content cleanly on 1 line) */}
+                  <div className="col-span-3 flex items-center justify-between min-w-0 pr-1 gap-2">
+                    <div className="shrink-0">
                       {getStatusBadge(nda.status, nda.rawStatus)}
                     </div>
 

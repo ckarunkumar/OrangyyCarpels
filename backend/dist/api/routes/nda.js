@@ -539,6 +539,7 @@ const ndaRoutes = async (fastify) => {
     fastify.get('/ndas/:id/export/:format', async (request, reply) => {
         try {
             const { id, format } = request.params;
+            const { assignmentId, employeeId } = request.query;
             const nda = await prisma_1.prisma.nDA.findUnique({
                 where: { id },
                 include: { client: true, assignments: true },
@@ -546,7 +547,13 @@ const ndaRoutes = async (fastify) => {
             if (!nda) {
                 return reply.status(404).send({ error: 'NDA not found' });
             }
-            const targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+            let targetAssignments = nda.assignments.length > 0 ? nda.assignments : [];
+            if (assignmentId) {
+                targetAssignments = targetAssignments.filter((a) => a.id === assignmentId);
+            }
+            else if (employeeId) {
+                targetAssignments = targetAssignments.filter((a) => a.employeeId === employeeId);
+            }
             let documentPagesHtml = '';
             if (targetAssignments.length > 0) {
                 documentPagesHtml = targetAssignments.map((a, idx) => {

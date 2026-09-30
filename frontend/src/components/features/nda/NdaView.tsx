@@ -8,7 +8,7 @@ import NdaDetailView from './NdaDetailView';
 import CreateNdaFormView, { EditingNDAData } from './CreateNdaFormView';
 import EmployeeNdaView from './EmployeeNdaView';
 import { Client, Employee } from '../../../types/registry';
-import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 interface NdaViewProps {
   activeRole: UserRole;
@@ -125,18 +125,7 @@ export default function NdaView({ activeRole }: NdaViewProps) {
   // Employee View
   if (!isSuperAdmin) {
     return (
-      <div className="w-full space-y-5 animate-in fade-in duration-200">
-        <Breadcrumbs items={[{ label: 'NDA E-Signing History' }]} />
-        <div className="border-b border-studio-border pb-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-orange-50 text-brand-orange border border-orange-100">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
-            </div>
-          </div>
-        </div>
+      <div className="w-full animate-in fade-in duration-200">
         <EmployeeNdaView searchQuery={searchQuery} />
       </div>
     );

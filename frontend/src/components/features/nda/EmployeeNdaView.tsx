@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, CheckCircle2, Clock, Download, ShieldCheck } from 'lucide-react';
 import NdaSigningModal from './NdaSigningModal';
+import Breadcrumbs from '../../ui/Breadcrumbs';
 
 export interface EmployeeNDAItem {
   assignmentId: string;
@@ -56,8 +57,9 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleDownloadSigned = (ndaId: string) => {
-    window.open(`/api/ndas/${ndaId}/export/pdf`, '_blank');
+  const handleDownloadSigned = (ndaId: string, assignmentId?: string) => {
+    const query = assignmentId ? `?assignmentId=${assignmentId}` : '';
+    window.open(`/api/ndas/${ndaId}/export/pdf${query}`, '_blank');
   };
 
   const formatDate = (dateStr?: string | null) => {
@@ -82,9 +84,15 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
   const pendingNdas = ndas.filter((n) => n.status === 'Pending Signature');
   const firstPendingNda = pendingNdas[0];
 
-  return (
-    <>
-      {signingItem && (
+  if (signingItem) {
+    return (
+      <div className="w-full space-y-4 animate-in fade-in duration-200">
+        <Breadcrumbs
+          items={[
+            { label: 'Non Disclosure Agreement', onClick: () => setSigningItem(null) },
+            { label: 'Sign NDA' },
+          ]}
+        />
         <NdaSigningModal
           open={Boolean(signingItem)}
           assignmentId={signingItem.assignmentId}
@@ -96,7 +104,16 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
           onClose={() => setSigningItem(null)}
           onSigned={handleSignedSuccess}
         />
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-4 animate-in fade-in duration-200">
+      <Breadcrumbs items={[{ label: 'NDA E-Signing History' }]} />
+      <div className="border-b border-studio-border pb-3">
+        <h2 className="text-[20px] font-bold tracking-tight text-studio-text">Non Disclosure Agreement</h2>
+      </div>
 
       <div className="space-y-4">
         {pendingNdas.length > 0 && (
@@ -114,7 +131,7 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
               onClick={() => handleOpenSigning(firstPendingNda)}
               className="px-3.5 py-1.5 bg-brand-orange hover:bg-opacity-90 text-white rounded-lg font-bold text-[11.5px] transition-colors cursor-pointer shadow-2xs shrink-0"
             >
-              Sign NDA Now
+              Sign NDA
             </button>
           </div>
         )}
@@ -199,7 +216,7 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
                     {nda.status === 'Signed' ? (
                       <button
                         type="button"
-                        onClick={() => handleDownloadSigned(nda.ndaId)}
+                        onClick={() => handleDownloadSigned(nda.ndaId, nda.assignmentId)}
                         className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 rounded text-[11.5px] font-bold transition-colors cursor-pointer"
                         title="Download Signed NDA Document"
                       >
@@ -211,7 +228,7 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
                         onClick={() => handleOpenSigning(nda)}
                         className="flex items-center gap-1 px-3.5 py-1 bg-brand-orange text-white rounded text-[11.5px] font-bold hover:bg-opacity-90 transition-colors shadow-2xs cursor-pointer"
                       >
-                        <ShieldCheck className="w-3.5 h-3.5" /> Sign Now
+                        <ShieldCheck className="w-3.5 h-3.5" /> Sign NDA
                       </button>
                     )}
                   </div>
@@ -221,6 +238,6 @@ export default function EmployeeNdaView({ searchQuery }: EmployeeNdaViewProps) {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
