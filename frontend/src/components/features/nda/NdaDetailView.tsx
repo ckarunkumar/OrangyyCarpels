@@ -114,106 +114,114 @@ export default function NdaDetailView({ ndaId, isSuperAdmin = false, onBack }: N
     );
   }
 
+  const getHeaderTitle = (ndaName: string, clientName: string) => {
+    if (!clientName) return ndaName;
+    const baseTitle = ndaName.replace(new RegExp(`\\s*-\\s*${clientName}`, 'i'), '').trim();
+    if (baseTitle.toLowerCase().startsWith(clientName.toLowerCase())) {
+      return baseTitle;
+    }
+    return `${clientName} - ${baseTitle}`;
+  };
+
+  const renderTimesheetStatusBadge = (statusStr: string, isClosed: boolean, signedCount: number, totalCount: number) => {
+    if (isClosed || statusStr.includes('Closed')) {
+      return (
+        <span className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-block max-w-full truncate bg-slate-100 text-slate-700 border-slate-300">
+          Closed
+        </span>
+      );
+    }
+    if (statusStr.includes('Submitted') && !statusStr.includes('Partially')) {
+      return (
+        <span className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-block max-w-full truncate bg-blue-50 text-blue-700 border-blue-200">
+          Submitted ({signedCount}/{totalCount})
+        </span>
+      );
+    }
+    if (statusStr.includes('Partially')) {
+      return (
+        <span className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-block max-w-full truncate bg-amber-50 text-amber-800 border-amber-300">
+          Partially Submitted ({signedCount}/{totalCount})
+        </span>
+      );
+    }
+    return (
+      <span className="text-[11px] font-semibold px-3 py-1 rounded-full border inline-block max-w-full truncate bg-amber-50 text-amber-800 border-amber-300">
+        Draft
+      </span>
+    );
+  };
+
   const isAllSigned = data.signedCount === data.totalCount && data.totalCount > 0;
   const canClose = !data.isClosed && isAllSigned;
+  const headerTitle = getHeaderTitle(data.ndaName, data.clientName);
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
-      {/* Top Header Card */}
-      <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors cursor-pointer"
-              title="Back to NDA List"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-orange-200 bg-orange-50 text-brand-orange">
-                  {data.ndaCode}
-                </span>
-                <h2 className="text-[18px] font-bold text-slate-900">{data.ndaName}</h2>
-              </div>
-              <p className="text-[12px] text-slate-500 font-medium mt-0.5">
-                Client: <span className="font-semibold text-slate-800">{data.clientName}</span> ({data.clientId})
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Export buttons */}
-            <button
-              type="button"
-              onClick={() => handleExport('word')}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5 text-blue-600" /> Export Word
-            </button>
-            <button
-              type="button"
-              onClick={() => handleExport('pdf')}
-              className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-[12px] font-semibold transition-colors cursor-pointer shadow-2xs"
-            >
-              <Download className="w-3.5 h-3.5 text-red-600" /> Export PDF
-            </button>
-
-            {/* Close NDA button (Super Admin only) */}
-            {data.isClosed ? (
-              <span className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[12px] font-bold">
-                <Lock className="w-3.5 h-3.5 text-slate-600" /> Closed & Locked
-              </span>
-            ) : isSuperAdmin ? (
-              <button
-                type="button"
-                onClick={handleCloseNDA}
-                disabled={!canClose || closing}
-                title={canClose ? 'Close NDA & Lock Permanently' : 'All assigned employees must sign before closing'}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[12px] font-bold transition-all shadow-sm cursor-pointer ${
-                  canClose
-                    ? 'bg-slate-900 text-white hover:bg-slate-800'
-                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
-                }`}
-              >
-                <Lock className="w-3.5 h-3.5" />
-                {closing ? 'Closing NDA...' : 'Close NDA'}
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[12px]">
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <span className="block text-[10px] font-bold uppercase text-slate-500">Status</span>
-            <span className="font-bold text-slate-900 text-[13px]">{data.status}</span>
-          </div>
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <span className="block text-[10px] font-bold uppercase text-slate-500">Creation Date</span>
-            <span className="font-semibold text-slate-800">{formatDate(data.createdAt)}</span>
-          </div>
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <span className="block text-[10px] font-bold uppercase text-slate-500">Full Completion Date</span>
-            <span className="font-semibold text-slate-800">{formatDate(data.submittedAt)}</span>
-          </div>
-          <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-            <span className="block text-[10px] font-bold uppercase text-slate-500">Signed Progress</span>
-            <span className="font-bold text-brand-orange text-[13px]">
-              {data.signedCount} of {data.totalCount} Signed
+      {/* 1. Page Header (Matches standard header layout without card container) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 rounded-lg border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text transition-colors cursor-pointer"
+            title="Back to NDA List"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-[20px] font-bold tracking-tight text-studio-text">
+              {headerTitle}
+            </h2>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border border-orange-200 bg-orange-50 text-brand-orange shrink-0">
+              {data.ndaCode}
             </span>
           </div>
         </div>
 
-        {actionMsg && (
-          <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-[12px] font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-            <span>{actionMsg}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Timesheet Status Badge (Positioned before Export PDF) */}
+          {renderTimesheetStatusBadge(data.status, data.isClosed, data.signedCount, data.totalCount)}
+
+          {/* Export PDF */}
+          <button
+            type="button"
+            onClick={() => handleExport('pdf')}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 border border-studio-border bg-white hover:bg-studio-sidebar text-studio-text rounded-lg text-[12px] font-semibold transition-colors cursor-pointer shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5 text-red-600" /> Export PDF
+          </button>
+
+          {/* Close NDA */}
+          {data.isClosed ? (
+            <span className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-[12px] font-bold">
+              <Lock className="w-3.5 h-3.5 text-slate-600" /> Closed & Locked
+            </span>
+          ) : isSuperAdmin ? (
+            <button
+              type="button"
+              onClick={handleCloseNDA}
+              disabled={!canClose || closing}
+              title={canClose ? 'Close NDA & Lock Permanently' : 'All assigned employees must sign before closing'}
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all shadow-sm cursor-pointer ${
+                canClose
+                  ? 'bg-slate-900 text-white hover:bg-slate-800'
+                  : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              {closing ? 'Closing NDA...' : 'Close NDA'}
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {actionMsg && (
+        <div className="p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-[12px] font-semibold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+          <span>{actionMsg}</span>
+        </div>
+      )}
 
       {/* Assigned Employees Signature Audit Table */}
       <div className="border border-studio-border rounded-xl bg-white overflow-hidden shadow-sm space-y-0">
