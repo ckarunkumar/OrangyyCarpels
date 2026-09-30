@@ -3,7 +3,6 @@ import {
   ArrowLeft,
   RotateCcw,
   CheckCircle2,
-  Search,
   Undo2,
   Redo2,
   Bold,
@@ -114,7 +113,6 @@ export default function CreateNdaFormView({
   const [ndaName, setNdaName] = useState('');
   const [documentContent, setDocumentContent] = useState(DEFAULT_OFFICIAL_NDA_HTML);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
-  const [empSearch, setEmpSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -236,17 +234,12 @@ export default function CreateNdaFormView({
     }
   };
 
-  const filteredEmployees = employees.filter(
-    (e) =>
-      !empSearch ||
-      e.fullName.toLowerCase().includes(empSearch.toLowerCase()) ||
-      e.employeeId.toLowerCase().includes(empSearch.toLowerCase()) ||
-      (e.personalEmail && e.personalEmail.toLowerCase().includes(empSearch.toLowerCase()))
-  );
+  const currentClientObj = clients.find((c) => c.id === selectedClientId || c.id === clientId);
+  const currentClientName = currentClientObj?.name;
 
   return (
     <div className="w-full space-y-5 animate-in fade-in duration-200 pb-12">
-      {/* 1. Header (Matching Application Standard Header) */}
+      {/* 1. Page Header (Shows ONLY Client Name) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-studio-border pb-3">
         <div className="flex items-center gap-3">
           <button
@@ -258,7 +251,7 @@ export default function CreateNdaFormView({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h2 className="text-[20px] font-bold tracking-tight text-studio-text">
-            {editingNda ? `Edit NDA (${editingNda.ndaCode})` : 'Create New NDA'}
+            {currentClientName || (editingNda ? `Edit NDA (${editingNda.ndaCode})` : 'Create New NDA')}
           </h2>
         </div>
 
@@ -294,310 +287,269 @@ export default function CreateNdaFormView({
         </div>
       )}
 
-      {/* 2. Balanced Layout Grid (Left and Right match total height) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        {/* Left Column (4 Cols): Basic Agreement Details & Assign Employees */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
-          {/* Basic Details Card */}
-          <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs space-y-4">
-            <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text border-b border-studio-border pb-2">
-              BASIC AGREEMENT DETAILS
-            </h3>
-
-            {/* Select Client */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-1">
-                SELECT CLIENT <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedClientId}
-                onChange={(e) => setSelectedClientId(e.target.value)}
-                disabled={Boolean(editingNda)}
-                className="w-full px-3 py-2 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange bg-white text-studio-text font-medium text-[12.5px] disabled:bg-slate-100"
-              >
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.id})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* NDA Title */}
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-studio-muted mb-1">
-                NDA DOCUMENT TITLE <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={ndaName}
-                onChange={(e) => setNdaName(e.target.value)}
-                placeholder="e.g. Mutual Non-Disclosure Agreement - Client"
-                className="w-full px-3 py-2 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange font-medium text-studio-text text-[12.5px]"
-              />
-            </div>
-          </div>
-
-          {/* Assign Employees Card */}
-          <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs space-y-3 flex-1 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between border-b border-studio-border pb-2 mb-3">
-                <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text">
-                  ASSIGN EMPLOYEES ({selectedEmployees.length}) <span className="text-red-500">*</span>
-                </h3>
-                <button
-                  type="button"
-                  onClick={handleSelectAllEmployees}
-                  className="text-[11.5px] font-bold text-brand-orange hover:underline cursor-pointer"
-                >
-                  {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-
-              {/* Search Input */}
-              <div className="relative mb-2">
-                <Search className="w-3.5 h-3.5 text-studio-muted absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={empSearch}
-                  onChange={(e) => setEmpSearch(e.target.value)}
-                  placeholder="Search employee by name or ID..."
-                  className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange bg-studio-sidebar/40"
-                />
-              </div>
-
-              {/* Employee Checkbox List */}
-              <div className="border border-studio-border rounded-lg divide-y divide-studio-border/50 max-h-[300px] overflow-y-auto bg-studio-sidebar/20">
-                {filteredEmployees.length === 0 ? (
-                  <p className="text-[12px] text-studio-muted italic p-4 text-center">No matching employees found.</p>
-                ) : (
-                  filteredEmployees.map((emp) => {
-                    const isChecked = selectedEmployees.includes(emp.employeeId);
-                    return (
-                      <label
-                        key={emp.employeeId}
-                        className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
-                          isChecked ? 'bg-orange-50/60 font-semibold' : 'hover:bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleEmployee(emp.employeeId)}
-                            className="rounded text-brand-orange focus:ring-brand-orange cursor-pointer w-4 h-4 shrink-0"
-                          />
-                          <div className="truncate">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[12.5px] text-studio-text font-semibold truncate">{emp.fullName}</span>
-                              <span className="text-[10px] font-mono font-bold text-slate-600 px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 shrink-0">
-                                {emp.employeeId}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-studio-muted font-mono truncate">
-                              {emp.personalEmail || emp.email || 'No email registered'}
-                            </p>
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-            </div>
+      {/* 2. Single Merged Container */}
+      <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs space-y-5">
+        {/* Top Header Row: CREATE NEW NDA Heading on left & Title input straight on right (Label Removed) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-studio-border pb-4">
+          <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text shrink-0">
+            {editingNda ? 'EDIT NDA' : 'CREATE NEW NDA'}
+          </h3>
+          <div className="flex items-center gap-3 flex-1 max-w-md sm:justify-end">
+            <input
+              type="text"
+              value={ndaName}
+              onChange={(e) => setNdaName(e.target.value)}
+              placeholder="Mutual Non-Disclosure Agreement - Client *"
+              className="w-full px-3 py-1.5 border border-studio-border rounded-lg focus:outline-none focus:border-brand-orange font-medium text-studio-text text-[12.5px] bg-white"
+            />
           </div>
         </div>
 
-        {/* Right Column (8 Cols): Editor & Direct White NDA Document */}
-        <div className="lg:col-span-8 flex flex-col">
-          <div className="bg-white border border-studio-border rounded-xl p-5 shadow-2xs flex-1 flex flex-col justify-between">
-            <div>
-              {/* Header Row */}
-              <div className="flex items-center justify-between border-b border-studio-border pb-2.5 mb-3">
-                <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text">
-                  AGREEMENT TERMS & TEXT CONTENT
-                </h3>
+        {/* Two Columns inside single merged container */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column (8 Cols): AGREEMENT TERMS & TEXT CONTENT */}
+          <div className="lg:col-span-8 flex flex-col space-y-3">
+            {/* Header Row (Perfectly aligned with Right Header) */}
+            <div className="flex items-center justify-between border-b border-studio-border pb-2.5 h-9">
+              <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text leading-none">
+                AGREEMENT TERMS & TEXT CONTENT
+              </h3>
 
-                <button
-                  type="button"
-                  onClick={resetToDefaultTemplate}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-white border border-studio-border hover:bg-slate-50 text-studio-text rounded-lg text-[11.5px] font-semibold transition-colors shadow-2xs shrink-0 cursor-pointer"
-                  title="Reset to default legal text"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-brand-orange" /> Reset Legal Template
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={resetToDefaultTemplate}
+                className="flex items-center gap-1.5 px-3 py-1 bg-white border border-studio-border hover:bg-slate-50 text-studio-text rounded-lg text-[11.5px] font-semibold transition-colors shadow-2xs shrink-0 cursor-pointer leading-none"
+                title="Reset to default legal text"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-brand-orange" /> Reset Legal Template
+              </button>
+            </div>
 
-              {/* Functional Rich Text Editor Toolbar */}
-              <div className="bg-slate-50 border border-studio-border rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap shadow-2xs text-slate-600 mb-4">
-                <button
-                  type="button"
-                  onClick={() => execCmd('undo')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Undo"
-                >
-                  <Undo2 className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('redo')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Redo"
-                >
-                  <Redo2 className="w-4 h-4" />
-                </button>
+            {/* Functional Rich Text Editor Toolbar */}
+            <div className="bg-slate-50 border border-studio-border rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap shadow-2xs text-slate-600">
+              <button
+                type="button"
+                onClick={() => execCmd('undo')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Undo"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('redo')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Redo"
+              >
+                <Redo2 className="w-4 h-4" />
+              </button>
 
-                <div className="w-px h-5 bg-slate-300 mx-0.5" />
+              <div className="w-px h-5 bg-slate-300 mx-0.5" />
 
-                <button
-                  type="button"
-                  onClick={() => execCmd('bold')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors font-bold"
-                  title="Bold"
-                >
-                  <Bold className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('italic')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Italic"
-                >
-                  <Italic className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('underline')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Underline"
-                >
-                  <Underline className="w-4 h-4" />
-                </button>
+              <button
+                type="button"
+                onClick={() => execCmd('bold')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors font-bold"
+                title="Bold"
+              >
+                <Bold className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('italic')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Italic"
+              >
+                <Italic className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('underline')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Underline"
+              >
+                <Underline className="w-4 h-4" />
+              </button>
 
-                <div className="w-px h-5 bg-slate-300 mx-0.5" />
+              <div className="w-px h-5 bg-slate-300 mx-0.5" />
 
-                <button
-                  type="button"
-                  onClick={() => execCmd('justifyLeft')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Align Left"
-                >
-                  <AlignLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('justifyCenter')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Align Center"
-                >
-                  <AlignCenter className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('justifyRight')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Align Right"
-                >
-                  <AlignRight className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('justifyFull')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Justify"
-                >
-                  <AlignJustify className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('strikeThrough')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Strikethrough"
-                >
-                  <Strikethrough className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('foreColor', '#ea580c')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Text Color"
-                >
-                  <Baseline className="w-4 h-4" />
-                </button>
+              <button
+                type="button"
+                onClick={() => execCmd('justifyLeft')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Align Left"
+              >
+                <AlignLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('justifyCenter')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Align Center"
+              >
+                <AlignCenter className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('justifyRight')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Align Right"
+              >
+                <AlignRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('justifyFull')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Justify"
+              >
+                <AlignJustify className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('strikeThrough')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Strikethrough"
+              >
+                <Strikethrough className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('foreColor', '#ea580c')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Text Color"
+              >
+                <Baseline className="w-4 h-4" />
+              </button>
 
-                <div className="w-px h-5 bg-slate-300 mx-0.5" />
+              <div className="w-px h-5 bg-slate-300 mx-0.5" />
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    const url = prompt('Enter image URL:');
-                    if (url) execCmd('insertImage', url);
-                  }}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Insert Image"
-                >
-                  <ImageIcon className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const url = prompt('Enter link URL:');
-                    if (url) execCmd('createLink', url);
-                  }}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Insert Link"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('formatBlock', 'pre')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Code"
-                >
-                  <Code className="w-4 h-4" />
-                </button>
-
-                <div className="w-px h-5 bg-slate-300 mx-0.5" />
-
-                <button
-                  type="button"
-                  onClick={() => execCmd('insertUnorderedList')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Bullet List"
-                >
-                  <List className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('insertOrderedList')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Numbered List"
-                >
-                  <ListOrdered className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => execCmd('formatBlock', 'blockquote')}
-                  className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
-                  title="Quote"
-                >
-                  <Quote className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Direct Main White Document Page with internal vertical scroll (NO Extra Grey Container!) */}
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={() => {
-                  if (editorRef.current) {
-                    setDocumentContent(editorRef.current.innerHTML);
-                  }
+              <button
+                type="button"
+                onClick={() => {
+                  const url = prompt('Enter image URL:');
+                  if (url) execCmd('insertImage', url);
                 }}
-                className="w-full bg-white border border-studio-border rounded-lg p-7 sm:p-10 text-slate-900 font-sans leading-[1.7] text-[13px] focus:outline-none focus:border-brand-orange overflow-y-auto max-h-[460px] min-h-[460px] select-text shadow-2xs"
-              />
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Insert Image"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = prompt('Enter link URL:');
+                  if (url) execCmd('createLink', url);
+                }}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Insert Link"
+              >
+                <LinkIcon className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('formatBlock', 'pre')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Code"
+              >
+                <Code className="w-4 h-4" />
+              </button>
+
+              <div className="w-px h-5 bg-slate-300 mx-0.5" />
+
+              <button
+                type="button"
+                onClick={() => execCmd('insertUnorderedList')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Bullet List"
+              >
+                <List className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('insertOrderedList')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => execCmd('formatBlock', 'blockquote')}
+                className="p-1.5 hover:bg-slate-200/60 rounded text-slate-600 hover:text-slate-900 cursor-pointer transition-colors"
+                title="Quote"
+              >
+                <Quote className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Direct Main White Document Page */}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={() => {
+                if (editorRef.current) {
+                  setDocumentContent(editorRef.current.innerHTML);
+                }
+              }}
+              className="w-full bg-white border border-studio-border rounded-lg p-7 sm:p-10 text-slate-900 font-sans leading-[1.7] text-[13px] focus:outline-none focus:border-brand-orange overflow-y-auto max-h-[460px] min-h-[460px] select-text shadow-2xs"
+            />
+          </div>
+
+          {/* Right Column (4 Cols): ASSIGN EMPLOYEES */}
+          <div className="lg:col-span-4 flex flex-col space-y-3">
+            {/* Header Row (Perfectly aligned with Left Header) */}
+            <div className="flex items-center justify-between border-b border-studio-border pb-2.5 h-9">
+              <h3 className="text-[13px] font-bold uppercase tracking-wider text-studio-text leading-none">
+                ASSIGN EMPLOYEES ({selectedEmployees.length}) <span className="text-red-500">*</span>
+              </h3>
+              <button
+                type="button"
+                onClick={handleSelectAllEmployees}
+                className="text-[11.5px] font-bold text-brand-orange hover:underline cursor-pointer leading-none"
+              >
+                {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            {/* Employee Checkbox List */}
+            <div className="border border-studio-border rounded-lg divide-y divide-studio-border/50 max-h-[535px] overflow-y-auto bg-studio-sidebar/20">
+              {employees.length === 0 ? (
+                <p className="text-[12px] text-studio-muted italic p-4 text-center">No employees found.</p>
+              ) : (
+                employees.map((emp) => {
+                  const isChecked = selectedEmployees.includes(emp.employeeId);
+                  return (
+                    <label
+                      key={emp.employeeId}
+                      className={`flex items-center justify-between py-2 px-3 cursor-pointer transition-colors ${
+                        isChecked ? 'bg-orange-50/60 font-semibold' : 'hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleEmployee(emp.employeeId)}
+                          className="rounded text-brand-orange focus:ring-brand-orange cursor-pointer w-4 h-4 shrink-0"
+                        />
+                        <div className="truncate">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[12.5px] text-studio-text font-semibold truncate">{emp.fullName}</span>
+                            <span className="text-[10px] font-mono font-bold text-slate-600 px-1.5 py-0.2 rounded bg-slate-100 border border-slate-200 shrink-0">
+                              {emp.employeeId}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-studio-muted font-mono truncate">
+                            {emp.personalEmail || emp.email || 'No email registered'}
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -605,3 +557,4 @@ export default function CreateNdaFormView({
     </div>
   );
 }
+
