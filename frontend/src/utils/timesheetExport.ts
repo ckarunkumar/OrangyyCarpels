@@ -122,7 +122,7 @@ export function exportTimesheetToPDF(
             <img src="${logoUrl}" alt="orangyy design." class="logo-img" />
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 16px; font-weight: 700; color: #111827;">${project.projectName}</div>
+            <div style="font-size: 16px; font-weight: 700; color: #111827;">${project.client || project.clientName || '—'}</div>
           </div>
         </div>
 
