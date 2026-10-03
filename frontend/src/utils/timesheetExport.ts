@@ -69,7 +69,7 @@ export function exportTimesheetToPDF(
   project: ProjectTimesheetItem,
   month: string,
   entries: ExportEntry[],
-  totalHours: number
+  _totalHours?: number
 ) {
   const monthName = formatMonthName(month);
 
@@ -79,13 +79,18 @@ export function exportTimesheetToPDF(
     return;
   }
 
-  const validEntries = entries.filter((e) => (e.hours || 0) > 0 || (e.description && e.description.trim() !== ''));
+  // Filter out days with 0 hours logged and empty descriptions
+  const validEntries = entries.filter((e) => (Number(e.hours) || 0) > 0);
+
+  // Recalculate actual total hours from included work log entries
+  const actualTotalHours = validEntries.reduce((sum, e) => sum + (Number(e.hours) || 0), 0);
 
   const rowsHtml = validEntries
     .map(
       (e) => `
       <tr style="border-bottom: 1px solid #e5e7eb; font-size: 11px;">
         <td style="padding: 8px 10px; font-weight: 600; text-align: left; white-space: nowrap;">${e.dayLabel || e.date}</td>
+        <td style="padding: 8px 10px; font-weight: 600; color: #111827;">${e.resourceName || '—'}</td>
         <td style="padding: 8px 10px; color: #374151;">${e.description || '—'}</td>
         <td style="padding: 8px 10px; text-align: right; font-family: monospace; font-weight: 700;">${e.hours || 0}h</td>
       </tr>`
@@ -117,22 +122,22 @@ export function exportTimesheetToPDF(
             <img src="${logoUrl}" alt="orangyy design." class="logo-img" />
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 15px; font-weight: 700; color: #111827;">${project.projectName}</div>
-            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Project ID: <span style="font-family: monospace; font-weight: 600;">${project.id}</span></div>
+            <div style="font-size: 16px; font-weight: 700; color: #111827;">${project.projectName}</div>
           </div>
         </div>
 
         <div class="grid-meta">
-          <div class="meta-item"><label>Client</label><span>${project.client || project.clientName || '—'}</span></div>
+          <div class="meta-item"><label>Project Name</label><span>${project.projectName}</span></div>
           <div class="meta-item"><label>Month / Period</label><span>${monthName}</span></div>
-          <div class="meta-item"><label>Total Hours</label><span style="color: #FF5C00; font-weight: 700;">${totalHours}h</span></div>
+          <div class="meta-item"><label>Total Hours</label><span style="color: #FF5C00; font-weight: 700;">${actualTotalHours}h</span></div>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th style="width: 25%;">Date</th>
-              <th style="width: 60%;">Work Description</th>
+              <th style="width: 20%;">Date</th>
+              <th style="width: 20%;">Resource</th>
+              <th style="width: 45%;">Work Description</th>
               <th style="width: 15%; text-align: right;">Hours Logged</th>
             </tr>
           </thead>
@@ -144,7 +149,7 @@ export function exportTimesheetToPDF(
             Time Sheet Generated on ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} via Orangyy Carpels
           </div>
           <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: 700;">
-            TOTAL HOURS: <span style="color: #FF5C00; font-family: monospace;">${totalHours}h</span>
+            TOTAL HOURS: <span style="color: #FF5C00; font-family: monospace;">${actualTotalHours}h</span>
           </div>
         </div>
 
