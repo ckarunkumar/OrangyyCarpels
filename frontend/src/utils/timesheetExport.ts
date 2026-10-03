@@ -17,6 +17,21 @@ const formatMonthName = (monthStr: string) => {
   return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 };
 
+function parseDateAndDay(dayLabel: string, dateStr: string) {
+  if (dayLabel) {
+    const match = dayLabel.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+    if (match) {
+      const datePart = match[1].trim();
+      const dayPart = match[2] ? match[2].trim() : '';
+      if (dayPart) return { date: datePart, day: dayPart };
+    }
+  }
+  const dObj = new Date(dateStr);
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayPart = !isNaN(dObj.getTime()) ? days[dObj.getDay()] : '';
+  return { date: dayLabel || dateStr, day: dayPart };
+}
+
 /**
  * Exports timesheet data to a structured CSV / Excel spreadsheet.
  */
@@ -24,32 +39,35 @@ export function exportTimesheetToExcel(
   project: ProjectTimesheetItem,
   month: string,
   entries: ExportEntry[],
-  totalHours: number
+  _totalHours?: number
 ) {
   const monthName = formatMonthName(month);
+  const validEntries = entries.filter((e) => (Number(e.hours) || 0) > 0);
+  const actualTotal = validEntries.reduce((sum, e) => sum + (Number(e.hours) || 0), 0);
 
   const rows: string[][] = [
     ['ORANGYY DESIGN — MONTHLY TIMESHEET REPORT'],
     [''],
-    ['Client', project.client || project.clientName || '', 'Month / Period', monthName],
-    ['Total Hours', `${totalHours}h`],
+    ['Project Name', project.projectName || '', 'Month / Period', monthName],
+    ['Total Hours', `${actualTotal}h`],
     [''],
-    ['Date', 'Work Description', 'Hours Logged'],
+    ['Date', 'Day', 'Time', 'Remark', 'Resource'],
   ];
 
-  const validEntries = entries.filter((e) => (e.hours || 0) > 0 || (e.description && e.description.trim() !== ''));
-
   validEntries.forEach((e) => {
+    const { date, day } = parseDateAndDay(e.dayLabel, e.date);
     rows.push([
-      e.dayLabel || e.date,
+      date,
+      day,
+      String(e.hours || 0),
       `"${(e.description || '—').replace(/"/g, '""')}"`,
-      `${e.hours || 0}h`,
+      `"${(e.resourceName || '—').replace(/"/g, '""')}"`,
     ]);
   });
 
   rows.push(['']);
-  rows.push(['TOTAL HOURS', '', `${totalHours}h`]);
-  rows.push(['EXPORTED AT', '', new Date().toLocaleString()]);
+  rows.push(['', '', `${actualTotal}h`, 'TOTAL HOURS', '']);
+  rows.push(['EXPORTED AT', '', new Date().toLocaleString(), '', '']);
 
   const csvContent = '\uFEFF' + rows.map((r) => r.join(',')).join('\r\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -127,9 +145,9 @@ export function exportTimesheetToPDF(
         </div>
 
         <div class="grid-meta">
-          <div class="meta-item"><label>Project Name</label><span>${project.projectName}</span></div>
-          <div class="meta-item"><label>Month / Period</label><span>${monthName}</span></div>
-          <div class="meta-item"><label>Total Hours</label><span style="color: #FF5C00; font-weight: 700;">${actualTotalHours}h</span></div>
+          <div class="meta-item" style="text-align: left;"><label>Project Name</label><span>${project.projectName}</span></div>
+          <div class="meta-item" style="text-align: center;"><label>Month / Period</label><span>${monthName}</span></div>
+          <div class="meta-item" style="text-align: right;"><label>Total Hours</label><span style="color: #FF5C00; font-weight: 700;">${actualTotalHours}h</span></div>
         </div>
 
         <table>
