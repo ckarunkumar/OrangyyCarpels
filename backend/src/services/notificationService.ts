@@ -8,6 +8,7 @@ export interface NotificationItem {
   message: string;
   type: string;
   projectId?: string | null;
+  ndaId?: string | null;
   isRead: boolean;
   readAt?: Date | null;
   createdAt: Date;
@@ -113,6 +114,7 @@ export class NotificationService {
     message: string;
     type: string;
     projectId?: string;
+    ndaId?: string;
   }): Promise<NotificationItem> {
     return prisma.notification.create({
       data: {
@@ -122,6 +124,7 @@ export class NotificationService {
         message: data.message,
         type: data.type,
         projectId: data.projectId || '',
+        ndaId: data.ndaId || '',
         isRead: false,
       },
     });

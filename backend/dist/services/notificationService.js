@@ -97,6 +97,7 @@ class NotificationService {
                 message: data.message,
                 type: data.type,
                 projectId: data.projectId || '',
+                ndaId: data.ndaId || '',
                 isRead: false,
             },
         });

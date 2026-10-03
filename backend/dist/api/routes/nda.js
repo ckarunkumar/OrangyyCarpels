@@ -113,9 +113,19 @@ const ndaRoutes = async (fastify) => {
             if (!client) {
                 return reply.status(404).send({ error: 'Client not found' });
             }
-            // Auto-generate NDA code (e.g. NDA0001)
-            const count = await prisma_1.prisma.nDA.count();
-            const ndaCode = `NDA${String(count + 1).padStart(4, '0')}`;
+            // Auto-generate unique NDA code (e.g. NDA0005)
+            const allNdas = await prisma_1.prisma.nDA.findMany({ select: { ndaCode: true } });
+            let maxNum = 0;
+            for (const n of allNdas) {
+                const match = (n.ndaCode || '').match(/^NDA(\d+)$/i);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    if (num > maxNum)
+                        maxNum = num;
+                }
+            }
+            const nextNum = maxNum + 1;
+            const ndaCode = `NDA${String(nextNum).padStart(4, '0')}`;
             const createdBy = request.user?.userId ? String(request.user.userId) : 'SA';
             const nda = await prisma_1.prisma.nDA.create({
                 data: {
